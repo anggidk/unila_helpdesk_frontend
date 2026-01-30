@@ -178,6 +178,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     controller: _passwordController,
                                     enabled: !_isLoading,
                                     obscureText: true,
+                                    textInputAction: TextInputAction.done,
+                                    onFieldSubmitted: (_) => _signIn(),
                                     decoration: const InputDecoration(
                                       labelText: 'Password',
                                       hintText: 'Masukkan password',
