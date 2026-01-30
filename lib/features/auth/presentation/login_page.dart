@@ -20,6 +20,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -28,10 +29,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
-  void _signIn() {
+  Future<void> _signIn() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
     // Validasi form
     if (!_formKey.currentState!.validate()) {
-      return; // Hentikan jika validasi gagal
+      setState(() => _isLoading = false);
+      return;
     }
 
     final entity = ref.read(loginEntityProvider);
@@ -54,12 +58,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     } else {
       context.goNamed(AppRouteNames.userShell, extra: user);
     }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final entity = ref.watch(loginEntityProvider);
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -68,22 +75,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 12),
-              CircleAvatar(
-                radius: 38,
-                backgroundColor: AppTheme.surface,
-                child: Icon(
-                  Icons.support_agent,
-                  size: 38,
-                  color: AppTheme.navy,
-                ),
+              Image.asset(
+                'assets/logo/Logo_unila.png',
+                width: 80,
+                height: 80,
+                errorBuilder: (context, error, stackTrace) {
+                  return CircleAvatar(
+                    radius: 38,
+                    backgroundColor: AppTheme.surface,
+                    child: Icon(Icons.school, size: 40),
+                  );
+                },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(
-                'Helpdesk Unila',
-                style: textTheme.headlineMedium?.copyWith(
+                'HELPDESK TIK UNILA',
+                style: textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              const SizedBox(height: 8),
               Text(
                 'Layanan Bantuan TI Unila',
                 style: textTheme.bodyMedium?.copyWith(
@@ -123,10 +134,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               const SizedBox(height: 16),
               Form(
                 key: _formKey,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Column(
                   children: [
                     TextFormField(
                       controller: _usernameController,
+                      enabled: !_isLoading,
                       decoration: const InputDecoration(
                         labelText: 'Username',
                         hintText: 'Masukkan username',
@@ -141,6 +154,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _passwordController,
+                      enabled: !_isLoading,
                       obscureText: true,
                       decoration: const InputDecoration(
                         labelText: 'Password',
@@ -161,19 +175,80 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _signIn,
-                  child: const Text('LOGIN'),
+                  onPressed: _isLoading ? null : _signIn,
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('LOGIN'),
                 ),
               ),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () {},
+                onPressed: () => context.pushNamed(AppRouteNames.guestTicket),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 child: const Text('Lupa Password SSO?'),
               ),
               const SizedBox(height: 8),
-              Text(
-                'Registrasi SSO - Registrasi Email @unila.ac.id',
-                style: textTheme.bodySmall?.copyWith(color: AppTheme.textMuted),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () =>
+                        context.pushNamed(AppRouteNames.guestTicket),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      'Registrasi SSO',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '|',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        context.pushNamed(AppRouteNames.guestTicket),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      'Registrasi Email @unila.ac.id',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
               Row(
@@ -186,7 +261,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   Expanded(child: Divider()),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -195,6 +270,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   icon: const Icon(Icons.search),
                   label: const Text('Lacak Tiket'),
                 ),
+              ),
+              const SizedBox(height: 24),
+              Column(
+                children: [
+                  Text(
+                    '© ${DateTime.now().year} All RIGHT RESERVED',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textMuted,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
