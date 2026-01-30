@@ -18,7 +18,7 @@ class UserShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentIndex = ref.watch(userShellIndexProvider);
+    final index = ref.watch(userShellIndexProvider);
     final pages = [
       HomePage(user: user),
       TicketListPage(user: user),
@@ -27,10 +27,7 @@ class UserShell extends ConsumerWidget {
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: currentIndex,
-        children: pages,
-      ),
+      body: IndexedStack(index: index, children: pages),
       bottomNavigationBar: Style15BottomNavBar(
         items: const [
           Style15NavItem(icon: Icons.home_outlined, label: 'Home'),
@@ -38,8 +35,9 @@ class UserShell extends ConsumerWidget {
           Style15NavItem(icon: Icons.chat_bubble_outline, label: 'Feedback'),
           Style15NavItem(icon: Icons.person_outline, label: 'Profil'),
         ],
-        currentIndex: currentIndex,
-        onTap: (index) => ref.read(userShellIndexProvider.notifier).state = index,
+        currentIndex: index,
+        onTap: (value) =>
+            ref.read(userShellIndexProvider.notifier).state = value,
         middleItem: const Style15NavItem(icon: Icons.add, label: 'Tambah'),
         onMiddleTap: () => context.pushNamed(AppRouteNames.ticketForm),
       ),
