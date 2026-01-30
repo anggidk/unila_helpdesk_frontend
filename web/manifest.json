@@ -1,6 +1,6 @@
 {
-    "name": "unila_helpdesk_frontend",
-    "short_name": "unila_helpdesk_frontend",
+    "name": "Helpdesk TIK Unila",
+    "short_name": "Helpdesk TIK Unila",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
