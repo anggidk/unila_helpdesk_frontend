@@ -18,6 +18,7 @@ class GuestTrackingPage extends ConsumerStatefulWidget {
 }
 
 class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
+  final _formKey = GlobalKey<FormState>();
   final _controller = TextEditingController();
 
   @override
@@ -27,6 +28,9 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
   }
 
   void _searchTicket() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
     final query = _controller.text.trim().toLowerCase();
     Ticket? ticket;
     for (final item in ref.read(ticketsProvider)) {
@@ -40,9 +44,9 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
       ref.read(guestTrackingFoundTicketProvider.notifier).state = ticket;
     } else {
       ref.read(guestTrackingFoundTicketProvider.notifier).state = null;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Ticket tidak ditemukan.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ticket tidak ditemukan.')),
+      );
     }
   }
 
@@ -55,6 +59,10 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          const _InfoBanner(
+            text: 'Masukkan nomor tiket untuk melacak status laporan.',
+          ),
+          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -67,34 +75,34 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
                 const CircleAvatar(
                   radius: 38,
                   backgroundColor: AppTheme.surface,
-                  child: Icon(
-                    Icons.search,
-                    color: AppTheme.accentBlue,
-                    size: 36,
-                  ),
+                  child: Icon(Icons.search, color: AppTheme.accentBlue, size: 36),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'Check Ticket Status',
-                  style: textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                Text('Check Ticket Status',
+                    style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 Text(
                   'Masukkan tracking ID dari email konfirmasi.',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textMuted,
-                  ),
+                  style: textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: _controller,
-                  decoration: const InputDecoration(
-                    labelText: 'Tracking ID',
-                    hintText: 'contoh: UNILA-2026-001',
-                    prefixIcon: Icon(Icons.tag),
+                Form(
+                  key: _formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: TextFormField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      labelText: 'Tracking ID',
+                      hintText: 'contoh: UNILA-2026-001',
+                      prefixIcon: Icon(Icons.tag),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Masukkan nomor tiket';
+                      }
+                      return null;
+                    },
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -111,19 +119,20 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
           ),
           if (foundTicket != null) ...[
             const SizedBox(height: 24),
-            Text(
-              'Hasil Pencarian',
-              style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
+            Text('Hasil Pencarian',
+                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             _FoundTicketTile(
               ticket: foundTicket,
-              onTap: () => context.pushNamed(
-                AppRouteNames.ticketDetail,
-                extra: foundTicket,
-              ),
+              onTap: () => context.pushNamed(AppRouteNames.ticketDetail, extra: foundTicket),
             ),
           ],
+          const SizedBox(height: 24),
+          Text(
+            'Lupa nomor tracking? Hubungi support helpdesk.',
+            style: textTheme.bodySmall?.copyWith(color: AppTheme.textMuted),
+            textAlign: TextAlign.center,
+          ),
           if (foundTicket == null && _controller.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -133,6 +142,39 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
                 textAlign: TextAlign.center,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.accentBlue.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.accentBlue.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info, color: AppTheme.accentBlue),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: AppTheme.accentBlue),
+            ),
+          ),
         ],
       ),
     );
@@ -161,25 +203,16 @@ class _FoundTicketTile extends StatelessWidget {
           children: [
             const CircleAvatar(
               backgroundColor: AppTheme.surface,
-              child: Icon(
-                Icons.confirmation_number_outlined,
-                color: AppTheme.textMuted,
-              ),
+              child: Icon(Icons.confirmation_number_outlined, color: AppTheme.textMuted),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    ticket.id,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
+                  Text(ticket.id, style: const TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  Text(
-                    ticket.title,
-                    style: const TextStyle(color: AppTheme.textMuted),
-                  ),
+                  Text(ticket.title, style: const TextStyle(color: AppTheme.textMuted)),
                 ],
               ),
             ),
