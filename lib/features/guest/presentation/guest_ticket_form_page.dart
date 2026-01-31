@@ -21,11 +21,16 @@ class GuestTicketFormPage extends ConsumerStatefulWidget {
 }
 
 class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _idController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _descriptionController = TextEditingController();
+  String? _statusUser;
+  bool _identityUploaded = false;
+  bool _selfieUploaded = false;
+  bool _attachmentsError = false;
 
   @override
   void dispose() {
@@ -38,6 +43,14 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
   }
 
   void _submit() {
+    final isValid = _formKey.currentState!.validate();
+    final attachmentsValid = _identityUploaded && _selfieUploaded;
+    if (!attachmentsValid) {
+      setState(() => _attachmentsError = true);
+    }
+    if (!isValid || !attachmentsValid) {
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Laporan guest berhasil dikirim (mock).')),
     );
@@ -55,132 +68,267 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          _InfoBanner(
+            text:
+                'Silakan isi formulir di bawah ini untuk melaporkan masalah tanpa login. Laporan Anda akan diproses oleh tim helpdesk kami.',
+          ),
           const SizedBox(height: 16),
-          Text(
-            'Informasi Tiket',
-            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: selectedCategory,
-            items: categories
-                .map(
-                  (category) => DropdownMenuItem(
-                    value: category.id,
-                    child: Text(category.name),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) =>
-                ref.read(guestTicketSelectedCategoryProvider.notifier).state =
-                    value,
-            decoration: const InputDecoration(labelText: 'Jenis Layanan'),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Prioritas',
-            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: TicketPriority.values.map((priority) {
-              final isSelected = selectedPriority == priority;
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: OutlinedButton(
-                    onPressed: () =>
-                        ref.read(guestTicketPriorityProvider.notifier).state =
-                            priority,
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: isSelected
-                          ? AppTheme.navy
-                          : Colors.white,
-                      foregroundColor: isSelected
-                          ? Colors.white
-                          : AppTheme.navy,
-                    ),
-                    child: Text(priority.label),
+          Form(
+            key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            child: Column(
+              children: [
+                _SectionCard(
+                  title: 'INFORMASI TIKET',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _RequiredLabel(text: 'Jenis Layanan'),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: selectedCategory,
+                        items: categories
+                            .map(
+                              (category) => DropdownMenuItem(
+                                value: category.id,
+                                child: Text(category.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) => ref
+                            .read(guestTicketSelectedCategoryProvider.notifier)
+                            .state = value,
+                        decoration: const InputDecoration(
+                          hintText: '--Pilih Layanan--',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Jenis layanan wajib dipilih';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      const _RequiredLabel(text: 'Prioritas'),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: TicketPriority.values.map((priority) {
+                          final isSelected = selectedPriority == priority;
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                right: priority == TicketPriority.high ? 0 : 8,
+                              ),
+                              child: _PriorityChip(
+                                label: priority.label,
+                                selected: isSelected,
+                                onTap: () => ref
+                                    .read(
+                                      guestTicketPriorityProvider.notifier,
+                                    )
+                                    .state = priority,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Informasi Pelapor',
-            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Nama Lengkap'),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: 'Mahasiswa',
-            items: const [
-              DropdownMenuItem(value: 'Mahasiswa', child: Text('Mahasiswa')),
-              DropdownMenuItem(value: 'Dosen', child: Text('Dosen')),
-              DropdownMenuItem(value: 'Tendik', child: Text('Tendik')),
-            ],
-            onChanged: (_) {},
-            decoration: const InputDecoration(labelText: 'Status User'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _idController,
-            decoration: const InputDecoration(labelText: 'No. Identitas'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _emailController,
-            decoration: const InputDecoration(
-              labelText: 'Email Aktif (Bukan @unila.ac.id)',
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _phoneController,
-            decoration: const InputDecoration(labelText: 'No. Telepon'),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Detail Masalah',
-            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _descriptionController,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Deskripsi Masalah',
-              hintText: 'Jelaskan kendala secara detail',
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Lampiran',
-            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          _AttachmentTile(
-            title: 'Kartu Identitas',
-            subtitle: 'JPG, PNG (Max 2MB)',
-            icon: Icons.badge_outlined,
-          ),
-          const SizedBox(height: 12),
-          _AttachmentTile(
-            title: 'Selfie dengan Kartu Identitas',
-            subtitle: 'JPG, PNG (Max 2MB)',
-            icon: Icons.camera_alt_outlined,
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _submit,
-              child: const Text('KIRIM LAPORAN'),
+                const SizedBox(height: 16),
+                _SectionCard(
+                  title: 'INFORMASI PELAPOR',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _RequiredLabel(text: 'Nama Lengkap'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          hintText: 'Masukkan nama lengkap',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Nama lengkap wajib diisi';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      const _RequiredLabel(text: 'Status User'),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _statusUser,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'Mahasiswa',
+                            child: Text('Mahasiswa'),
+                          ),
+                          DropdownMenuItem(value: 'Dosen', child: Text('Dosen')),
+                          DropdownMenuItem(
+                            value: 'Tendik',
+                            child: Text('Tendik'),
+                          ),
+                        ],
+                        onChanged: (value) => setState(() {
+                          _statusUser = value;
+                        }),
+                        decoration: const InputDecoration(
+                          hintText: '--Pilih Status--',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Status user wajib dipilih';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      const _RequiredLabel(text: 'No. Identitas'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _idController,
+                        decoration: const InputDecoration(
+                          hintText: 'NPM / NIP / NIK',
+                          prefixIcon: Icon(Icons.badge_outlined),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'No. identitas wajib diisi';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No KTM (Mahasiswa) / NIP / NIK / SK Pengangkatan',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const _RequiredLabel(text: 'Email Aktif'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          hintText: 'contoh@email.com',
+                          prefixIcon: Icon(Icons.mail_outline),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Email aktif wajib diisi';
+                          }
+                          if (!value.contains('@')) {
+                            return 'Email tidak valid';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Bukan email @unila.ac.id',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const _RequiredLabel(text: 'No. Telepon'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          hintText: '0812...',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'No. telepon wajib diisi';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _SectionCard(
+                  title: 'DETAIL MASALAH',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _RequiredLabel(text: 'Deskripsi Masalah'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _descriptionController,
+                        maxLines: 4,
+                        decoration: const InputDecoration(
+                          hintText:
+                              'Jelaskan kendala yang Anda alami secara detail...',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Deskripsi masalah wajib diisi';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Lampiran',
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const _RequiredLabel(text: 'Wajib diisi'),
+                      const SizedBox(height: 8),
+                      _UploadTile(
+                        title: 'Foto KTM / ID Card / SK Pengangkatan',
+                        subtitle: 'JPG, PNG (Max 2MB)',
+                        icon: Icons.badge_outlined,
+                        isUploaded: _identityUploaded,
+                        onTap: () => setState(() {
+                          _identityUploaded = true;
+                          _attachmentsError = false;
+                        }),
+                      ),
+                      const SizedBox(height: 12),
+                      _UploadTile(
+                        title: 'Swafoto (Selfie) dengan KTM',
+                        subtitle: 'JPG, PNG (Max 2MB)',
+                        icon: Icons.camera_alt_outlined,
+                        isUploaded: _selfieUploaded,
+                        onTap: () => setState(() {
+                          _selfieUploaded = true;
+                          _attachmentsError = false;
+                        }),
+                      ),
+                      if (_attachmentsError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            'Lampiran wajib diisi.',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: AppTheme.danger,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _submit,
+                    child: const Text('KIRIM LAPORAN'),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -189,51 +337,228 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
   }
 }
 
-class _AttachmentTile extends StatelessWidget {
-  const _AttachmentTile({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner({required this.text});
 
-  final String title;
-  final String subtitle;
-  final IconData icon;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.accentBlue.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.outline, style: BorderStyle.solid),
+        border: Border.all(
+          color: AppTheme.accentBlue.withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            backgroundColor: Colors.white,
-            child: Icon(icon, color: AppTheme.navy),
-          ),
+          const Icon(Icons.info, color: AppTheme.accentBlue),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: AppTheme.textMuted),
-                ),
-              ],
+            child: Text(
+              text,
+              style: const TextStyle(color: AppTheme.accentBlue),
             ),
           ),
-          const Icon(Icons.upload_file, color: AppTheme.textMuted),
         ],
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: textTheme.titleSmall?.copyWith(
+              color: AppTheme.textMuted,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _RequiredLabel extends StatelessWidget {
+  const _RequiredLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return RichText(
+      text: TextSpan(
+        style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+        children: [
+          TextSpan(text: text),
+          const TextSpan(
+            text: ' *',
+            style: TextStyle(color: AppTheme.danger),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PriorityChip extends StatelessWidget {
+  const _PriorityChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.navy.withValues(alpha: 0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? AppTheme.navy : AppTheme.outline,
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? AppTheme.navy : AppTheme.textMuted,
+                  width: 1.6,
+                ),
+              ),
+              child: selected
+                  ? Center(
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.navy,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? AppTheme.navy : AppTheme.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UploadTile extends StatelessWidget {
+  const _UploadTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.isUploaded,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool isUploaded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isUploaded ? AppTheme.success : AppTheme.outline,
+            style: BorderStyle.solid,
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(icon, color: AppTheme.navy),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              isUploaded ? Icons.check_circle : Icons.upload_file,
+              color: isUploaded ? AppTheme.success : AppTheme.textMuted,
+            ),
+          ],
+        ),
       ),
     );
   }
