@@ -5,7 +5,8 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 
-final ticketFormSelectedCategoryProvider = StateProvider.autoDispose<String?>((ref) => null);
+final ticketFormSelectedCategoryProvider =
+    StateProvider.autoDispose<String?>((ref) => null);
 final ticketFormPriorityProvider =
     StateProvider.autoDispose<TicketPriority>((ref) => TicketPriority.medium);
 
@@ -19,17 +20,21 @@ class TicketFormPage extends ConsumerStatefulWidget {
 }
 
 class _TicketFormPageState extends ConsumerState<TicketFormPage> {
+  final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.existing?.title ?? '');
-    _descriptionController = TextEditingController(text: widget.existing?.description ?? '');
+    _titleController =
+        TextEditingController(text: widget.existing?.title ?? '');
+    _descriptionController =
+        TextEditingController(text: widget.existing?.description ?? '');
     ref.read(ticketFormPriorityProvider.notifier).state =
         widget.existing?.priority ?? TicketPriority.medium;
-    ref.read(ticketFormSelectedCategoryProvider.notifier).state = widget.existing?.category;
+    ref.read(ticketFormSelectedCategoryProvider.notifier).state =
+        widget.existing?.category;
   }
 
   @override
@@ -40,9 +45,16 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
   }
 
   void _submit() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(widget.existing == null ? 'Tiket berhasil dikirim (mock).' : 'Tiket berhasil diperbarui (mock).'),
+        content: Text(
+          widget.existing == null
+              ? 'Tiket berhasil dikirim (mock).'
+              : 'Tiket berhasil diperbarui (mock).',
+        ),
       ),
     );
     context.pop();
@@ -55,6 +67,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     final selectedPriority = ref.watch(ticketFormPriorityProvider);
     final isEditing = widget.existing != null;
     final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(isEditing ? 'Edit Tiket' : 'Buat Tiket Baru'),
@@ -62,94 +75,255 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text('Kategori Layanan', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: selectedCategory,
-            items: categories
-                .map((category) => DropdownMenuItem(
-                      value: category.name,
-                      child: Text(category.name),
-                    ))
-                .toList(),
-            onChanged: (value) => ref.read(ticketFormSelectedCategoryProvider.notifier).state = value,
-            decoration: const InputDecoration(hintText: 'Pilih kategori'),
-          ),
-          const SizedBox(height: 16),
-          Text('Judul Masalah', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(hintText: 'Contoh: Login e-learning gagal'),
-          ),
-          const SizedBox(height: 16),
-          Text('Deskripsi', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _descriptionController,
-            maxLines: 4,
-            decoration: const InputDecoration(hintText: 'Jelaskan masalah secara detail'),
-          ),
-          const SizedBox(height: 16),
-          Text('Prioritas', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          Row(
-            children: TicketPriority.values.map((priority) {
-              final selected = selectedPriority == priority;
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: OutlinedButton(
-                    onPressed: () => ref.read(ticketFormPriorityProvider.notifier).state = priority,
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: selected ? AppTheme.navy : Colors.white,
-                      foregroundColor: selected ? Colors.white : AppTheme.navy,
-                    ),
-                    child: Text(priority.label),
+          Form(
+            key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _RequiredLabel(text: 'Kategori Layanan'),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: selectedCategory,
+                  items: categories
+                      .map(
+                        (category) => DropdownMenuItem(
+                          value: category.name,
+                          child: Text(category.name),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => ref
+                      .read(ticketFormSelectedCategoryProvider.notifier)
+                      .state = value,
+                  decoration: const InputDecoration(
+                    hintText: 'Pilih Kategori... ',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Kategori wajib dipilih';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                const _RequiredLabel(text: 'Judul Masalah'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    hintText: 'Contoh: Login E-Learning Gagal...',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Judul masalah wajib diisi';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                const _RequiredLabel(text: 'Deskripsi'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    hintText: 'Jelaskan masalah anda secara detail...',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Deskripsi wajib diisi';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                const _RequiredLabel(text: 'Prioritas'),
+                const SizedBox(height: 10),
+                Row(
+                  children: TicketPriority.values.map((priority) {
+                    final isSelected = selectedPriority == priority;
+                    return Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          right: priority == TicketPriority.high ? 0 : 8,
+                        ),
+                        child: _PriorityChip(
+                          label: priority.label,
+                          selected: isSelected,
+                          onTap: () => ref
+                              .read(ticketFormPriorityProvider.notifier)
+                              .state = priority,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Lampiran (Opsional)',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-          Text('Lampiran (Opsional)', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.outline, style: BorderStyle.solid),
-            ),
-            child: Row(
-              children: const [
-                CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.attach_file, color: AppTheme.navy),
+                const SizedBox(height: 12),
+                const _AttachmentTile(
+                  title: 'Tambah Lampiran',
+                  subtitle: 'Maks 5MB (JPG, PNG, PDF)',
+                  icon: Icons.attach_file,
                 ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Tambah Lampiran', style: TextStyle(fontWeight: FontWeight.w700)),
-                      SizedBox(height: 4),
-                      Text('Maks 5MB (JPG, PNG, PDF)', style: TextStyle(color: AppTheme.textMuted)),
-                    ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _submit,
+                    child: Text(isEditing ? 'SIMPAN PERUBAHAN' : 'KIRIM TIKET'),
                   ),
                 ),
-                Icon(Icons.upload_file, color: AppTheme.textMuted),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _submit,
-              child: Text(isEditing ? 'SIMPAN PERUBAHAN' : 'KIRIM TIKET'),
+        ],
+      ),
+    );
+  }
+}
+
+class _RequiredLabel extends StatelessWidget {
+  const _RequiredLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return RichText(
+      text: TextSpan(
+        style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+        children: [
+          TextSpan(text: text),
+          const TextSpan(
+            text: ' *',
+            style: TextStyle(color: AppTheme.danger),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PriorityChip extends StatelessWidget {
+  const _PriorityChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.navy.withValues(alpha: 0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? AppTheme.navy : AppTheme.outline,
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? AppTheme.navy : AppTheme.textMuted,
+                  width: 1.6,
+                ),
+              ),
+              child: selected
+                  ? Center(
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.navy,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? AppTheme.navy : AppTheme.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AttachmentTile extends StatelessWidget {
+  const _AttachmentTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.outline, style: BorderStyle.solid),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Icon(icon, color: AppTheme.navy),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+              ],
             ),
           ),
+          const Icon(Icons.upload_file, color: AppTheme.textMuted),
         ],
       ),
     );
