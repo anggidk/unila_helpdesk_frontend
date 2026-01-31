@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 
 final surveyAnswersProvider = StateProvider.autoDispose<Map<String, dynamic>>(
   (ref) => <String, dynamic>{},
+);
+
+final surveyErrorsProvider = StateProvider.autoDispose<Map<String, String>>(
+  (ref) => <String, String>{},
 );
 
 class SurveyPage extends ConsumerWidget {
@@ -18,6 +21,7 @@ class SurveyPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final answers = ref.watch(surveyAnswersProvider);
+    final errors = ref.watch(surveyErrorsProvider);
     final questions = template.questions;
     final progress = questions.isEmpty
         ? 0.0
@@ -73,36 +77,53 @@ class SurveyPage extends ConsumerWidget {
               index: index + 1,
               question: question,
               value: answers[question.id],
+              errorText: errors[question.id],
               onChanged: (value) {
                 ref.read(surveyAnswersProvider.notifier).update((state) {
                   final next = Map<String, dynamic>.from(state);
                   next[question.id] = value;
                   return next;
                 });
+                ref.read(surveyErrorsProvider.notifier).update((state) {
+                  final next = Map<String, String>.from(state);
+                  next.remove(question.id);
+                  return next;
+                });
               },
             );
           }),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => context.pop(),
-                  child: const Text('Sebelumnya'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Survey tersimpan (mock).')),
-                    );
-                  },
-                  child: const Text('Selanjutnya'),
-                ),
-              ),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                final nextErrors = <String, String>{};
+                for (final question in questions) {
+                  final value = answers[question.id];
+                  final isEmptyText =
+                      question.type == SurveyQuestionType.text &&
+                          (value == null || value.toString().trim().isEmpty);
+                  if (value == null || isEmptyText) {
+                    nextErrors[question.id] = 'Jawaban wajib diisi.';
+                  }
+                }
+
+                if (nextErrors.isNotEmpty) {
+                  ref.read(surveyErrorsProvider.notifier).state = nextErrors;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Mohon lengkapi semua jawaban.'),
+                    ),
+                  );
+                  return;
+                }
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Survey tersimpan (mock).')),
+                );
+              },
+              child: const Text('KIRIM'),
+            ),
           ),
         ],
       ),
@@ -116,12 +137,14 @@ class _SurveyQuestionCard extends StatelessWidget {
     required this.question,
     required this.value,
     required this.onChanged,
+    required this.errorText,
   });
 
   final int index;
   final SurveyQuestion question;
   final dynamic value;
   final ValueChanged<dynamic> onChanged;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -136,9 +159,20 @@ class _SurveyQuestionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '$index. ${question.text}',
-            style: const TextStyle(fontWeight: FontWeight.w700),
+          RichText(
+            text: TextSpan(
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimary,
+              ),
+              children: [
+                TextSpan(text: '$index. ${question.text}'),
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: AppTheme.danger),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           if (question.type == SurveyQuestionType.likert)
@@ -154,12 +188,12 @@ class _SurveyQuestionCard extends StatelessWidget {
                       score == 1
                           ? 'Sangat Tidak Puas'
                           : score == 2
-                          ? 'Tidak Puas'
-                          : score == 3
-                          ? 'Netral'
-                          : score == 4
-                          ? 'Puas'
-                          : 'Sangat Puas',
+                              ? 'Tidak Puas'
+                              : score == 3
+                                  ? 'Netral'
+                                  : score == 4
+                                      ? 'Puas'
+                                      : 'Sangat Puas',
                     ),
                   );
                 }),
@@ -205,6 +239,14 @@ class _SurveyQuestionCard extends StatelessWidget {
               maxLines: 3,
               decoration: const InputDecoration(hintText: 'Tulis jawaban Anda'),
               onChanged: (val) => onChanged(val),
+            ),
+          if (errorText != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                errorText!,
+                style: const TextStyle(color: AppTheme.danger),
+              ),
             ),
         ],
       ),
