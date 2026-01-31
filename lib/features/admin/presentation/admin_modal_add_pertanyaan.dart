@@ -122,7 +122,7 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<SurveyQuestionType>(
-                      value: _type,
+                      initialValue: _type,
                       items: SurveyQuestionType.values
                           .map(
                             (value) => DropdownMenuItem(
@@ -146,7 +146,7 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<ServiceCategory>(
-                      value: _category,
+                      initialValue: _category,
                       items: widget.categories
                           .map(
                             (value) => DropdownMenuItem(
@@ -202,7 +202,8 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                         .map(
                           (option) => Chip(
                             label: Text(option),
-                            onDeleted: () => setState(() => _options.remove(option)),
+                            onDeleted: () =>
+                                setState(() => _options.remove(option)),
                           ),
                         )
                         .toList(),
@@ -249,10 +250,11 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                                     .toString(),
                                 text: _textController.text.trim(),
                                 type: _type,
-                                options: _type == SurveyQuestionType.multipleChoice
+                                options:
+                                    _type == SurveyQuestionType.multipleChoice
                                     ? (_options.isEmpty
-                                        ? const ['Opsi 1', 'Opsi 2', 'Opsi 3']
-                                        : List.unmodifiable(_options))
+                                          ? const ['Opsi 1', 'Opsi 2', 'Opsi 3']
+                                          : List.unmodifiable(_options))
                                     : const [],
                               ),
                             );

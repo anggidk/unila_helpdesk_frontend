@@ -33,10 +33,12 @@ class _AdminCreateTemplateDialog extends StatefulWidget {
   final SurveyTemplate? initialTemplate;
 
   @override
-  State<_AdminCreateTemplateDialog> createState() => _AdminCreateTemplateDialogState();
+  State<_AdminCreateTemplateDialog> createState() =>
+      _AdminCreateTemplateDialogState();
 }
 
-class _AdminCreateTemplateDialogState extends State<_AdminCreateTemplateDialog> {
+class _AdminCreateTemplateDialogState
+    extends State<_AdminCreateTemplateDialog> {
   static const List<String> _frameworkOptions = [
     'Custom',
     'ISO 9001',
@@ -55,7 +57,9 @@ class _AdminCreateTemplateDialogState extends State<_AdminCreateTemplateDialog> 
     super.initState();
     if (widget.initialTemplate != null) {
       _nameController.text = widget.initialTemplate!.title;
-      _descController.text = _stripFramework(widget.initialTemplate!.description);
+      _descController.text = _stripFramework(
+        widget.initialTemplate!.description,
+      );
       _framework = _detectFramework(widget.initialTemplate!.description);
       _questions = [...widget.initialTemplate!.questions];
     } else {
@@ -92,7 +96,10 @@ class _AdminCreateTemplateDialogState extends State<_AdminCreateTemplateDialog> 
                           widget.initialTemplate == null
                               ? 'Buat Template Survey Baru'
                               : 'Edit Template Survey',
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                          ),
                         ),
                         SizedBox(height: 4),
                         Text(
@@ -102,11 +109,17 @@ class _AdminCreateTemplateDialogState extends State<_AdminCreateTemplateDialog> 
                       ],
                     ),
                   ),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
-              const Text('Nama Template', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text(
+                'Nama Template',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _nameController,
@@ -116,7 +129,10 @@ class _AdminCreateTemplateDialogState extends State<_AdminCreateTemplateDialog> 
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Deskripsi', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text(
+                'Deskripsi',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _descController,
@@ -127,36 +143,48 @@ class _AdminCreateTemplateDialogState extends State<_AdminCreateTemplateDialog> 
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _framework,
+                initialValue: _framework,
                 items: _frameworkOptions
-                    .map((value) => DropdownMenuItem(
-                          value: value,
-                          child: Text(value),
-                        ))
+                    .map(
+                      (value) =>
+                          DropdownMenuItem(value: value, child: Text(value)),
+                    )
                     .toList(),
-                onChanged: (value) => setState(() => _framework = value ?? 'Custom'),
+                onChanged: (value) =>
+                    setState(() => _framework = value ?? 'Custom'),
                 decoration: const InputDecoration(labelText: 'Framework'),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Text('Pertanyaan', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const Text(
+                    'Pertanyaan',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.accentBlue.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Text('${_questions.length} Questions', style: const TextStyle(fontSize: 12)),
+                    child: Text(
+                      '${_questions.length} Questions',
+                      style: const TextStyle(fontSize: 12),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              ..._questions.map((question) => _QuestionTile(
-                    question: question,
-                    onDelete: () => setState(() => _questions.remove(question)),
-                  )),
+              ..._questions.map(
+                (question) => _QuestionTile(
+                  question: question,
+                  onDelete: () => setState(() => _questions.remove(question)),
+                ),
+              ),
               GestureDetector(
                 onTap: () async {
                   final payload = await showAdminAddQuestionModal(
@@ -173,7 +201,10 @@ class _AdminCreateTemplateDialogState extends State<_AdminCreateTemplateDialog> 
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppTheme.outline, style: BorderStyle.solid),
+                    border: Border.all(
+                      color: AppTheme.outline,
+                      style: BorderStyle.solid,
+                    ),
                     color: Colors.transparent,
                   ),
                   child: Row(
@@ -182,39 +213,60 @@ class _AdminCreateTemplateDialogState extends State<_AdminCreateTemplateDialog> 
                       CircleAvatar(
                         radius: 12,
                         backgroundColor: AppTheme.outline,
-                        child: Icon(Icons.add, size: 16, color: AppTheme.textPrimary),
+                        child: Icon(
+                          Icons.add,
+                          size: 16,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
                       SizedBox(width: 8),
-                      Text('Tambah Pertanyaan', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        'Tambah Pertanyaan',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: _nameController.text.trim().isEmpty
-                          ? null
-                          : () {
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Batal'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: _nameController.text.trim().isEmpty
+                        ? null
+                        : () {
                             final template = SurveyTemplate(
-                              id: widget.initialTemplate?.id ??
-                                  DateTime.now().millisecondsSinceEpoch.toString(),
+                              id:
+                                  widget.initialTemplate?.id ??
+                                  DateTime.now().millisecondsSinceEpoch
+                                      .toString(),
                               title: _nameController.text.trim(),
-                              description: _buildDescription(_descController.text.trim(), _framework),
-                              categoryId: widget.initialTemplate?.categoryId ?? widget.selectedCategory.id,
+                              description: _buildDescription(
+                                _descController.text.trim(),
+                                _framework,
+                              ),
+                              categoryId:
+                                  widget.initialTemplate?.categoryId ??
+                                  widget.selectedCategory.id,
                               questions: List.unmodifiable(_questions),
                             );
                             Navigator.pop(context, template);
                           },
-                      icon: const Icon(Icons.save_outlined),
-                      label: Text(widget.initialTemplate == null ? 'Simpan Template' : 'Simpan Perubahan'),
+                    icon: const Icon(Icons.save_outlined),
+                    label: Text(
+                      widget.initialTemplate == null
+                          ? 'Simpan Template'
+                          : 'Simpan Perubahan',
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -247,14 +299,26 @@ class _QuestionTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(question.text, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  question.text,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 2),
-                Text(question.type.label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                Text(
+                  question.type.label,
+                  style: const TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ),
           IconButton(onPressed: () {}, icon: const Icon(Icons.edit_outlined)),
-          IconButton(onPressed: onDelete, icon: const Icon(Icons.delete_outline)),
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete_outline),
+          ),
         ],
       ),
     );
