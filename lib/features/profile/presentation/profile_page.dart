@@ -6,6 +6,8 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
+import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
+import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key, required this.user});
@@ -109,7 +111,15 @@ class ProfilePage extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           OutlinedButton.icon(
-            onPressed: () => context.goNamed(AppRouteNames.login),
+            onPressed: () async {
+              await TokenStorage().clearToken();
+              sharedApiClient.setAuthToken(null);
+              ref.read(adminUserProvider.notifier).state = null;
+              ref.invalidate(ticketsProvider);
+              ref.invalidate(notificationsProvider);
+              if (!context.mounted) return;
+              context.goNamed(AppRouteNames.login);
+            },
             icon: const Icon(Icons.logout),
             label: const Text('Log Out'),
             style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),

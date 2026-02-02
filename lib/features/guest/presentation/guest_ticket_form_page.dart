@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/features/auth/data/auth_repository.dart';
+import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final guestTicketSelectedCategoryProvider = StateProvider.autoDispose<String?>(
   (ref) => null,
@@ -27,6 +29,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _descriptionController = TextEditingController();
+  bool _isSubmitting = false;
   String? _statusUser;
   bool _identityUploaded = false;
   bool _selfieUploaded = false;
@@ -42,7 +45,24 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     super.dispose();
   }
 
-  void _submit() {
+  String _composeDescription() {
+    final buffer = StringBuffer();
+    final description = _descriptionController.text.trim();
+    if (description.isNotEmpty) {
+      buffer.writeln(description);
+    }
+    buffer.writeln('');
+    buffer.writeln('--- Data Pelapor Guest ---');
+    buffer.writeln('Nama: ${_nameController.text.trim()}');
+    buffer.writeln('Status: ${_statusUser ?? '-'}');
+    buffer.writeln('No. Identitas: ${_idController.text.trim()}');
+    buffer.writeln('Email: ${_emailController.text.trim()}');
+    buffer.writeln('No. Telepon: ${_phoneController.text.trim()}');
+    return buffer.toString().trim();
+  }
+
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
     final isValid = _formKey.currentState!.validate();
     final attachmentsValid = _identityUploaded && _selfieUploaded;
     if (!attachmentsValid) {
@@ -51,10 +71,59 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     if (!isValid || !attachmentsValid) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Laporan guest berhasil dikirim.')),
-    );
-    context.pop();
+
+    final selectedCategory = ref.read(guestTicketSelectedCategoryProvider);
+    if (selectedCategory == null || selectedCategory.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Jenis layanan wajib dipilih')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final name = _nameController.text.trim();
+      final email = _emailController.text.trim();
+      final auth = AuthRepository();
+      await auth.signInAsGuest(name: name, email: email);
+
+      final categories = ref.read(guestCategoriesProvider).value ?? [];
+      final categoryName = categories
+          .where((item) => item.id == selectedCategory)
+          .map((item) => item.name)
+          .cast<String?>()
+          .firstWhere((item) => item != null, orElse: () => null);
+      final title = categoryName == null
+          ? 'Laporan Guest'
+          : 'Laporan Guest - $categoryName';
+
+      final draft = TicketDraft(
+        title: title,
+        description: _composeDescription(),
+        category: selectedCategory,
+        priority: ref.read(guestTicketPriorityProvider),
+      );
+      final response = await TicketRepository().createTicket(draft);
+      if (!response.isSuccess) {
+        throw Exception(
+          response.error?.message ?? 'Gagal mengirim laporan guest',
+        );
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Laporan guest berhasil dikirim.')),
+      );
+      context.pop();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -338,8 +407,17 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _submit,
-                    child: const Text('KIRIM LAPORAN'),
+                    onPressed: _isSubmitting ? null : _submit,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('KIRIM LAPORAN'),
                   ),
                 ),
               ],

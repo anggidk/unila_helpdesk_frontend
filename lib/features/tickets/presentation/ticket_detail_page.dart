@@ -6,6 +6,7 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
+import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 class TicketDetailPage extends ConsumerStatefulWidget {
   const TicketDetailPage({super.key, required this.ticket});
@@ -17,6 +18,8 @@ class TicketDetailPage extends ConsumerStatefulWidget {
 }
 
 class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
+  bool _isDeleting = false;
+
   void _handleMenu(String value) {
     if (value == 'edit') {
       context.pushNamed(AppRouteNames.ticketForm, extra: widget.ticket);
@@ -32,11 +35,37 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
               child: const Text('Batal'),
             ),
             ElevatedButton(
-              onPressed: () {
-                context.pop();
-                context.pop();
-              },
-              child: const Text('Hapus'),
+              onPressed: _isDeleting
+                  ? null
+                  : () async {
+                      setState(() => _isDeleting = true);
+                      final response =
+                          await TicketRepository().deleteTicket(widget.ticket.id);
+                      if (!mounted) return;
+                      if (!response.isSuccess) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              response.error?.message ?? 'Gagal menghapus tiket.',
+                            ),
+                          ),
+                        );
+                        setState(() => _isDeleting = false);
+                        return;
+                      }
+                      context.pop();
+                      context.pop();
+                    },
+              child: _isDeleting
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Hapus'),
             ),
           ],
         ),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final ticketFormSelectedCategoryProvider =
     StateProvider.autoDispose<String?>((ref) => null);
@@ -23,6 +24,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -44,26 +46,65 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          widget.existing == null
-              ? 'Tiket berhasil dikirim.'
-              : 'Tiket berhasil diperbarui.',
+    final selectedCategory = ref.read(ticketFormSelectedCategoryProvider);
+    final selectedPriority = ref.read(ticketFormPriorityProvider);
+    if (selectedCategory == null || selectedCategory.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kategori wajib dipilih')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final draft = TicketDraft(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        category: selectedCategory,
+        priority: selectedPriority,
+      );
+      final repo = TicketRepository();
+      final response = widget.existing == null
+          ? await repo.createTicket(draft)
+          : await repo.updateTicket(id: widget.existing!.id, draft: draft);
+      if (!response.isSuccess) {
+        throw Exception(response.error?.message ?? 'Gagal menyimpan tiket');
+      }
+      if (!mounted) return;
+      ref.invalidate(ticketsProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.existing == null
+                ? 'Tiket berhasil dikirim.'
+                : 'Tiket berhasil diperbarui.',
+          ),
         ),
-      ),
-    );
-    context.pop();
+      );
+      context.pop();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(serviceCategoriesProvider);
-    final categories = categoriesAsync.value ?? [];
+    final categories = (categoriesAsync.value ?? [])
+        .where((category) => !category.guestAllowed)
+        .toList();
     final selectedCategory = ref.watch(ticketFormSelectedCategoryProvider);
     final selectedPriority = ref.watch(ticketFormPriorityProvider);
     final isEditing = widget.existing != null;
@@ -190,8 +231,19 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _submit,
-                    child: Text(isEditing ? 'SIMPAN PERUBAHAN' : 'KIRIM TIKET'),
+                    onPressed: _isSubmitting ? null : _submit,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            isEditing ? 'SIMPAN PERUBAHAN' : 'KIRIM TIKET',
+                          ),
                   ),
                 ),
               ],

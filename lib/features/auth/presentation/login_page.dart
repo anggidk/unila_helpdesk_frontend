@@ -5,6 +5,9 @@ import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/features/auth/data/auth_repository.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
+import 'package:unila_helpdesk_frontend/app/app_providers.dart';
+import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
+import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 
 final loginEntityProvider = StateProvider.autoDispose<String>(
   (ref) => 'Mahasiswa',
@@ -43,18 +46,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final password = _passwordController.text.trim();
 
     try {
+      await TokenStorage().clearToken();
+      sharedApiClient.setAuthToken(null);
+      ref.read(adminUserProvider.notifier).state = null;
       final auth = AuthRepository();
       final session = await auth.signInWithPassword(
         username: username,
         password: password,
       );
+      if (session.token.isNotEmpty) {
+        await TokenStorage().saveToken(session.token);
+      }
       final user = session.user;
+      if (user.role == UserRole.admin) {
+        ref.read(adminUserProvider.notifier).state = user;
+      } else {
+        ref.read(adminUserProvider.notifier).state = null;
+      }
 
       if (user.role == UserRole.admin) {
         context.goNamed(AppRouteNames.admin);
       } else {
         context.goNamed(AppRouteNames.userShell, extra: user);
       }
+      ref.invalidate(ticketsProvider);
+      ref.invalidate(notificationsProvider);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

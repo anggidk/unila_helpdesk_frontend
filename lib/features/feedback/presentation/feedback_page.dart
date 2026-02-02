@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
+import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
@@ -19,8 +20,10 @@ class FeedbackPage extends ConsumerWidget {
     final resolvedTickets = (ticketsAsync.value ?? [])
         .where((ticket) => ticket.status == TicketStatus.resolved)
         .toList();
-    final pending = resolvedTickets.take(1).toList();
-    final filled = resolvedTickets.skip(1).toList();
+    final pending =
+        resolvedTickets.where((ticket) => ticket.surveyRequired).toList();
+    final filled =
+        resolvedTickets.where((ticket) => !ticket.surveyRequired).toList();
 
     return DefaultTabController(
       length: 2,
@@ -127,7 +130,7 @@ class _FeedbackList extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () async {
+                  onPressed: () async {
                       final categoryId = ticket.categoryId;
                       if (categoryId.isEmpty) {
                         if (!context.mounted) return;
@@ -136,13 +139,32 @@ class _FeedbackList extends ConsumerWidget {
                         );
                         return;
                       }
-                      final template =
-                          await ref.read(surveyTemplateByCategoryProvider(categoryId).future);
+                      SurveyTemplate template;
+                      try {
+                        template = await ref
+                            .refresh(surveyTemplateByCategoryProvider(categoryId).future);
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(error.toString())),
+                        );
+                        return;
+                      }
+                      if (template.questions.isEmpty) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Template survey belum memiliki pertanyaan.'),
+                          ),
+                        );
+                        return;
+                      }
                       if (!context.mounted) return;
-                      context.pushNamed(
+                      await context.pushNamed(
                         AppRouteNames.survey,
                         extra: SurveyPayload(ticket: ticket, template: template),
                       );
+                      ref.invalidate(ticketsProvider);
                     },
                     icon: const Icon(Icons.rate_review_outlined),
                     label: const Text('ISI FEEDBACK'),
@@ -150,21 +172,45 @@ class _FeedbackList extends ConsumerWidget {
                   ),
                 ),
               if (!showAction)
-                Row(
-                  children: const [
-                    Text('Rating Anda:'),
-                    SizedBox(width: 8),
-                    Icon(Icons.star, color: AppTheme.accentYellow),
-                    Icon(Icons.star, color: AppTheme.accentYellow),
-                    Icon(Icons.star, color: AppTheme.accentYellow),
-                    Icon(Icons.star, color: AppTheme.accentYellow),
-                    Icon(Icons.star_border, color: AppTheme.textMuted),
-                  ],
-                ),
+                _RatingRow(score: ticket.surveyScore),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _RatingRow extends StatelessWidget {
+  const _RatingRow({required this.score});
+
+  final double score;
+
+  @override
+  Widget build(BuildContext context) {
+    if (score <= 0) {
+      return const Text('Rating belum tersedia.');
+    }
+    final clamped = score.clamp(0, 5);
+    final fullStars = clamped.floor();
+    final hasHalf = (clamped - fullStars) >= 0.5;
+    final emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+    final stars = <Widget>[];
+    for (var i = 0; i < fullStars; i++) {
+      stars.add(const Icon(Icons.star, color: AppTheme.accentYellow));
+    }
+    if (hasHalf) {
+      stars.add(const Icon(Icons.star_half, color: AppTheme.accentYellow));
+    }
+    for (var i = 0; i < emptyStars; i++) {
+      stars.add(const Icon(Icons.star_border, color: AppTheme.textMuted));
+    }
+    return Row(
+      children: [
+        Text('Rating Anda: ${clamped.toStringAsFixed(1)}'),
+        const SizedBox(width: 8),
+        ...stars,
+      ],
     );
   }
 }
