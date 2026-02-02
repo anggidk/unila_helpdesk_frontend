@@ -15,6 +15,16 @@ class UserProfile {
   final UserRole role;
   final String entity;
 
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      role: _roleFromString(json['role']?.toString() ?? ''),
+      entity: json['entity']?.toString() ?? '',
+    );
+  }
+
   String get roleLabel {
     switch (role) {
       case UserRole.registered:
@@ -24,5 +34,16 @@ class UserProfile {
       case UserRole.admin:
         return 'Admin';
     }
+  }
+}
+
+UserRole _roleFromString(String value) {
+  switch (value) {
+    case 'admin':
+      return UserRole.admin;
+    case 'guest':
+      return UserRole.guest;
+    default:
+      return UserRole.registered;
   }
 }

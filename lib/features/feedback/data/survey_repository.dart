@@ -1,23 +1,34 @@
-import 'package:unila_helpdesk_frontend/core/config/api_config.dart';
-import 'package:unila_helpdesk_frontend/core/mock/mock_data.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
 
 class SurveyRepository {
   SurveyRepository({ApiClient? client})
-      : _client = client ?? MockApiClient(baseUrl: ApiConfig.baseUrl);
+      : _client = client ?? sharedApiClient;
 
   final ApiClient _client;
 
   Future<List<SurveyTemplate>> fetchTemplates() async {
-    // TODO: Replace with API call.
-    return MockData.surveyTemplates;
+    final response = await _client.get(ApiEndpoints.surveys);
+    final items = response.data?['data'];
+    if (response.isSuccess && items is List) {
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(SurveyTemplate.fromJson)
+          .toList();
+    }
+    return [];
   }
 
   Future<SurveyTemplate> fetchTemplateByCategory(String categoryId) async {
-    // TODO: Replace with API call.
-    return MockData.surveyForCategory(categoryId);
+    final response = await _client.get(
+      ApiEndpoints.surveyByCategory(categoryId),
+    );
+    final data = response.data?['data'];
+    if (response.isSuccess && data is Map<String, dynamic>) {
+      return SurveyTemplate.fromJson(data);
+    }
+    throw Exception(response.error?.message ?? 'Template tidak ditemukan');
   }
 
   Future<ApiResponse<Map<String, dynamic>>> submitSurvey({
@@ -28,5 +39,32 @@ class SurveyRepository {
       'ticket_id': ticketId,
       'answers': answers,
     });
+  }
+
+  Future<SurveyTemplate> createTemplate({
+    required String title,
+    required String description,
+    required String categoryId,
+    required List<SurveyQuestion> questions,
+  }) async {
+    final response = await _client.post(ApiEndpoints.surveyTemplates, body: {
+      'title': title,
+      'description': description,
+      'categoryId': categoryId,
+      'questions': questions
+          .map(
+            (question) => {
+              'text': question.text,
+              'type': question.type.name,
+              'options': question.options,
+            },
+          )
+          .toList(),
+    });
+    final data = response.data?['data'];
+    if (response.isSuccess && data is Map<String, dynamic>) {
+      return SurveyTemplate.fromJson(data);
+    }
+    throw Exception(response.error?.message ?? 'Gagal menyimpan template');
   }
 }

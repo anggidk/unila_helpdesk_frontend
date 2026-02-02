@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:unila_helpdesk_frontend/core/config/api_config.dart';
+
 class ApiResponse<T> {
   ApiResponse({this.data, this.error});
 
@@ -15,26 +20,91 @@ class ApiError {
 }
 
 class ApiClient {
-  ApiClient({required this.baseUrl});
+  ApiClient({required this.baseUrl, http.Client? client})
+      : _client = client ?? http.Client();
 
   final String baseUrl;
+  final http.Client _client;
+  String? _authToken;
+
+  void setAuthToken(String? token) {
+    _authToken = token;
+  }
 
   Uri buildUri(String path, [Map<String, String>? query]) {
     return Uri.parse(baseUrl).replace(path: path, queryParameters: query);
+  }
+
+  Map<String, String> _headers() {
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (_authToken != null && _authToken!.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $_authToken';
+    }
+    return headers;
   }
 
   Future<ApiResponse<Map<String, dynamic>>> get(
     String path, {
     Map<String, String>? query,
   }) async {
-    throw UnimplementedError('Implement HTTP GET');
+    try {
+      final response = await _client
+          .get(buildUri(path, query), headers: _headers())
+          .timeout(ApiConfig.timeout);
+      return _parseResponse(response);
+    } catch (error) {
+      return ApiResponse(error: ApiError(message: error.toString()));
+    }
   }
 
   Future<ApiResponse<Map<String, dynamic>>> post(
     String path, {
     Map<String, dynamic>? body,
   }) async {
-    throw UnimplementedError('Implement HTTP POST');
+    try {
+      final response = await _client
+          .post(
+            buildUri(path),
+            headers: _headers(),
+            body: jsonEncode(body ?? {}),
+          )
+          .timeout(ApiConfig.timeout);
+      return _parseResponse(response);
+    } catch (error) {
+      return ApiResponse(error: ApiError(message: error.toString()));
+    }
+  }
+
+  ApiResponse<Map<String, dynamic>> _parseResponse(http.Response response) {
+    if (response.body.isEmpty) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse(data: const {});
+      }
+      return ApiResponse(
+        error: ApiError(message: 'Empty response', statusCode: response.statusCode),
+      );
+    }
+
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return ApiResponse(data: decoded);
+        }
+        final message =
+            decoded['error']?.toString() ?? 'Request failed';
+        return ApiResponse(
+          error: ApiError(message: message, statusCode: response.statusCode),
+        );
+      }
+      return ApiResponse(
+        error: ApiError(message: 'Invalid response format', statusCode: response.statusCode),
+      );
+    } catch (_) {
+      return ApiResponse(
+        error: ApiError(message: 'Failed to parse response', statusCode: response.statusCode),
+      );
+    }
   }
 }
 
@@ -57,3 +127,5 @@ class MockApiClient extends ApiClient {
     return ApiResponse(data: {'path': path, 'body': body});
   }
 }
+
+final ApiClient sharedApiClient = ApiClient(baseUrl: ApiConfig.baseUrl);

@@ -27,6 +27,18 @@ class SurveyQuestion {
   final String text;
   final SurveyQuestionType type;
   final List<String> options;
+
+  factory SurveyQuestion.fromJson(Map<String, dynamic> json) {
+    final options = (json['options'] as List<dynamic>? ?? [])
+        .map((value) => value.toString())
+        .toList();
+    return SurveyQuestion(
+      id: json['id']?.toString() ?? '',
+      text: json['text']?.toString() ?? '',
+      type: _questionTypeFromString(json['type']?.toString() ?? ''),
+      options: options,
+    );
+  }
 }
 
 class SurveyTemplate {
@@ -43,4 +55,31 @@ class SurveyTemplate {
   final String description;
   final String categoryId;
   final List<SurveyQuestion> questions;
+
+  factory SurveyTemplate.fromJson(Map<String, dynamic> json) {
+    final questions = (json['questions'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(SurveyQuestion.fromJson)
+        .toList();
+    return SurveyTemplate(
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      categoryId: json['categoryId']?.toString() ?? '',
+      questions: questions,
+    );
+  }
+}
+
+SurveyQuestionType _questionTypeFromString(String value) {
+  switch (value) {
+    case 'yesNo':
+      return SurveyQuestionType.yesNo;
+    case 'multipleChoice':
+      return SurveyQuestionType.multipleChoice;
+    case 'text':
+      return SurveyQuestionType.text;
+    default:
+      return SurveyQuestionType.likert;
+  }
 }

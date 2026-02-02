@@ -1,18 +1,23 @@
-import 'package:unila_helpdesk_frontend/core/config/api_config.dart';
-import 'package:unila_helpdesk_frontend/core/mock/mock_data.dart';
 import 'package:unila_helpdesk_frontend/core/models/notification_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
 
 class NotificationRepository {
   NotificationRepository({ApiClient? client})
-      : _client = client ?? MockApiClient(baseUrl: ApiConfig.baseUrl);
+      : _client = client ?? sharedApiClient;
 
   final ApiClient _client;
 
   Future<List<AppNotification>> fetchNotifications() async {
-    // TODO: Replace with API call.
-    return MockData.notifications;
+    final response = await _client.get(ApiEndpoints.notifications);
+    final items = response.data?['data'];
+    if (response.isSuccess && items is List) {
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(AppNotification.fromJson)
+          .toList();
+    }
+    return [];
   }
 
   Future<ApiResponse<Map<String, dynamic>>> registerFcmToken(String token) {

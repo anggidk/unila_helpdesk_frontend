@@ -1,42 +1,55 @@
-import 'package:unila_helpdesk_frontend/core/config/api_config.dart';
-import 'package:unila_helpdesk_frontend/core/mock/mock_data.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
 
 class AuthRepository {
   AuthRepository({ApiClient? client})
-    : _client = client ?? MockApiClient(baseUrl: ApiConfig.baseUrl);
+    : _client = client ?? sharedApiClient;
 
   final ApiClient _client;
 
-  Future<UserProfile> signInWithMockSso({
+  Future<AuthSession> signInWithPassword({
     required String username,
     required String password,
-    required String entity,
   }) async {
-    // TODO: Replace with SSO integration.
-
-    // Deteksi apakah admin berdasarkan username
-    final isAdmin = username.toLowerCase() == 'admin';
-
-    final fallbackName = username.isEmpty
-        ? MockData.registeredUser.name
-        : username;
-    return UserProfile(
-      id: isAdmin ? 'ADM-001' : 'USR-SSO-001',
-      name: isAdmin ? 'Administrator' : fallbackName,
-      email: username.isEmpty
-          ? MockData.registeredUser.email
-          : '$username@unila.ac.id',
-      role: isAdmin ? UserRole.admin : UserRole.registered,
-      entity: isAdmin ? 'Admin' : entity,
+    final response = await login(username: username, password: password);
+    final data = response.data?['data'];
+    if (!response.isSuccess || data is! Map<String, dynamic>) {
+      throw Exception(response.error?.message ?? 'Login gagal');
+    }
+    final token = data['token']?.toString() ?? '';
+    final userJson = data['user'] as Map<String, dynamic>? ?? {};
+    final expiresAt = DateTime.tryParse(data['expiresAt']?.toString() ?? '') ??
+        DateTime.now();
+    if (token.isNotEmpty) {
+      _client.setAuthToken(token);
+    }
+    return AuthSession(
+      token: token,
+      expiresAt: expiresAt,
+      user: UserProfile.fromJson(userJson),
     );
   }
 
-  Future<ApiResponse<Map<String, dynamic>>> exchangeToken({
-    required String ssoCode,
+  Future<ApiResponse<Map<String, dynamic>>> login({
+    required String username,
+    required String password,
   }) {
-    return _client.post(ApiEndpoints.login, body: {'code': ssoCode});
+    return _client.post(ApiEndpoints.login, body: {
+      'username': username,
+      'password': password,
+    });
   }
+}
+
+class AuthSession {
+  const AuthSession({
+    required this.token,
+    required this.expiresAt,
+    required this.user,
+  });
+
+  final String token;
+  final DateTime expiresAt;
+  final UserProfile user;
 }

@@ -1,38 +1,36 @@
-import 'package:unila_helpdesk_frontend/core/config/api_config.dart';
-import 'package:unila_helpdesk_frontend/core/mock/mock_data.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
 
 class TicketRepository {
   TicketRepository({ApiClient? client})
-      : _client = client ?? MockApiClient(baseUrl: ApiConfig.baseUrl);
+      : _client = client ?? sharedApiClient;
 
   final ApiClient _client;
 
   Future<List<Ticket>> fetchTickets({String? query}) async {
-    // TODO: Replace with API call:
-    // final response = await _client.get(ApiEndpoints.tickets, query: {'q': query ?? ''});
-    // return response.data?['data'] as List<Ticket>;
-    final tickets = MockData.tickets;
-    if (query == null || query.trim().isEmpty) {
-      return tickets;
+    final trimmed = query?.trim() ?? '';
+    final response = await _client.get(
+      trimmed.isEmpty ? ApiEndpoints.tickets : ApiEndpoints.ticketSearch,
+      query: trimmed.isEmpty ? null : {'q': trimmed},
+    );
+    final items = response.data?['data'];
+    if (response.isSuccess && items is List) {
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(Ticket.fromJson)
+          .toList();
     }
-    final lowerQuery = query.toLowerCase();
-    return tickets
-        .where(
-          (ticket) =>
-              ticket.id.toLowerCase().contains(lowerQuery) ||
-              ticket.title.toLowerCase().contains(lowerQuery),
-        )
-        .toList();
+    return [];
   }
 
   Future<Ticket> fetchTicketById(String id) async {
-    // TODO: Replace with API call:
-    // final response = await _client.get(ApiEndpoints.ticketById(id));
-    // return Ticket.fromJson(response.data?['data']);
-    return MockData.tickets.firstWhere((ticket) => ticket.id == id);
+    final response = await _client.get(ApiEndpoints.ticketById(id));
+    final data = response.data?['data'];
+    if (response.isSuccess && data is Map<String, dynamic>) {
+      return Ticket.fromJson(data);
+    }
+    throw Exception(response.error?.message ?? 'Ticket tidak ditemukan');
   }
 
   Future<ApiResponse<Map<String, dynamic>>> createTicket(TicketDraft draft) {
@@ -48,6 +46,16 @@ class TicketRepository {
 
   Future<ApiResponse<Map<String, dynamic>>> deleteTicket(String id) {
     return _client.post('${ApiEndpoints.ticketById(id)}/delete');
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> addComment({
+    required String id,
+    required String message,
+  }) {
+    return _client.post(
+      '${ApiEndpoints.ticketById(id)}/comments',
+      body: {'message': message},
+    );
   }
 }
 

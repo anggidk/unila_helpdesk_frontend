@@ -40,6 +40,14 @@ class ServiceCategory {
   final String id;
   final String name;
   final bool guestAllowed;
+
+  factory ServiceCategory.fromJson(Map<String, dynamic> json) {
+    return ServiceCategory(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      guestAllowed: json['guestAllowed'] == true,
+    );
+  }
 }
 
 class TicketUpdate {
@@ -52,6 +60,15 @@ class TicketUpdate {
   final String title;
   final String description;
   final DateTime timestamp;
+
+  factory TicketUpdate.fromJson(Map<String, dynamic> json) {
+    return TicketUpdate(
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
+          DateTime.now(),
+    );
+  }
 }
 
 class TicketComment {
@@ -66,6 +83,16 @@ class TicketComment {
   final String message;
   final DateTime timestamp;
   final bool isStaff;
+
+  factory TicketComment.fromJson(Map<String, dynamic> json) {
+    return TicketComment(
+      author: json['author']?.toString() ?? '',
+      message: json['message']?.toString() ?? '',
+      timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
+          DateTime.now(),
+      isStaff: json['isStaff'] == true,
+    );
+  }
 }
 
 class Ticket {
@@ -74,6 +101,7 @@ class Ticket {
     required this.title,
     required this.description,
     required this.category,
+    required this.categoryId,
     required this.status,
     required this.priority,
     required this.createdAt,
@@ -81,6 +109,7 @@ class Ticket {
     required this.isGuest,
     required this.history,
     required this.comments,
+    required this.surveyRequired,
     this.assignee,
   });
 
@@ -88,6 +117,7 @@ class Ticket {
   final String title;
   final String description;
   final String category;
+  final String categoryId;
   final TicketStatus status;
   final TicketPriority priority;
   final DateTime createdAt;
@@ -96,6 +126,59 @@ class Ticket {
   final String? assignee;
   final List<TicketUpdate> history;
   final List<TicketComment> comments;
+  final bool surveyRequired;
 
   bool get isResolved => status == TicketStatus.resolved;
+
+  factory Ticket.fromJson(Map<String, dynamic> json) {
+    final history = (json['history'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(TicketUpdate.fromJson)
+        .toList();
+    final comments = (json['comments'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(TicketComment.fromJson)
+        .toList();
+    return Ticket(
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      categoryId: json['categoryId']?.toString() ?? '',
+      status: _statusFromString(json['status']?.toString() ?? ''),
+      priority: _priorityFromString(json['priority']?.toString() ?? ''),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      reporter: json['reporter']?.toString() ?? '',
+      isGuest: json['isGuest'] == true,
+      assignee: json['assignee']?.toString(),
+      history: history,
+      comments: comments,
+      surveyRequired: json['surveyRequired'] == true,
+    );
+  }
+}
+
+TicketStatus _statusFromString(String value) {
+  switch (value) {
+    case 'processing':
+      return TicketStatus.processing;
+    case 'inProgress':
+      return TicketStatus.inProgress;
+    case 'resolved':
+      return TicketStatus.resolved;
+    default:
+      return TicketStatus.waiting;
+  }
+}
+
+TicketPriority _priorityFromString(String value) {
+  switch (value) {
+    case 'high':
+      return TicketPriority.high;
+    case 'low':
+      return TicketPriority.low;
+    default:
+      return TicketPriority.medium;
+  }
 }

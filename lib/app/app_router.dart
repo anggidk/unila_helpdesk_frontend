@@ -1,5 +1,5 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:unila_helpdesk_frontend/core/mock/mock_data.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
@@ -69,7 +69,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.userShell,
       name: AppRouteNames.userShell,
       builder: (context, state) {
-        final user = state.extra is UserProfile ? state.extra as UserProfile : MockData.registeredUser;
+        final user = state.extra is UserProfile ? state.extra as UserProfile : null;
+        if (user == null) {
+          return const _MissingDataPage(message: 'Data user tidak ditemukan.');
+        }
         return UserShell(user: user);
       },
     ),
@@ -87,7 +90,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.tickets,
       name: AppRouteNames.tickets,
       builder: (context, state) {
-        final user = state.extra is UserProfile ? state.extra as UserProfile : MockData.registeredUser;
+        final user = state.extra is UserProfile ? state.extra as UserProfile : null;
+        if (user == null) {
+          return const _MissingDataPage(message: 'Data user tidak ditemukan.');
+        }
         return TicketListPage(user: user);
       },
     ),
@@ -103,7 +109,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.ticketDetail,
       name: AppRouteNames.ticketDetail,
       builder: (context, state) {
-        final ticket = state.extra is Ticket ? state.extra as Ticket : MockData.tickets.first;
+        final ticket = state.extra is Ticket ? state.extra as Ticket : null;
+        if (ticket == null) {
+          return const _MissingDataPage(message: 'Data tiket tidak ditemukan.');
+        }
         return TicketDetailPage(ticket: ticket);
       },
     ),
@@ -111,9 +120,26 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.survey,
       name: AppRouteNames.survey,
       builder: (context, state) {
-        final payload = state.extra as SurveyPayload;
+        final payload = state.extra is SurveyPayload ? state.extra as SurveyPayload : null;
+        if (payload == null) {
+          return const _MissingDataPage(message: 'Data survey tidak ditemukan.');
+        }
         return SurveyPage(ticket: payload.ticket, template: payload.template);
       },
     ),
   ],
 );
+
+class _MissingDataPage extends StatelessWidget {
+  const _MissingDataPage({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Error')),
+      body: Center(child: Text(message)),
+    );
+  }
+}
