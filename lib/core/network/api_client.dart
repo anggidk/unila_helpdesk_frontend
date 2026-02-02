@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:unila_helpdesk_frontend/core/config/api_config.dart';
+import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 
 class ApiResponse<T> {
   ApiResponse({this.data, this.error});
@@ -31,7 +32,14 @@ class ApiClient {
     _authToken = token;
   }
 
+  Future<void> loadAuthToken() async {
+    _authToken = await TokenStorage().readToken();
+  }
+
   Uri buildUri(String path, [Map<String, String>? query]) {
+    if (baseUrl.isEmpty) {
+      throw StateError('API_BASE_URL belum di-set. Jalankan dengan --dart-define=API_BASE_URL=...');
+    }
     return Uri.parse(baseUrl).replace(path: path, queryParameters: query);
   }
 
@@ -57,6 +65,28 @@ class ApiClient {
     }
   }
 
+  Future<ApiResponse<String>> getRaw(
+    String path, {
+    Map<String, String>? query,
+  }) async {
+    try {
+      final response = await _client
+          .get(buildUri(path, query), headers: _headers())
+          .timeout(ApiConfig.timeout);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse(data: response.body);
+      }
+      return ApiResponse(
+        error: ApiError(
+          message: 'Request failed',
+          statusCode: response.statusCode,
+        ),
+      );
+    } catch (error) {
+      return ApiResponse(error: ApiError(message: error.toString()));
+    }
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> post(
     String path, {
     Map<String, dynamic>? body,
@@ -68,6 +98,53 @@ class ApiClient {
             headers: _headers(),
             body: jsonEncode(body ?? {}),
           )
+          .timeout(ApiConfig.timeout);
+      return _parseResponse(response);
+    } catch (error) {
+      return ApiResponse(error: ApiError(message: error.toString()));
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> put(
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
+    try {
+      final response = await _client
+          .put(
+            buildUri(path),
+            headers: _headers(),
+            body: jsonEncode(body ?? {}),
+          )
+          .timeout(ApiConfig.timeout);
+      return _parseResponse(response);
+    } catch (error) {
+      return ApiResponse(error: ApiError(message: error.toString()));
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> patch(
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
+    try {
+      final response = await _client
+          .patch(
+            buildUri(path),
+            headers: _headers(),
+            body: jsonEncode(body ?? {}),
+          )
+          .timeout(ApiConfig.timeout);
+      return _parseResponse(response);
+    } catch (error) {
+      return ApiResponse(error: ApiError(message: error.toString()));
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> delete(String path) async {
+    try {
+      final response = await _client
+          .delete(buildUri(path), headers: _headers())
           .timeout(ApiConfig.timeout);
       return _parseResponse(response);
     } catch (error) {

@@ -12,6 +12,7 @@ class ApiEndpoints {
 
   static const String surveys = '/surveys';
   static const String surveyTemplates = '/surveys/templates';
+  static String surveyTemplateById(String id) => '/surveys/templates/$id';
   static String surveyByCategory(String categoryId) => '/surveys/categories/$categoryId';
   static const String surveyResponses = '/surveys/responses';
 
@@ -19,5 +20,11 @@ class ApiEndpoints {
   static const String fcmRegister = '/notifications/fcm';
 
   static const String reports = '/reports';
+  static const String reportsSummary = '/reports/summary';
+  static const String reportsSatisfactionSummary = '/reports/satisfaction-summary';
+  static const String reportsSatisfaction = '/reports/satisfaction';
   static const String cohort = '/reports/cohort';
+  static const String usageCohort = '/reports/usage';
+  static const String serviceUtilization = '/reports/service-utilization';
+  static const String entityService = '/reports/entity-service';
 }
