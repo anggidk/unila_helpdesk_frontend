@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
-import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final guestTrackingFoundTicketProvider = StateProvider.autoDispose<Ticket?>(
   (ref) => null,
@@ -27,17 +27,22 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
     super.dispose();
   }
 
-  void _searchTicket() {
+  Future<void> _searchTicket() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
     final query = _controller.text.trim().toLowerCase();
     Ticket? ticket;
-    for (final item in ref.read(ticketsProvider)) {
-      if (item.id.toLowerCase() == query) {
-        ticket = item;
-        break;
+    try {
+      final tickets = await TicketRepository().fetchTickets(query: query);
+      for (final item in tickets) {
+        if (item.id.toLowerCase() == query) {
+          ticket = item;
+          break;
+        }
       }
+    } catch (_) {
+      ticket = null;
     }
 
     if (ticket != null) {

@@ -11,7 +11,8 @@ class NotificationsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notifications = ref.watch(notificationsProvider);
+    final notificationsAsync = ref.watch(notificationsProvider);
+    final notifications = notificationsAsync.value ?? [];
     final fcmEnabled = ref.watch(notificationsFcmEnabledProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Notifications')),
@@ -33,6 +34,16 @@ class NotificationsPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+          if (notificationsAsync.isLoading)
+            const Center(child: CircularProgressIndicator()),
+          if (notificationsAsync.hasError)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Gagal memuat notifikasi: ${notificationsAsync.error}',
+                style: const TextStyle(color: AppTheme.textMuted),
+              ),
+            ),
           ...notifications.map(
             (notification) => Container(
               margin: const EdgeInsets.only(bottom: 12),

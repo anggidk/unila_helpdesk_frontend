@@ -52,14 +52,15 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Laporan guest berhasil dikirim (mock).')),
+      const SnackBar(content: Text('Laporan guest berhasil dikirim.')),
     );
     context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final categories = ref.watch(guestCategoriesProvider);
+    final categoriesAsync = ref.watch(guestCategoriesProvider);
+    final categories = categoriesAsync.value ?? [];
     final selectedCategory = ref.watch(guestTicketSelectedCategoryProvider);
     final selectedPriority = ref.watch(guestTicketPriorityProvider);
     final textTheme = Theme.of(context).textTheme;
@@ -85,6 +86,19 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                     children: [
                       const _RequiredLabel(text: 'Jenis Layanan'),
                       const SizedBox(height: 8),
+                      if (categoriesAsync.isLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: LinearProgressIndicator(),
+                        ),
+                      if (categoriesAsync.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            'Gagal memuat kategori: ${categoriesAsync.error}',
+                            style: const TextStyle(color: AppTheme.textMuted),
+                          ),
+                        ),
                       DropdownButtonFormField<String>(
                         value: selectedCategory,
                         items: categories

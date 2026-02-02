@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
 
 final surveyAnswersProvider = StateProvider.autoDispose<Map<String, dynamic>>(
   (ref) => <String, dynamic>{},
@@ -11,6 +12,7 @@ final surveyAnswersProvider = StateProvider.autoDispose<Map<String, dynamic>>(
 final surveyErrorsProvider = StateProvider.autoDispose<Map<String, String>>(
   (ref) => <String, String>{},
 );
+final surveySubmittingProvider = StateProvider.autoDispose<bool>((ref) => false);
 
 class SurveyPage extends ConsumerWidget {
   const SurveyPage({super.key, required this.ticket, required this.template});
@@ -22,6 +24,7 @@ class SurveyPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final answers = ref.watch(surveyAnswersProvider);
     final errors = ref.watch(surveyErrorsProvider);
+    final isSubmitting = ref.watch(surveySubmittingProvider);
     final questions = template.questions;
     final progress = questions.isEmpty
         ? 0.0
@@ -96,7 +99,9 @@ class SurveyPage extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
                 final nextErrors = <String, String>{};
                 for (final question in questions) {
                   final value = answers[question.id];
@@ -118,11 +123,39 @@ class SurveyPage extends ConsumerWidget {
                   return;
                 }
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Survey tersimpan (mock).')),
-                );
+                ref.read(surveySubmittingProvider.notifier).state = true;
+                try {
+                  final response = await SurveyRepository().submitSurvey(
+                    ticketId: ticket.id,
+                    answers: answers,
+                  );
+                  if (!response.isSuccess) {
+                    throw Exception(response.error?.message ?? 'Gagal mengirim survey');
+                  }
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Survey berhasil dikirim.')),
+                  );
+                  Navigator.of(context).pop();
+                } catch (error) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(error.toString())),
+                  );
+                } finally {
+                  ref.read(surveySubmittingProvider.notifier).state = false;
+                }
               },
-              child: const Text('KIRIM'),
+              child: isSubmitting
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('KIRIM'),
             ),
           ),
         ],

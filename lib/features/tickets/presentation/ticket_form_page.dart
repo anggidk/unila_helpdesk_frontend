@@ -34,7 +34,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     ref.read(ticketFormPriorityProvider.notifier).state =
         widget.existing?.priority ?? TicketPriority.medium;
     ref.read(ticketFormSelectedCategoryProvider.notifier).state =
-        widget.existing?.category;
+        widget.existing?.categoryId;
   }
 
   @override
@@ -52,8 +52,8 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
       SnackBar(
         content: Text(
           widget.existing == null
-              ? 'Tiket berhasil dikirim (mock).'
-              : 'Tiket berhasil diperbarui (mock).',
+              ? 'Tiket berhasil dikirim.'
+              : 'Tiket berhasil diperbarui.',
         ),
       ),
     );
@@ -62,7 +62,8 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = ref.watch(serviceCategoriesProvider);
+    final categoriesAsync = ref.watch(serviceCategoriesProvider);
+    final categories = categoriesAsync.value ?? [];
     final selectedCategory = ref.watch(ticketFormSelectedCategoryProvider);
     final selectedPriority = ref.watch(ticketFormPriorityProvider);
     final isEditing = widget.existing != null;
@@ -83,12 +84,25 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
               children: [
                 const _RequiredLabel(text: 'Kategori Layanan'),
                 const SizedBox(height: 8),
+                if (categoriesAsync.isLoading)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: LinearProgressIndicator(),
+                  ),
+                if (categoriesAsync.hasError)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      'Gagal memuat kategori: ${categoriesAsync.error}',
+                      style: const TextStyle(color: AppTheme.textMuted),
+                    ),
+                  ),
                 DropdownButtonFormField<String>(
                   value: selectedCategory,
                   items: categories
                       .map(
                         (category) => DropdownMenuItem(
-                          value: category.name,
+                          value: category.id,
                           child: Text(category.name),
                         ),
                       )

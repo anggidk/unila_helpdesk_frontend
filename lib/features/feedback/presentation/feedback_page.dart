@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
-import 'package:unila_helpdesk_frontend/core/mock/mock_data.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
@@ -16,8 +15,10 @@ class FeedbackPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final resolvedTickets =
-        ref.watch(ticketsProvider).where((ticket) => ticket.status == TicketStatus.resolved).toList();
+    final ticketsAsync = ref.watch(ticketsProvider);
+    final resolvedTickets = (ticketsAsync.value ?? [])
+        .where((ticket) => ticket.status == TicketStatus.resolved)
+        .toList();
     final pending = resolvedTickets.take(1).toList();
     final filled = resolvedTickets.skip(1).toList();
 
@@ -33,19 +34,25 @@ class FeedbackPage extends ConsumerWidget {
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _FeedbackList(
-              tickets: pending,
-              emptyText: 'Belum ada feedback yang menunggu.',
-              showAction: true,
-            ),
-            _FeedbackList(
-              tickets: filled,
-              emptyText: 'Belum ada feedback yang diisi.',
-              showAction: false,
-            ),
-          ],
+        body: ticketsAsync.when(
+          data: (_) => TabBarView(
+            children: [
+              _FeedbackList(
+                tickets: pending,
+                emptyText: 'Belum ada feedback yang menunggu.',
+                showAction: true,
+              ),
+              _FeedbackList(
+                tickets: filled,
+                emptyText: 'Belum ada feedback yang diisi.',
+                showAction: false,
+              ),
+            ],
+          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => Center(
+            child: Text('Gagal memuat tiket: $error'),
+          ),
         ),
       ),
     );
@@ -120,14 +127,21 @@ class _FeedbackList extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      final categoryId = MockData.categoryIdForName(ticket.category);
+                    onPressed: () async {
+                      final categoryId = ticket.categoryId;
+                      if (categoryId.isEmpty) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Kategori survey tidak ditemukan.')),
+                        );
+                        return;
+                      }
+                      final template =
+                          await ref.read(surveyTemplateByCategoryProvider(categoryId).future);
+                      if (!context.mounted) return;
                       context.pushNamed(
                         AppRouteNames.survey,
-                        extra: SurveyPayload(
-                          ticket: ticket,
-                          template: ref.read(surveyTemplateByCategoryProvider(categoryId)),
-                        ),
+                        extra: SurveyPayload(ticket: ticket, template: template),
                       );
                     },
                     icon: const Icon(Icons.rate_review_outlined),

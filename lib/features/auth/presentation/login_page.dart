@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
+import 'package:unila_helpdesk_frontend/features/auth/data/auth_repository.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 
 final loginEntityProvider = StateProvider.autoDispose<String>(
@@ -38,25 +39,27 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       return;
     }
 
-    final entity = ref.read(loginEntityProvider);
     final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
 
-    // Deteksi apakah admin berdasarkan username
-    final isAdmin = username.toLowerCase() == 'admin';
+    try {
+      final auth = AuthRepository();
+      final session = await auth.signInWithPassword(
+        username: username,
+        password: password,
+      );
+      final user = session.user;
 
-    final user = UserProfile(
-      id: isAdmin ? 'ADM-001' : 'USR-SSO-001',
-      name: isAdmin ? 'Administrator' : username,
-      email: '$username@unila.ac.id',
-      role: isAdmin ? UserRole.admin : UserRole.registered,
-      entity: isAdmin ? 'Admin' : entity,
-    );
-
-    // Navigasi berdasarkan role
-    if (isAdmin) {
-      context.goNamed(AppRouteNames.admin);
-    } else {
-      context.goNamed(AppRouteNames.userShell, extra: user);
+      if (user.role == UserRole.admin) {
+        context.goNamed(AppRouteNames.admin);
+      } else {
+        context.goNamed(AppRouteNames.userShell, extra: user);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
     }
 
     if (mounted) {

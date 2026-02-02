@@ -20,7 +20,8 @@ class TicketListPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final searchQuery = ref.watch(ticketListSearchQueryProvider);
     final selectedFilter = ref.watch(ticketListFilterProvider);
-    final tickets = ref.watch(ticketsProvider).where((ticket) {
+    final ticketsAsync = ref.watch(ticketsProvider);
+    final tickets = (ticketsAsync.value ?? []).where((ticket) {
       if (selectedFilter == TicketFilter.open) {
         if (ticket.status == TicketStatus.resolved) {
           return false;
@@ -40,7 +41,7 @@ class TicketListPage extends ConsumerWidget {
         return ticket.id.toLowerCase().contains(query) ||
             ticket.title.toLowerCase().contains(query);
       }
-      return true;
+          return true;
     }).toList();
 
     return Scaffold(
@@ -73,7 +74,25 @@ class TicketListPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          if (tickets.isEmpty)
+          if (ticketsAsync.isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          if (ticketsAsync.hasError)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.outline),
+              ),
+              child: Text(
+                'Gagal memuat tiket: ${ticketsAsync.error}',
+                style: const TextStyle(color: AppTheme.textMuted),
+              ),
+            ),
+          if (!ticketsAsync.isLoading && tickets.isEmpty)
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(

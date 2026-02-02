@@ -14,7 +14,8 @@ class ProfilePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tickets = ref.watch(ticketsProvider);
+    final ticketsAsync = ref.watch(ticketsProvider);
+    final tickets = ticketsAsync.value ?? [];
     final total = tickets.length;
     final pending = tickets
         .where((ticket) => ticket.status != TicketStatus.resolved)
@@ -73,6 +74,17 @@ class ProfilePage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
+          if (ticketsAsync.isLoading)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          if (ticketsAsync.hasError)
+            Text(
+              'Gagal memuat tiket: ${ticketsAsync.error}',
+              style: const TextStyle(color: AppTheme.textMuted),
+              textAlign: TextAlign.center,
+            ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
