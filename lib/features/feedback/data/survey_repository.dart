@@ -67,4 +67,39 @@ class SurveyRepository {
     }
     throw Exception(response.error?.message ?? 'Gagal menyimpan template');
   }
+
+  Future<SurveyTemplate> updateTemplate({
+    required String templateId,
+    required String title,
+    required String description,
+    required String categoryId,
+    required List<SurveyQuestion> questions,
+  }) async {
+    final response = await _client.put(ApiEndpoints.surveyTemplateById(templateId), body: {
+      'title': title,
+      'description': description,
+      'categoryId': categoryId,
+      'questions': questions
+          .map(
+            (question) => {
+              'text': question.text,
+              'type': question.type.name,
+              'options': question.options,
+            },
+          )
+          .toList(),
+    });
+    final data = response.data?['data'];
+    if (response.isSuccess && data is Map<String, dynamic>) {
+      return SurveyTemplate.fromJson(data);
+    }
+    throw Exception(response.error?.message ?? 'Gagal memperbarui template');
+  }
+
+  Future<void> deleteTemplate(String templateId) async {
+    final response = await _client.delete(ApiEndpoints.surveyTemplateById(templateId));
+    if (!response.isSuccess) {
+      throw Exception(response.error?.message ?? 'Gagal menghapus template');
+    }
+  }
 }

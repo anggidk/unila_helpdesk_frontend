@@ -110,6 +110,7 @@ class Ticket {
     required this.history,
     required this.comments,
     required this.surveyRequired,
+    required this.surveyScore,
     this.assignee,
   });
 
@@ -127,6 +128,7 @@ class Ticket {
   final List<TicketUpdate> history;
   final List<TicketComment> comments;
   final bool surveyRequired;
+  final double surveyScore;
 
   bool get isResolved => status == TicketStatus.resolved;
 
@@ -155,6 +157,7 @@ class Ticket {
       history: history,
       comments: comments,
       surveyRequired: json['surveyRequired'] == true,
+      surveyScore: (json['surveyScore'] as num?)?.toDouble() ?? 0,
     );
   }
 }

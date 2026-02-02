@@ -40,6 +40,39 @@ class AuthRepository {
       'password': password,
     });
   }
+
+  Future<AuthSession> signInAsGuest({
+    required String name,
+    required String email,
+  }) async {
+    final response = await guestLogin(name: name, email: email);
+    final data = response.data?['data'];
+    if (!response.isSuccess || data is! Map<String, dynamic>) {
+      throw Exception(response.error?.message ?? 'Login guest gagal');
+    }
+    final token = data['token']?.toString() ?? '';
+    final userJson = data['user'] as Map<String, dynamic>? ?? {};
+    final expiresAt = DateTime.tryParse(data['expiresAt']?.toString() ?? '') ??
+        DateTime.now();
+    if (token.isNotEmpty) {
+      _client.setAuthToken(token);
+    }
+    return AuthSession(
+      token: token,
+      expiresAt: expiresAt,
+      user: UserProfile.fromJson(userJson),
+    );
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> guestLogin({
+    required String name,
+    required String email,
+  }) {
+    return _client.post(ApiEndpoints.guestLogin, body: {
+      'name': name,
+      'email': email,
+    });
+  }
 }
 
 class AuthSession {

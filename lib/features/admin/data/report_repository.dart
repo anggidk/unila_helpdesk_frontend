@@ -7,10 +7,16 @@ class ReportRepository {
 
   final ApiClient _client;
 
-  Future<List<CohortRow>> fetchCohort({int months = 5}) async {
+  Future<List<CohortRow>> fetchCohort({
+    String period = 'monthly',
+    int periods = 5,
+  }) async {
     final response = await _client.get(
       ApiEndpoints.cohort,
-      query: {'months': months.toString()},
+      query: {
+        'period': period,
+        'periods': periods.toString(),
+      },
     );
     final items = response.data?['data'];
     if (response.isSuccess && items is List) {
@@ -39,6 +45,123 @@ class ReportRepository {
       return items
           .whereType<Map<String, dynamic>>()
           .map(ServiceTrend.fromJson)
+          .toList();
+    }
+    return [];
+  }
+
+  Future<DashboardSummary?> fetchDashboardSummary() async {
+    final response = await _client.get(ApiEndpoints.reportsSummary);
+    final data = response.data?['data'];
+    if (response.isSuccess && data is Map<String, dynamic>) {
+      return DashboardSummary.fromJson(data);
+    }
+    return null;
+  }
+
+  Future<List<ServiceSatisfaction>> fetchServiceSatisfactionSummary({
+    String period = 'monthly',
+    int periods = 6,
+  }) async {
+    final response = await _client.get(
+      ApiEndpoints.reportsSatisfactionSummary,
+      query: {
+        'period': period,
+        'periods': periods.toString(),
+      },
+    );
+    final items = response.data?['data'];
+    if (response.isSuccess && items is List) {
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(ServiceSatisfaction.fromJson)
+          .toList();
+    }
+    return [];
+  }
+
+  Future<SurveySatisfactionReport?> fetchSurveySatisfaction({
+    String? categoryId,
+    String? templateId,
+    required String period,
+    required int periods,
+  }) async {
+    final query = <String, String>{
+      'period': period,
+      'periods': periods.toString(),
+    };
+    if (categoryId != null && categoryId.isNotEmpty) {
+      query['categoryId'] = categoryId;
+    }
+    if (templateId != null && templateId.isNotEmpty) {
+      query['templateId'] = templateId;
+    }
+    final response = await _client.get(ApiEndpoints.reportsSatisfaction, query: query);
+    final data = response.data?['data'];
+    if (response.isSuccess && data is Map<String, dynamic>) {
+      return SurveySatisfactionReport.fromJson(data);
+    }
+    return null;
+  }
+
+  Future<List<UsageCohortRow>> fetchUsageCohort({
+    required String period,
+    required int periods,
+  }) async {
+    final response = await _client.get(
+      ApiEndpoints.usageCohort,
+      query: {
+        'period': period,
+        'periods': periods.toString(),
+      },
+    );
+    final items = response.data?['data'];
+    if (response.isSuccess && items is List) {
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(UsageCohortRow.fromJson)
+          .toList();
+    }
+    return [];
+  }
+
+  Future<List<ServiceUtilizationRow>> fetchServiceUtilization({
+    required String period,
+    required int periods,
+  }) async {
+    final response = await _client.get(
+      ApiEndpoints.serviceUtilization,
+      query: {
+        'period': period,
+        'periods': periods.toString(),
+      },
+    );
+    final items = response.data?['data'];
+    if (response.isSuccess && items is List) {
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(ServiceUtilizationRow.fromJson)
+          .toList();
+    }
+    return [];
+  }
+
+  Future<List<EntityServiceRow>> fetchEntityService({
+    required String period,
+    required int periods,
+  }) async {
+    final response = await _client.get(
+      ApiEndpoints.entityService,
+      query: {
+        'period': period,
+        'periods': periods.toString(),
+      },
+    );
+    final items = response.data?['data'];
+    if (response.isSuccess && items is List) {
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(EntityServiceRow.fromJson)
           .toList();
     }
     return [];
