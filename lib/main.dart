@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app.dart';
+import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
+import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 
-void main() {
-  // Wrap app dengan ProviderScope untuk mengaktifkan Riverpod
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final token = await TokenStorage().readToken();
+  if (token != null && token.isNotEmpty) {
+    sharedApiClient.setAuthToken(token);
+  }
   runApp(
     const ProviderScope(
       child: HelpdeskApp(),
