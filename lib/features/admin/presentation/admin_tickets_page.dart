@@ -10,7 +10,8 @@ class AdminTicketsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tickets = ref.watch(ticketsProvider);
+    final ticketsAsync = ref.watch(ticketsProvider);
+    final tickets = ticketsAsync.value ?? [];
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -42,6 +43,16 @@ class AdminTicketsPage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
+          if (ticketsAsync.isLoading)
+            const Center(child: CircularProgressIndicator()),
+          if (ticketsAsync.hasError)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Gagal memuat tiket: ${ticketsAsync.error}',
+                style: const TextStyle(color: AppTheme.textMuted),
+              ),
+            ),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),

@@ -8,7 +8,8 @@ class AdminDashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final serviceTrends = ref.watch(serviceTrendsProvider);
+    final serviceTrendsAsync = ref.watch(serviceTrendsProvider);
+    final serviceTrends = serviceTrendsAsync.value ?? [];
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -102,6 +103,16 @@ class AdminDashboardPage extends ConsumerWidget {
               children: [
                 const Text('Kepuasan per Layanan (Survey Results)', style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
+                if (serviceTrendsAsync.isLoading)
+                  const Center(child: CircularProgressIndicator()),
+                if (serviceTrendsAsync.hasError)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      'Gagal memuat tren layanan: ${serviceTrendsAsync.error}',
+                      style: const TextStyle(color: AppTheme.textMuted),
+                    ),
+                  ),
                 ...serviceTrends.map(
                   (trend) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),

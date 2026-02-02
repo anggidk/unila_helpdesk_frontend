@@ -8,7 +8,8 @@ class AdminCohortPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cohortRows = ref.watch(cohortRowsProvider);
+    final cohortRowsAsync = ref.watch(cohortRowsProvider);
+    final cohortRows = cohortRowsAsync.value ?? [];
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -28,6 +29,16 @@ class AdminCohortPage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
+          if (cohortRowsAsync.isLoading)
+            const Center(child: CircularProgressIndicator()),
+          if (cohortRowsAsync.hasError)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Gagal memuat cohort: ${cohortRowsAsync.error}',
+                style: const TextStyle(color: AppTheme.textMuted),
+              ),
+            ),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -70,12 +81,19 @@ class AdminCohortPage extends ConsumerWidget {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('Satisfaction Score by Cohort', style: TextStyle(fontWeight: FontWeight.w700)),
-                SizedBox(height: 12),
-                _CohortScoreRow(label: 'Jan 2026', score: '4.2', responseRate: '85%'),
-                _CohortScoreRow(label: 'Feb 2026', score: '4.5', responseRate: '72%'),
-                _CohortScoreRow(label: 'Mar 2026', score: '3.8', responseRate: '65%'),
+              children: [
+                const Text('Satisfaction Score by Cohort', style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                if (cohortRows.isEmpty)
+                  const Text('Belum ada data survey.', style: TextStyle(color: AppTheme.textMuted))
+                else
+                  ...cohortRows.map(
+                    (row) => _CohortScoreRow(
+                      label: row.label,
+                      score: row.avgScore,
+                      responseRate: row.responseRate,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -131,8 +149,8 @@ class _CohortScoreRow extends StatelessWidget {
   });
 
   final String label;
-  final String score;
-  final String responseRate;
+  final double score;
+  final double responseRate;
 
   @override
   Widget build(BuildContext context) {
@@ -141,8 +159,8 @@ class _CohortScoreRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(label)),
-          Expanded(child: Text('Avg Score: $score')),
-          Expanded(child: Text('Response: $responseRate')),
+          Expanded(child: Text('Avg Score: ${score.toStringAsFixed(2)}')),
+          Expanded(child: Text('Response: ${responseRate.toStringAsFixed(0)}%')),
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,

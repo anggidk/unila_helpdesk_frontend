@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
+import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_cohort_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_dashboard_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_reports_page.dart';
@@ -302,7 +303,7 @@ class _ProfileSection extends StatelessWidget {
 
   final bool isExpanded;
   final bool showMenu;
-  final dynamic adminUser;
+  final UserProfile? adminUser;
   final VoidCallback onToggleMenu;
   final VoidCallback onLogout;
 
@@ -356,14 +357,14 @@ class _ProfileSection extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        adminUser.name,
+                        adminUser?.name ?? 'Admin',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
-                        adminUser.email,
+                        adminUser?.email ?? 'admin@unila.ac.id',
                         style: const TextStyle(color: Colors.white70),
                       ),
                     ],
