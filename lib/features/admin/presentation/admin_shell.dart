@@ -5,6 +5,8 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
+import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
+import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_cohort_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_dashboard_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_reports_page.dart';
@@ -149,7 +151,15 @@ class AdminShell extends ConsumerWidget {
                         onToggleMenu: () => ref
                             .read(adminProfileMenuOpenProvider.notifier)
                             .state = !showProfileMenu,
-                        onLogout: () => context.goNamed(AppRouteNames.login),
+                        onLogout: () async {
+                          await TokenStorage().clearToken();
+                          sharedApiClient.setAuthToken(null);
+                          ref.read(adminUserProvider.notifier).state = null;
+                          ref.invalidate(ticketsProvider);
+                          ref.invalidate(notificationsProvider);
+                          if (!context.mounted) return;
+                          context.goNamed(AppRouteNames.login);
+                        },
                       ),
                       const SizedBox(height: 12),
                     ],

@@ -1,53 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
+import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
+import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
+import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 
-const _reportRows = [
-  {
-    'dimension': 'Responsiveness',
-    'score': '4.20',
-    'target': '4.00',
-    'gap': '+0.20',
-    'status': 'Optimal',
-  },
-  {
-    'dimension': 'Reliability',
-    'score': '3.80',
-    'target': '4.00',
-    'gap': '-0.20',
-    'status': 'Underperform',
-  },
-  {
-    'dimension': 'Assurance',
-    'score': '4.50',
-    'target': '4.00',
-    'gap': '+0.50',
-    'status': 'Excellent',
-  },
-  {
-    'dimension': 'Empathy',
-    'score': '3.90',
-    'target': '4.00',
-    'gap': '-0.10',
-    'status': 'Warning',
-  },
-  {
-    'dimension': 'Tangibles',
-    'score': '4.10',
-    'target': '4.00',
-    'gap': '+0.10',
-    'status': 'Optimal',
-  },
-];
-
-final adminReportRowsProvider = Provider<List<Map<String, String>>>((ref) => _reportRows);
-
-class AdminReportsPage extends ConsumerWidget {
+class AdminReportsPage extends ConsumerStatefulWidget {
   const AdminReportsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final rows = ref.watch(adminReportRowsProvider);
+  ConsumerState<AdminReportsPage> createState() => _AdminReportsPageState();
+}
+
+class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
+  void _syncCategory(List<ServiceCategory> categories) {
+    final filtered = categories.where((category) => !category.guestAllowed).toList();
+    if (filtered.isEmpty) {
+      return;
+    }
+    final selected = ref.read(reportsCategoryIdProvider);
+    if (selected == null || !filtered.any((item) => item.id == selected)) {
+      ref.read(reportsCategoryIdProvider.notifier).state = filtered.first.id;
+    }
+  }
+
+  void _syncTemplate(String? categoryId, List<SurveyTemplate> templates) {
+    if (categoryId == null) {
+      ref.read(reportsTemplateIdProvider.notifier).state = null;
+      return;
+    }
+    final filtered = templates.where((template) => template.categoryId == categoryId).toList();
+    if (filtered.isEmpty) {
+      ref.read(reportsTemplateIdProvider.notifier).state = null;
+      return;
+    }
+    final selected = ref.read(reportsTemplateIdProvider);
+    if (selected == null || !filtered.any((item) => item.id == selected)) {
+      ref.read(reportsTemplateIdProvider.notifier).state = filtered.first.id;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<AsyncValue<List<ServiceCategory>>>(
+      serviceCategoriesProvider,
+      (_, next) => _syncCategory(next.value ?? []),
+    );
+    ref.listen<AsyncValue<List<SurveyTemplate>>>(
+      surveyTemplatesProvider,
+      (_, next) => _syncTemplate(ref.read(reportsCategoryIdProvider), next.value ?? []),
+    );
+    ref.listen<String?>(
+      reportsCategoryIdProvider,
+      (_, next) => _syncTemplate(next, ref.read(surveyTemplatesProvider).value ?? []),
+    );
+
+    final period = ref.watch(reportsPeriodProvider);
+    final chartPeriod = ref.watch(reportsChartPeriodProvider);
+    final usageAsync = ref.watch(reportsChartUsageProvider);
+    final trendsAsync = ref.watch(reportsChartServiceTrendsProvider);
+    final satisfactionAsync = ref.watch(surveySatisfactionProvider);
+    final categoriesAsync = ref.watch(serviceCategoriesProvider);
+    final templatesAsync = ref.watch(surveyTemplatesProvider);
+    final selectedCategoryId = ref.watch(reportsCategoryIdProvider);
+    final selectedTemplateId = ref.watch(reportsTemplateIdProvider);
+
+    final categories = (categoriesAsync.value ?? [])
+        .where((category) => !category.guestAllowed)
+        .toList();
+    final templates = (templatesAsync.value ?? [])
+        .where((template) => selectedCategoryId == null || template.categoryId == selectedCategoryId)
+        .toList();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -55,17 +80,37 @@ class AdminReportsPage extends ConsumerWidget {
         children: [
           Row(
             children: [
-              _DropdownFilter(label: 'Layanan', value: 'Internet & Jaringan'),
-              const SizedBox(width: 12),
-              _DropdownFilter(label: 'Framework', value: 'ISO 9001'),
-              const SizedBox(width: 12),
-              _DropdownFilter(label: 'Periode', value: 'Q3 2026'),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.download),
-                label: const Text('Export CSV'),
+              _SelectDropdown(
+                label: 'Kategori',
+                value: selectedCategoryId,
+                enabled: categories.isNotEmpty,
+                options: {
+                  for (final category in categories) category.id: category.name,
+                },
+                onChanged: (value) {
+                  ref.read(reportsCategoryIdProvider.notifier).state = value;
+                },
               ),
+              const SizedBox(width: 12),
+              _SelectDropdown(
+                label: 'Template',
+                value: selectedTemplateId,
+                enabled: templates.isNotEmpty,
+                options: {
+                  for (final template in templates) template.id: template.title,
+                },
+                onChanged: (value) {
+                  ref.read(reportsTemplateIdProvider.notifier).state = value;
+                },
+              ),
+              const SizedBox(width: 12),
+              _PeriodDropdown(
+                value: period,
+                onChanged: (value) {
+                  ref.read(reportsPeriodProvider.notifier).state = value;
+                },
+              ),
+              const Spacer(),
             ],
           ),
           const SizedBox(height: 20),
@@ -79,28 +124,25 @@ class AdminReportsPage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Hasil Survey - Internet (ISO 9001)', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text('Hasil Kepuasan Survey', style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text(
+                  'Filter berdasarkan kategori, template, dan periode.',
+                  style: const TextStyle(color: AppTheme.textMuted),
+                ),
                 const SizedBox(height: 12),
-                DataTable(
-                  headingRowColor: WidgetStateProperty.all(AppTheme.surface),
-                  columns: const [
-                    DataColumn(label: Text('Dimensi')),
-                    DataColumn(label: Text('Skor (AVG)')),
-                    DataColumn(label: Text('Target')),
-                    DataColumn(label: Text('Gap')),
-                    DataColumn(label: Text('Status')),
-                  ],
-                  rows: rows.map((row) {
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(row['dimension']!)),
-                        DataCell(Text(row['score']!)),
-                        DataCell(Text(row['target']!)),
-                        DataCell(Text(row['gap']!)),
-                        DataCell(_StatusPill(label: row['status']!)),
-                      ],
-                    );
-                  }).toList(),
+                satisfactionAsync.when(
+                  data: (report) {
+                    if (report == null || report.rows.isEmpty) {
+                      return const Text('Belum ada data survey.', style: TextStyle(color: AppTheme.textMuted));
+                    }
+                    return _SatisfactionTable(report: report);
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => Text(
+                    'Gagal memuat hasil survey: $error',
+                    style: const TextStyle(color: AppTheme.textMuted),
+                  ),
                 ),
               ],
             ),
@@ -108,17 +150,74 @@ class AdminReportsPage extends ConsumerWidget {
           const SizedBox(height: 20),
           Row(
             children: [
+              const Text(
+                'Grafik',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(width: 12),
+              _PeriodDropdown(
+                value: chartPeriod,
+                onChanged: (value) {
+                  ref.read(reportsChartPeriodProvider.notifier).state = value;
+                },
+              ),
+              const Spacer(),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
               Expanded(
                 child: _CardPlaceholder(
-                  title: 'Trend per Dimensi',
-                  description: 'Grafik radar kepuasan (mock).',
+                  title: 'Trend Tiket & Survey',
+                  description: 'Jumlah tiket dan survey per periode.',
+                  child: usageAsync.when(
+                    data: (rows) {
+                      if (rows.isEmpty) {
+                        return const Text('Belum ada data.', style: TextStyle(color: AppTheme.textMuted));
+                      }
+                      return _LineChart(
+                        labels: rows.map((row) => row.label).toList(),
+                        series: [
+                          _LineSeries(
+                            label: 'Tiket',
+                            color: AppTheme.navy,
+                            values: rows.map((row) => row.tickets).toList(),
+                          ),
+                          _LineSeries(
+                            label: 'Survey',
+                            color: AppTheme.accentYellow,
+                            values: rows.map((row) => row.surveys).toList(),
+                          ),
+                        ],
+                      );
+                    },
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (error, _) => Text(
+                      'Gagal memuat trend: $error',
+                      style: const TextStyle(color: AppTheme.textMuted),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _CardPlaceholder(
-                  title: 'Detail Response (Top 5 Issues)',
-                  description: 'Daftar isu dengan skor tertinggi (mock).',
+                  title: 'Top Isu per Layanan',
+                  description: 'Kategori dengan tiket paling sering.',
+                  child: trendsAsync.when(
+                    data: (rows) {
+                      if (rows.isEmpty) {
+                        return const Text('Belum ada data.', style: TextStyle(color: AppTheme.textMuted));
+                      }
+                      return _TopIssuesBarChart(rows: rows);
+                    },
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (error, _) => Text(
+                      'Gagal memuat top isu: $error',
+                      style: const TextStyle(color: AppTheme.textMuted),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -129,49 +228,16 @@ class AdminReportsPage extends ConsumerWidget {
   }
 }
 
-class _DropdownFilter extends StatelessWidget {
-  const _DropdownFilter({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: () {},
-      icon: const Icon(Icons.expand_more, size: 18),
-      label: Text('$label: $value'),
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    Color color = AppTheme.success;
-    if (label.toLowerCase().contains('under') || label.toLowerCase().contains('warning')) {
-      color = AppTheme.warning;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
-    );
-  }
-}
-
 class _CardPlaceholder extends StatelessWidget {
-  const _CardPlaceholder({required this.title, required this.description});
+  const _CardPlaceholder({
+    required this.title,
+    required this.description,
+    required this.child,
+  });
 
   final String title;
   final String description;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -190,17 +256,389 @@ class _CardPlaceholder extends StatelessWidget {
           Text(description, style: const TextStyle(color: AppTheme.textMuted)),
           const SizedBox(height: 12),
           Container(
-            height: 150,
+            height: 190,
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppTheme.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.outline),
             ),
-            child: const Center(child: Text('Grafik / List (Mock)')),
+            child: child,
           ),
         ],
       ),
     );
+  }
+}
+
+class _PeriodDropdown extends StatelessWidget {
+  const _PeriodDropdown({required this.value, required this.onChanged});
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: onChanged,
+      itemBuilder: (context) => const [
+        PopupMenuItem(value: 'daily', child: Text('Harian')),
+        PopupMenuItem(value: 'weekly', child: Text('Mingguan')),
+        PopupMenuItem(value: 'monthly', child: Text('Bulanan')),
+        PopupMenuItem(value: 'yearly', child: Text('Tahunan')),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppTheme.outline),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.expand_more, size: 18),
+            const SizedBox(width: 6),
+            Text('Periode: ${_periodLabel(value)}'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectDropdown extends StatelessWidget {
+  const _SelectDropdown({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    required this.enabled,
+  });
+
+  final String label;
+  final String? value;
+  final Map<String, String> options;
+  final ValueChanged<String> onChanged;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedLabel = value != null ? options[value] ?? '-' : '-';
+    return PopupMenuButton<String>(
+      onSelected: enabled ? onChanged : null,
+      itemBuilder: (context) => options.entries
+          .map(
+            (entry) => PopupMenuItem<String>(
+              value: entry.key,
+              child: Text(entry.value),
+            ),
+          )
+          .toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: enabled ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.4)),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.expand_more,
+              size: 18,
+              color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '$label: $selectedLabel',
+              style: TextStyle(
+                color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _periodLabel(String period) {
+  switch (period) {
+    case 'daily':
+      return 'Harian';
+    case 'weekly':
+      return 'Mingguan';
+    case 'yearly':
+      return 'Tahunan';
+    default:
+      return 'Bulanan';
+  }
+}
+
+class _LineSeries {
+  const _LineSeries({
+    required this.label,
+    required this.color,
+    required this.values,
+  });
+
+  final String label;
+  final Color color;
+  final List<int> values;
+}
+
+class _LineChart extends StatelessWidget {
+  const _LineChart({
+    required this.labels,
+    required this.series,
+  });
+
+  final List<String> labels;
+  final List<_LineSeries> series;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _ChartLegend(series: series),
+        const SizedBox(height: 8),
+        Expanded(
+          child: CustomPaint(
+            painter: _LineChartPainter(series: series),
+            child: const SizedBox.expand(),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: labels
+              .map(
+                (label) => Expanded(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _LineChartPainter extends CustomPainter {
+  _LineChartPainter({required this.series});
+
+  final List<_LineSeries> series;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final maxValue = _maxValue(series);
+    if (maxValue <= 0) {
+      return;
+    }
+    final chartRect = Rect.fromLTWH(0, 4, size.width, size.height - 8);
+    final gridPaint = Paint()
+      ..color = AppTheme.outline
+      ..strokeWidth = 1;
+    for (var i = 1; i <= 2; i++) {
+      final dy = chartRect.top + (chartRect.height / 3) * i;
+      canvas.drawLine(
+        Offset(chartRect.left, dy),
+        Offset(chartRect.right, dy),
+        gridPaint,
+      );
+    }
+
+    for (final line in series) {
+      final linePaint = Paint()
+        ..color = line.color
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke;
+      final points = _pointsForLine(line, chartRect, maxValue);
+      if (points.isEmpty) continue;
+      final path = Path()..moveTo(points.first.dx, points.first.dy);
+      for (var i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+      canvas.drawPath(path, linePaint);
+
+      final pointPaint = Paint()..color = line.color;
+      for (final point in points) {
+        canvas.drawCircle(point, 3, pointPaint);
+      }
+    }
+  }
+
+  List<Offset> _pointsForLine(_LineSeries line, Rect rect, int maxValue) {
+    final count = line.values.length;
+    if (count == 0) return [];
+    final points = <Offset>[];
+    for (var i = 0; i < count; i++) {
+      final ratioX = count == 1 ? 0.5 : i / (count - 1);
+      final value = line.values[i];
+      final ratioY = value / maxValue;
+      final x = rect.left + rect.width * ratioX;
+      final y = rect.bottom - rect.height * ratioY;
+      points.add(Offset(x, y));
+    }
+    return points;
+  }
+
+  int _maxValue(List<_LineSeries> series) {
+    var maxValue = 0;
+    for (final line in series) {
+      for (final value in line.values) {
+        if (value > maxValue) {
+          maxValue = value;
+        }
+      }
+    }
+    return maxValue == 0 ? 1 : maxValue;
+  }
+
+  @override
+  bool shouldRepaint(covariant _LineChartPainter oldDelegate) {
+    return oldDelegate.series != series;
+  }
+}
+
+class _ChartLegend extends StatelessWidget {
+  const _ChartLegend({required this.series});
+
+  final List<_LineSeries> series;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: series
+          .map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: item.color,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(item.label, style: const TextStyle(color: AppTheme.textMuted)),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _TopIssuesBarChart extends StatelessWidget {
+  const _TopIssuesBarChart({required this.rows});
+
+  final List<ServiceTrend> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...rows]..sort((a, b) => b.percentage.compareTo(a.percentage));
+    final visible = sorted.take(6).toList();
+    final maxValue = visible.fold<double>(0, (max, row) => row.percentage > max ? row.percentage : max);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: visible
+          .map(
+            (row) => Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      row.percentage.toStringAsFixed(0),
+                      style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: _barHeight(row.percentage, maxValue),
+                      decoration: BoxDecoration(
+                        color: AppTheme.navy,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      row.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  double _barHeight(double value, double maxValue) {
+    if (maxValue <= 0) {
+      return 0;
+    }
+    final ratio = value / maxValue;
+    return (ratio * 120).clamp(8.0, 120.0).toDouble();
+  }
+}
+
+class _SatisfactionTable extends StatelessWidget {
+  const _SatisfactionTable({required this.report});
+
+  final SurveySatisfactionReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    return DataTable(
+      headingRowColor: WidgetStateProperty.all(AppTheme.surface),
+      columns: const [
+        DataColumn(label: Text('Pertanyaan')),
+        DataColumn(label: Text('Tipe')),
+        DataColumn(label: Text('Skor (AVG)')),
+        DataColumn(label: Text('Respon')),
+      ],
+      rows: report.rows.map((row) {
+        final supportsScore = row.type != 'text' && row.type != 'multipleChoice';
+        final avgText =
+            !supportsScore || row.responses == 0 ? '-' : row.avgScore.toStringAsFixed(2);
+        return DataRow(
+          cells: [
+            DataCell(SizedBox(
+              width: 280,
+              child: Text(row.question, maxLines: 2, overflow: TextOverflow.ellipsis),
+            )),
+            DataCell(Text(_questionTypeLabel(row.type))),
+            DataCell(Text(avgText)),
+            DataCell(Text(row.responses.toString())),
+          ],
+        );
+      }).toList(),
+    );
+  }
+}
+
+String _questionTypeLabel(String type) {
+  switch (type) {
+    case 'yesNo':
+      return 'Ya/Tidak';
+    case 'multipleChoice':
+      return 'Pilihan Ganda';
+    case 'text':
+      return 'Teks';
+    default:
+      return 'Likert';
   }
 }
 

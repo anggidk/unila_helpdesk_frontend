@@ -15,28 +15,6 @@ final adminSurveySelectedTemplateIdProvider = StateProvider.autoDispose<String>(
   return '';
 });
 
-class _AdminSurveyQuestionsNotifier extends StateNotifier<Map<String, List<SurveyQuestion>>> {
-  _AdminSurveyQuestionsNotifier() : super({});
-
-  void addQuestion(String categoryId, SurveyQuestion question) {
-    final current = state[categoryId] ?? <SurveyQuestion>[];
-    state = {
-      ...state,
-      categoryId: [...current, question],
-    };
-  }
-
-  List<SurveyQuestion> questionsFor(String categoryId, List<SurveyQuestion> base) {
-    final extras = state[categoryId] ?? <SurveyQuestion>[];
-    return [...base, ...extras];
-  }
-}
-
-final adminSurveyQuestionsProvider =
-    StateNotifierProvider.autoDispose<_AdminSurveyQuestionsNotifier, Map<String, List<SurveyQuestion>>>(
-  (ref) => _AdminSurveyQuestionsNotifier(),
-);
-
 class _AdminSurveyTemplatesNotifier extends StateNotifier<List<SurveyTemplate>> {
   _AdminSurveyTemplatesNotifier() : super(const []);
 
@@ -51,6 +29,10 @@ class _AdminSurveyTemplatesNotifier extends StateNotifier<List<SurveyTemplate>> 
   }
 
   void updateTemplate(SurveyTemplate template) => addTemplate(template);
+
+  void removeTemplate(String templateId) {
+    state = state.where((item) => item.id != templateId).toList();
+  }
 }
 
 final adminSurveyTemplatesProvider =
@@ -64,7 +46,9 @@ class AdminSurveyPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsync = ref.watch(serviceCategoriesProvider);
-    final categories = categoriesAsync.value ?? [];
+    final categories = (categoriesAsync.value ?? [])
+        .where((category) => !category.guestAllowed)
+        .toList();
     final selectedCategory = ref.watch(adminSurveySelectedCategoryProvider);
     final baseTemplatesAsync = ref.watch(surveyTemplatesProvider);
     final baseTemplates = baseTemplatesAsync.value ?? [];
@@ -82,20 +66,26 @@ class AdminSurveyPage extends ConsumerWidget {
         : allTemplates.where((t) => t.categoryId == activeCategory.id).toList();
     final selectedTemplateId = ref.watch(adminSurveySelectedTemplateIdProvider);
     SurveyTemplate? template;
-    if (allTemplates.isNotEmpty) {
+    if (categoryTemplates.isNotEmpty) {
       template = categoryTemplates.firstWhere(
         (t) => t.id == selectedTemplateId,
-        orElse: () => categoryTemplates.isNotEmpty ? categoryTemplates.first : allTemplates.first,
+        orElse: () => categoryTemplates.first,
       );
-      if (selectedTemplateId.isEmpty) {
+    }
+    if (activeCategory != null) {
+      final shouldReset =
+          selectedTemplateId.isEmpty ||
+          !categoryTemplates.any((t) => t.id == selectedTemplateId);
+      if (shouldReset) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(adminSurveySelectedTemplateIdProvider.notifier).state = template!.id;
+          ref.read(adminSurveySelectedTemplateIdProvider.notifier).state =
+              categoryTemplates.isNotEmpty ? categoryTemplates.first.id : '';
         });
       }
     }
-    final questions = ref
-        .read(adminSurveyQuestionsProvider.notifier)
-        .questionsFor(activeCategory?.id ?? '', template?.questions ?? const []);
+    final questions = activeCategory == null
+        ? const <SurveyQuestion>[]
+        : (template?.questions ?? const <SurveyQuestion>[]);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Row(
@@ -191,6 +181,14 @@ class AdminSurveyPage extends ConsumerWidget {
                               categories: categories,
                             );
                             if (template != null) {
+                              final validationError = _validateTemplate(template);
+                              if (validationError != null) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(validationError)),
+                                );
+                                return;
+                              }
                               try {
                                 final saved = await SurveyRepository().createTemplate(
                                   title: template.title,
@@ -233,11 +231,66 @@ class AdminSurveyPage extends ConsumerWidget {
                       initialTemplate: template,
                     );
                       if (edited != null) {
-                        ref.read(adminSurveyTemplatesProvider.notifier).updateTemplate(edited);
-                        ref.read(adminSurveySelectedTemplateIdProvider.notifier).state = edited.id;
+                        final validationError = _validateTemplate(edited);
+                        if (validationError != null) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(validationError)),
+                          );
+                          return;
+                        }
+                        try {
+                          final saved = await SurveyRepository().updateTemplate(
+                            templateId: edited.id,
+                            title: edited.title,
+                            description: edited.description,
+                            categoryId: edited.categoryId,
+                            questions: edited.questions,
+                          );
+                          ref.read(adminSurveyTemplatesProvider.notifier).updateTemplate(saved);
+                          ref.read(adminSurveySelectedTemplateIdProvider.notifier).state = saved.id;
+                          ref.invalidate(surveyTemplatesProvider);
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(error.toString())),
+                          );
+                        }
                       }
                     },
                     onChange: () => _showTemplateDialog(context, ref),
+                    onDelete: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Hapus Template'),
+                          content: const Text('Template ini akan dihapus permanen. Lanjutkan?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dialogContext, false),
+                              child: const Text('Batal'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(dialogContext, true),
+                              child: const Text('Hapus'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm != true) return;
+                      if (template == null) return;
+                      try {
+                        await SurveyRepository().deleteTemplate(template.id);
+                        ref.read(adminSurveyTemplatesProvider.notifier).removeTemplate(template.id);
+                        ref.read(adminSurveySelectedTemplateIdProvider.notifier).state = '';
+                        ref.invalidate(surveyTemplatesProvider);
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(error.toString())),
+                        );
+                      }
+                    },
                   )
                 else
                   Container(
@@ -272,15 +325,39 @@ class AdminSurveyPage extends ConsumerWidget {
                                 );
                                 return;
                               }
+                              if (template == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Template belum tersedia.')),
+                                );
+                                return;
+                              }
                               final payload = await showAdminAddQuestionModal(
                                 context: context,
                                 categories: categories,
                                 selectedCategory: activeCategory,
                               );
                               if (payload != null) {
-                                ref
-                                    .read(adminSurveyQuestionsProvider.notifier)
-                                    .addQuestion(payload.categoryId, payload.question);
+                                final updatedQuestions = [
+                                  ...template.questions,
+                                  payload.question,
+                                ];
+                                try {
+                                  final saved = await SurveyRepository().updateTemplate(
+                                    templateId: template.id,
+                                    title: template.title,
+                                    description: template.description,
+                                    categoryId: template.categoryId,
+                                    questions: updatedQuestions,
+                                  );
+                                  ref.read(adminSurveyTemplatesProvider.notifier).updateTemplate(saved);
+                                  ref.read(adminSurveySelectedTemplateIdProvider.notifier).state = saved.id;
+                                  ref.invalidate(surveyTemplatesProvider);
+                                } catch (error) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(error.toString())),
+                                  );
+                                }
                               }
                             },
                             icon: const Icon(Icons.add),
@@ -289,7 +366,96 @@ class AdminSurveyPage extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      ...questions.map((question) => _QuestionRow(question: question)),
+                      ...questions.map(
+                        (question) => _QuestionRow(
+                          question: question,
+                          onEdit: () async {
+                            if (template == null || activeCategory == null) {
+                              return;
+                            }
+                            final payload = await showAdminAddQuestionModal(
+                              context: context,
+                              categories: categories,
+                              selectedCategory: activeCategory,
+                              initialQuestion: question,
+                              lockCategory: true,
+                            );
+                            if (payload == null) return;
+                            final updatedQuestions = template.questions
+                                .map(
+                                  (item) => item.id == question.id
+                                      ? payload.question
+                                      : item,
+                                )
+                                .toList();
+                            try {
+                              final saved = await SurveyRepository().updateTemplate(
+                                templateId: template.id,
+                                title: template.title,
+                                description: template.description,
+                                categoryId: template.categoryId,
+                                questions: updatedQuestions,
+                              );
+                              ref.read(adminSurveyTemplatesProvider.notifier).updateTemplate(saved);
+                              ref.read(adminSurveySelectedTemplateIdProvider.notifier).state = saved.id;
+                              ref.invalidate(surveyTemplatesProvider);
+                            } catch (error) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error.toString())),
+                              );
+                            }
+                          },
+                          onDelete: () async {
+                            if (template == null) return;
+                            if (template.questions.length <= 1) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Template harus memiliki minimal 1 pertanyaan.')),
+                              );
+                              return;
+                            }
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                title: const Text('Hapus Pertanyaan'),
+                                content: const Text('Pertanyaan ini akan dihapus. Lanjutkan?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(dialogContext, false),
+                                    child: const Text('Batal'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(dialogContext, true),
+                                    child: const Text('Hapus'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm != true) return;
+                            final updatedQuestions = template.questions
+                                .where((item) => item.id != question.id)
+                                .toList();
+                            try {
+                              final saved = await SurveyRepository().updateTemplate(
+                                templateId: template.id,
+                                title: template.title,
+                                description: template.description,
+                                categoryId: template.categoryId,
+                                questions: updatedQuestions,
+                              );
+                              ref.read(adminSurveyTemplatesProvider.notifier).updateTemplate(saved);
+                              ref.read(adminSurveySelectedTemplateIdProvider.notifier).state = saved.id;
+                              ref.invalidate(surveyTemplatesProvider);
+                            } catch (error) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error.toString())),
+                              );
+                            }
+                          },
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -310,11 +476,18 @@ class AdminSurveyPage extends ConsumerWidget {
           final baseTemplatesAsync = dialogRef.watch(surveyTemplatesProvider);
           final baseTemplates = baseTemplatesAsync.value ?? [];
           final extraTemplates = dialogRef.watch(adminSurveyTemplatesProvider);
-          final templates = _mergeTemplates(baseTemplates, extraTemplates);
+          final allTemplates = _mergeTemplates(baseTemplates, extraTemplates);
           final categoriesAsync = dialogRef.watch(serviceCategoriesProvider);
-          final categories = categoriesAsync.value ?? [];
+          final categories = (categoriesAsync.value ?? [])
+              .where((category) => !category.guestAllowed)
+              .toList();
           final selectedCategory = dialogRef.watch(adminSurveySelectedCategoryProvider) ??
               (categories.isNotEmpty ? categories.first : null);
+          final templates = selectedCategory == null
+              ? const <SurveyTemplate>[]
+              : allTemplates
+                  .where((template) => template.categoryId == selectedCategory.id)
+                  .toList();
           return Dialog(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -337,6 +510,14 @@ class AdminSurveyPage extends ConsumerWidget {
                       child: Text(
                         'Gagal memuat data: ${baseTemplatesAsync.error ?? categoriesAsync.error}',
                         style: const TextStyle(color: AppTheme.textMuted),
+                      ),
+                    ),
+                  if (templates.isEmpty && !baseTemplatesAsync.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'Template untuk kategori ini belum tersedia.',
+                        style: TextStyle(color: AppTheme.textMuted),
                       ),
                     ),
                   RadioGroup<String>(
@@ -374,6 +555,14 @@ class AdminSurveyPage extends ConsumerWidget {
                         categories: categories,
                       );
                       if (template != null) {
+                        final validationError = _validateTemplate(template);
+                        if (validationError != null) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(validationError)),
+                          );
+                          return;
+                        }
                         try {
                           final saved = await SurveyRepository().createTemplate(
                             title: template.title,
@@ -411,6 +600,22 @@ class AdminSurveyPage extends ConsumerWidget {
       ),
     );
   }
+
+  String? _validateTemplate(SurveyTemplate template) {
+    if (template.questions.isEmpty) {
+      return 'Template survey wajib memiliki minimal 1 pertanyaan.';
+    }
+    for (final question in template.questions) {
+      if (question.text.trim().isEmpty) {
+        return 'Pertanyaan tidak boleh kosong.';
+      }
+      if (question.type == SurveyQuestionType.multipleChoice &&
+          question.options.isEmpty) {
+        return 'Pertanyaan pilihan ganda wajib memiliki opsi.';
+      }
+    }
+    return null;
+  }
 }
 
 class _TemplateCard extends StatelessWidget {
@@ -418,11 +623,13 @@ class _TemplateCard extends StatelessWidget {
     required this.template,
     required this.onEdit,
     required this.onChange,
+    required this.onDelete,
   });
 
   final SurveyTemplate template;
   final VoidCallback onEdit;
   final VoidCallback onChange;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -450,6 +657,12 @@ class _TemplateCard extends StatelessWidget {
               OutlinedButton(onPressed: onEdit, child: const Text('Edit')),
               const SizedBox(width: 8),
               OutlinedButton(onPressed: onChange, child: const Text('Ganti')),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: onDelete,
+                style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),
+                child: const Text('Hapus'),
+              ),
             ],
           ),
         ],
@@ -473,9 +686,15 @@ List<SurveyTemplate> _mergeTemplates(
 }
 
 class _QuestionRow extends StatelessWidget {
-  const _QuestionRow({required this.question});
+  const _QuestionRow({
+    required this.question,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   final SurveyQuestion question;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -511,8 +730,8 @@ class _QuestionRow extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.edit_outlined)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.delete_outline)),
+          IconButton(onPressed: onEdit, icon: const Icon(Icons.edit_outlined)),
+          IconButton(onPressed: onDelete, icon: const Icon(Icons.delete_outline)),
         ],
       ),
     );

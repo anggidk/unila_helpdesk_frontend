@@ -8,6 +8,8 @@ Future<AddQuestionPayload?> showAdminAddQuestionModal({
   required BuildContext context,
   required List<ServiceCategory> categories,
   required ServiceCategory selectedCategory,
+  SurveyQuestion? initialQuestion,
+  bool lockCategory = false,
 }) {
   return showDialog<AddQuestionPayload>(
     context: context,
@@ -15,6 +17,8 @@ Future<AddQuestionPayload?> showAdminAddQuestionModal({
     builder: (context) => _AdminAddQuestionDialog(
       categories: categories,
       selectedCategory: selectedCategory,
+      initialQuestion: initialQuestion,
+      lockCategory: lockCategory,
     ),
   );
 }
@@ -23,10 +27,14 @@ class _AdminAddQuestionDialog extends StatefulWidget {
   const _AdminAddQuestionDialog({
     required this.categories,
     required this.selectedCategory,
+    this.initialQuestion,
+    this.lockCategory = false,
   });
 
   final List<ServiceCategory> categories;
   final ServiceCategory selectedCategory;
+  final SurveyQuestion? initialQuestion;
+  final bool lockCategory;
 
   @override
   State<_AdminAddQuestionDialog> createState() =>
@@ -45,6 +53,13 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
   void initState() {
     super.initState();
     _category = widget.selectedCategory;
+    if (widget.initialQuestion != null) {
+      _textController.text = widget.initialQuestion!.text;
+      _type = widget.initialQuestion!.type;
+      _options
+        ..clear()
+        ..addAll(widget.initialQuestion!.options);
+    }
   }
 
   @override
@@ -155,9 +170,13 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                             ),
                           )
                           .toList(),
-                      onChanged: (value) => setState(
-                        () => _category = value ?? widget.selectedCategory,
-                      ),
+                      onChanged: widget.lockCategory
+                          ? null
+                          : (value) => setState(
+                                () =>
+                                    _category =
+                                        value ?? widget.selectedCategory,
+                              ),
                       decoration: const InputDecoration(labelText: 'Kategori'),
                     ),
                   ),
@@ -246,8 +265,10 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                               categoryId: _category.id,
                               isRequired: _isRequired,
                               question: SurveyQuestion(
-                                id: DateTime.now().millisecondsSinceEpoch
-                                    .toString(),
+                                id: widget.initialQuestion?.id ??
+                                    DateTime.now()
+                                        .millisecondsSinceEpoch
+                                        .toString(),
                                 text: _textController.text.trim(),
                                 type: _type,
                                 options:

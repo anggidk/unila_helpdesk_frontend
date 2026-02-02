@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
+import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
 
 class AdminDashboardPage extends ConsumerWidget {
   const AdminDashboardPage({super.key});
@@ -10,22 +11,64 @@ class AdminDashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final serviceTrendsAsync = ref.watch(serviceTrendsProvider);
     final serviceTrends = serviceTrendsAsync.value ?? [];
+    final summaryAsync = ref.watch(dashboardSummaryProvider);
+    final usageAsync = ref.watch(dashboardUsageProvider);
+    final satisfactionAsync = ref.watch(dashboardSatisfactionProvider);
+    final summary = summaryAsync.value;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              _StatCard(label: 'Total Ticket', value: '156', icon: Icons.folder_open, color: AppTheme.accentBlue),
-              SizedBox(width: 16),
-              _StatCard(label: 'Open Ticket', value: '42', icon: Icons.warning_amber, color: AppTheme.warning),
-              SizedBox(width: 16),
-              _StatCard(label: 'Resolved Bulan Ini', value: '89', icon: Icons.check_circle, color: AppTheme.success),
-              SizedBox(width: 16),
-              _StatCard(label: 'Avg. Rating', value: '4.2 / 5.0', icon: Icons.star, color: AppTheme.accentYellow),
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Dashboard',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
             ],
           ),
+          const SizedBox(height: 16),
+          if (summaryAsync.isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (summaryAsync.hasError)
+            Text(
+              'Gagal memuat ringkasan: ${summaryAsync.error}',
+              style: const TextStyle(color: AppTheme.textMuted),
+            )
+          else
+            Row(
+              children: [
+                _StatCard(
+                  label: 'Total Ticket',
+                  value: _formatCount(summary?.totalTickets),
+                  icon: Icons.folder_open,
+                  color: AppTheme.accentBlue,
+                ),
+                const SizedBox(width: 16),
+                _StatCard(
+                  label: 'Open Ticket',
+                  value: _formatCount(summary?.openTickets),
+                  icon: Icons.warning_amber,
+                  color: AppTheme.warning,
+                ),
+                const SizedBox(width: 16),
+                _StatCard(
+                  label: 'Resolved Bulan Ini',
+                  value: _formatCount(summary?.resolvedThisPeriod),
+                  icon: Icons.check_circle,
+                  color: AppTheme.success,
+                ),
+                const SizedBox(width: 16),
+                _StatCard(
+                  label: 'Avg. Rating',
+                  value: '${_formatScore(summary?.avgRating)} / 5.0',
+                  icon: Icons.star,
+                  color: AppTheme.accentYellow,
+                ),
+              ],
+            ),
           const SizedBox(height: 20),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,28 +82,29 @@ class AdminDashboardPage extends ConsumerWidget {
                     children: [
                       const Text('Tiket per Kategori', style: TextStyle(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        height: 180,
-                        child: Center(
-                          child: Container(
-                            width: 140,
-                            height: 140,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppTheme.surface,
-                              border: Border.all(color: AppTheme.outline),
+                      if (serviceTrendsAsync.isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (serviceTrendsAsync.hasError)
+                        Text(
+                          'Gagal memuat kategori: ${serviceTrendsAsync.error}',
+                          style: const TextStyle(color: AppTheme.textMuted),
+                        )
+                      else if (serviceTrends.isEmpty)
+                        const Text('Belum ada data kategori.', style: TextStyle(color: AppTheme.textMuted))
+                      else
+                        Column(
+                          children: [
+                            SizedBox(
+                              height: 180,
+                              child: _PieChart(
+                                sections: _trendSections(serviceTrends),
+                                centerText: '${_formatCount(summary?.totalTickets)}\nTOTAL',
+                              ),
                             ),
-                            child: const Center(
-                              child: Text('156\nTOTAL', textAlign: TextAlign.center),
-                            ),
-                          ),
+                            const SizedBox(height: 12),
+                            ..._trendLegend(serviceTrends),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      _LegendRow(label: 'Internet', value: '45%', color: AppTheme.accentBlue),
-                      _LegendRow(label: 'SIAKAD', value: '30%', color: AppTheme.navy),
-                      _LegendRow(label: 'Email', value: '15%', color: AppTheme.accentYellow),
-                      _LegendRow(label: 'Lainnya', value: '10%', color: AppTheme.textMuted),
                     ],
                   ),
                 ),
@@ -78,14 +122,44 @@ class AdminDashboardPage extends ConsumerWidget {
                       const Text('Volume tiket masuk tahun ini', style: TextStyle(color: AppTheme.textMuted)),
                       const SizedBox(height: 12),
                       Container(
-                        height: 180,
+                        height: 240,
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: AppTheme.surface,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppTheme.outline),
                         ),
-                        child: const Center(
-                          child: Text('Grafik Trend (Mock)'),
+                        child: usageAsync.when(
+                          data: (rows) {
+                            if (rows.isEmpty) {
+                              return const Center(
+                                child: Text('Belum ada data.', style: TextStyle(color: AppTheme.textMuted)),
+                              );
+                            }
+                            return _LineChart(
+                              labels: rows.map((row) => row.label).toList(),
+                              series: [
+                                _LineSeries(
+                                  label: 'Tiket',
+                                  color: AppTheme.navy,
+                                  values: rows.map((row) => row.tickets).toList(),
+                                ),
+                                _LineSeries(
+                                  label: 'Survey',
+                                  color: AppTheme.accentYellow,
+                                  values: rows.map((row) => row.surveys).toList(),
+                                ),
+                              ],
+                            );
+                          },
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (error, _) => Center(
+                            child: Text(
+                              'Gagal memuat trend: $error',
+                              style: const TextStyle(color: AppTheme.textMuted),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -103,39 +177,22 @@ class AdminDashboardPage extends ConsumerWidget {
               children: [
                 const Text('Kepuasan per Layanan (Survey Results)', style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
-                if (serviceTrendsAsync.isLoading)
-                  const Center(child: CircularProgressIndicator()),
-                if (serviceTrendsAsync.hasError)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      'Gagal memuat tren layanan: ${serviceTrendsAsync.error}',
-                      style: const TextStyle(color: AppTheme.textMuted),
-                    ),
-                  ),
-                ...serviceTrends.map(
-                  (trend) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(trend.label, style: const TextStyle(fontWeight: FontWeight.w600)),
-                            Text('${trend.percentage.toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.w700)),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        LinearProgressIndicator(
-                          value: trend.percentage / 100,
-                          color: AppTheme.navy,
-                          backgroundColor: AppTheme.surface,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(trend.note, style: const TextStyle(color: AppTheme.textMuted)),
-                      ],
-                    ),
+                satisfactionAsync.when(
+                  data: (rows) {
+                    if (rows.isEmpty) {
+                      return const Text(
+                        'Belum ada data survey.',
+                        style: TextStyle(color: AppTheme.textMuted),
+                      );
+                    }
+                    return Column(
+                      children: rows.map((row) => _SatisfactionBarRow(row: row)).toList(),
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => Text(
+                    'Gagal memuat kepuasan: $error',
+                    style: const TextStyle(color: AppTheme.textMuted),
                   ),
                 ),
               ],
@@ -231,5 +288,336 @@ class _LegendRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SatisfactionBarRow extends StatelessWidget {
+  const _SatisfactionBarRow({required this.row});
+
+  final ServiceSatisfaction row;
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = (row.avgScore / 5).clamp(0.0, 1.0);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  row.label,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              Text(
+                '${row.avgScore.toStringAsFixed(2)} / 5 • ${row.responses} respon',
+                style: const TextStyle(color: AppTheme.textMuted),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          LinearProgressIndicator(
+            value: ratio,
+            color: AppTheme.navy,
+            backgroundColor: AppTheme.surface,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PieSection {
+  const _PieSection({
+    required this.value,
+    required this.color,
+  });
+
+  final double value;
+  final Color color;
+}
+
+class _PieChart extends StatelessWidget {
+  const _PieChart({
+    required this.sections,
+    required this.centerText,
+  });
+
+  final List<_PieSection> sections;
+  final String centerText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        CustomPaint(
+          size: const Size(180, 180),
+          painter: _PieChartPainter(sections),
+        ),
+        Container(
+          width: 86,
+          height: 86,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppTheme.outline),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            centerText,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PieChartPainter extends CustomPainter {
+  _PieChartPainter(this.sections);
+
+  final List<_PieSection> sections;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = sections.fold<double>(0, (sum, item) => sum + item.value);
+    if (total <= 0) {
+      final paint = Paint()
+        ..color = AppTheme.surface
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(size.center(Offset.zero), size.width / 2, paint);
+      return;
+    }
+    var startAngle = -90.0;
+    final radius = size.width / 2;
+    final rect = Rect.fromCircle(center: size.center(Offset.zero), radius: radius);
+    for (final section in sections) {
+      final sweep = (section.value / total) * 360;
+      final paint = Paint()
+        ..color = section.color
+        ..style = PaintingStyle.fill;
+      canvas.drawArc(rect, _degToRad(startAngle), _degToRad(sweep), true, paint);
+      startAngle += sweep;
+    }
+  }
+
+  double _degToRad(double degree) => degree * (3.141592653589793 / 180);
+
+  @override
+  bool shouldRepaint(covariant _PieChartPainter oldDelegate) {
+    return oldDelegate.sections != sections;
+  }
+}
+
+class _LineSeries {
+  const _LineSeries({
+    required this.label,
+    required this.color,
+    required this.values,
+  });
+
+  final String label;
+  final Color color;
+  final List<int> values;
+}
+
+class _LineChart extends StatelessWidget {
+  const _LineChart({
+    required this.labels,
+    required this.series,
+  });
+
+  final List<String> labels;
+  final List<_LineSeries> series;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _ChartLegend(series: series),
+        const SizedBox(height: 8),
+        Expanded(
+          child: CustomPaint(
+            painter: _LineChartPainter(series: series),
+            child: const SizedBox.expand(),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: labels
+              .map(
+                (label) => Expanded(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _LineChartPainter extends CustomPainter {
+  _LineChartPainter({required this.series});
+
+  final List<_LineSeries> series;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final maxValue = _maxValue(series);
+    if (maxValue <= 0) {
+      return;
+    }
+    final chartRect = Rect.fromLTWH(0, 4, size.width, size.height - 8);
+    final gridPaint = Paint()
+      ..color = AppTheme.outline
+      ..strokeWidth = 1;
+    for (var i = 1; i <= 2; i++) {
+      final dy = chartRect.top + (chartRect.height / 3) * i;
+      canvas.drawLine(
+        Offset(chartRect.left, dy),
+        Offset(chartRect.right, dy),
+        gridPaint,
+      );
+    }
+
+    for (final line in series) {
+      final linePaint = Paint()
+        ..color = line.color
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke;
+      final points = _pointsForLine(line, chartRect, maxValue);
+      if (points.isEmpty) continue;
+      final path = Path()..moveTo(points.first.dx, points.first.dy);
+      for (var i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+      canvas.drawPath(path, linePaint);
+
+      final pointPaint = Paint()..color = line.color;
+      for (final point in points) {
+        canvas.drawCircle(point, 3, pointPaint);
+      }
+    }
+  }
+
+  List<Offset> _pointsForLine(_LineSeries line, Rect rect, int maxValue) {
+    final count = line.values.length;
+    if (count == 0) return [];
+    final points = <Offset>[];
+    for (var i = 0; i < count; i++) {
+      final ratioX = count == 1 ? 0.5 : i / (count - 1);
+      final value = line.values[i];
+      final ratioY = value / maxValue;
+      final x = rect.left + rect.width * ratioX;
+      final y = rect.bottom - rect.height * ratioY;
+      points.add(Offset(x, y));
+    }
+    return points;
+  }
+
+  int _maxValue(List<_LineSeries> series) {
+    var maxValue = 0;
+    for (final line in series) {
+      for (final value in line.values) {
+        if (value > maxValue) {
+          maxValue = value;
+        }
+      }
+    }
+    return maxValue == 0 ? 1 : maxValue;
+  }
+
+  @override
+  bool shouldRepaint(covariant _LineChartPainter oldDelegate) {
+    return oldDelegate.series != series;
+  }
+}
+
+class _ChartLegend extends StatelessWidget {
+  const _ChartLegend({required this.series});
+
+  final List<_LineSeries> series;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: series
+          .map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: item.color,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(item.label, style: const TextStyle(color: AppTheme.textMuted)),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+String _formatCount(int? value) => value == null ? '-' : value.toString();
+
+String _formatScore(double? value) {
+  if (value == null) {
+    return '-';
+  }
+  return value.toStringAsFixed(2);
+}
+
+List<_LegendRow> _trendLegend(List<ServiceTrend> rows) {
+  final colors = _palette(rows.length);
+  return List.generate(rows.length, (index) {
+    final row = rows[index];
+    return _LegendRow(
+      label: row.label,
+      value: '${row.percentage.toStringAsFixed(1)}%',
+      color: colors[index],
+    );
+  });
+}
+
+List<_PieSection> _trendSections(List<ServiceTrend> rows) {
+  final colors = _palette(rows.length);
+  return List.generate(rows.length, (index) {
+    final row = rows[index];
+    return _PieSection(value: row.percentage, color: colors[index]);
+  });
+}
+
+List<Color> _palette(int count) {
+  const base = [
+    AppTheme.navy,
+    AppTheme.accentBlue,
+    AppTheme.accentYellow,
+    AppTheme.success,
+    AppTheme.warning,
+    AppTheme.danger,
+    AppTheme.textMuted,
+  ];
+  if (count <= base.length) {
+    return base.take(count).toList();
+  }
+  return List.generate(count, (index) => base[index % base.length]);
 }
 
