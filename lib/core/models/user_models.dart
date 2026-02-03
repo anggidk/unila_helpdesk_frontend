@@ -25,6 +25,16 @@ class UserProfile {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'role': _roleToString(role),
+      'entity': entity,
+    };
+  }
+
   String get roleLabel {
     switch (role) {
       case UserRole.registered:
@@ -45,5 +55,16 @@ UserRole _roleFromString(String value) {
       return UserRole.guest;
     default:
       return UserRole.registered;
+  }
+}
+
+String _roleToString(UserRole role) {
+  switch (role) {
+    case UserRole.admin:
+      return 'admin';
+    case UserRole.guest:
+      return 'guest';
+    case UserRole.registered:
+      return 'registered';
   }
 }
