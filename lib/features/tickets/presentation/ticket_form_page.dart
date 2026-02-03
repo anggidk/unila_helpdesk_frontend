@@ -6,10 +6,12 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
-final ticketFormSelectedCategoryProvider =
-    StateProvider.autoDispose<String?>((ref) => null);
-final ticketFormPriorityProvider =
-    StateProvider.autoDispose<TicketPriority>((ref) => TicketPriority.medium);
+final ticketFormSelectedCategoryProvider = StateProvider.autoDispose<String?>(
+  (ref) => null,
+);
+final ticketFormPriorityProvider = StateProvider.autoDispose<TicketPriority>(
+  (ref) => TicketPriority.medium,
+);
 
 class TicketFormPage extends ConsumerStatefulWidget {
   const TicketFormPage({super.key, this.existing});
@@ -29,10 +31,12 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
   @override
   void initState() {
     super.initState();
-    _titleController =
-        TextEditingController(text: widget.existing?.title ?? '');
-    _descriptionController =
-        TextEditingController(text: widget.existing?.description ?? '');
+    _titleController = TextEditingController(
+      text: widget.existing?.title ?? '',
+    );
+    _descriptionController = TextEditingController(
+      text: widget.existing?.description ?? '',
+    );
     ref.read(ticketFormPriorityProvider.notifier).state =
         widget.existing?.priority ?? TicketPriority.medium;
     ref.read(ticketFormSelectedCategoryProvider.notifier).state =
@@ -54,9 +58,9 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     final selectedCategory = ref.read(ticketFormSelectedCategoryProvider);
     final selectedPriority = ref.read(ticketFormPriorityProvider);
     if (selectedCategory == null || selectedCategory.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kategori wajib dipilih')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Kategori wajib dipilih')));
       return;
     }
 
@@ -89,9 +93,9 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
       context.pop();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -111,9 +115,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? 'Edit Tiket' : 'Buat Tiket Baru'),
-      ),
+      appBar: AppBar(title: Text(isEditing ? 'Edit Tiket' : 'Buat Tiket Baru')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -139,7 +141,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                     ),
                   ),
                 DropdownButtonFormField<String>(
-                  value: selectedCategory,
+                  initialValue: selectedCategory,
                   items: categories
                       .map(
                         (category) => DropdownMenuItem(
@@ -148,9 +150,11 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                         ),
                       )
                       .toList(),
-                  onChanged: (value) => ref
-                      .read(ticketFormSelectedCategoryProvider.notifier)
-                      .state = value,
+                  onChanged: (value) =>
+                      ref
+                              .read(ticketFormSelectedCategoryProvider.notifier)
+                              .state =
+                          value,
                   decoration: const InputDecoration(
                     hintText: 'Pilih Kategori... ',
                   ),
@@ -206,9 +210,11 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                         child: _PriorityChip(
                           label: priority.label,
                           selected: isSelected,
-                          onTap: () => ref
-                              .read(ticketFormPriorityProvider.notifier)
-                              .state = priority,
+                          onTap: () =>
+                              ref
+                                      .read(ticketFormPriorityProvider.notifier)
+                                      .state =
+                                  priority,
                         ),
                       ),
                     );
@@ -241,9 +247,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                               color: Colors.white,
                             ),
                           )
-                        : Text(
-                            isEditing ? 'SIMPAN PERUBAHAN' : 'KIRIM TIKET',
-                          ),
+                        : Text(isEditing ? 'SIMPAN PERUBAHAN' : 'KIRIM TIKET'),
                   ),
                 ),
               ],
@@ -298,7 +302,9 @@ class _PriorityChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.navy.withValues(alpha: 0.08) : Colors.white,
+          color: selected
+              ? AppTheme.navy.withValues(alpha: 0.08)
+              : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selected ? AppTheme.navy : AppTheme.outline,
@@ -378,7 +384,10 @@ class _AttachmentTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
