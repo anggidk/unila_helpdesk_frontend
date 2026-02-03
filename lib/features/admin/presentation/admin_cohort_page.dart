@@ -39,7 +39,8 @@ class AdminCohortPage extends ConsumerWidget {
           if (analysis == 'retention')
             _CenteredSection(child: _RetentionSection(period: selectedPeriod)),
           if (analysis == 'usage') _CenteredSection(child: _UsageSection()),
-          if (analysis == 'service') _CenteredSection(child: _ServiceUtilSection()),
+          if (analysis == 'service')
+            _CenteredSection(child: _ServiceUtilSection()),
           if (analysis == 'entity-service')
             _CenteredSection(child: _EntityServiceSection()),
         ],
@@ -64,24 +65,11 @@ class _RetentionCell extends StatelessWidget {
       ),
       child: Text(
         '$value%',
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
       ),
-    );
-  }
-}
-
-class _DropdownButton extends StatelessWidget {
-  const _DropdownButton({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: () {},
-      icon: const Icon(Icons.expand_more, size: 18),
-      label: Text('$label: $value'),
     );
   }
 }
@@ -100,7 +88,10 @@ class _AnalysisDropdown extends StatelessWidget {
         PopupMenuItem(value: 'retention', child: Text('Retention Cohort')),
         PopupMenuItem(value: 'usage', child: Text('Time-based Usage')),
         PopupMenuItem(value: 'service', child: Text('Service Utilization')),
-        PopupMenuItem(value: 'entity-service', child: Text('User Group x Service')),
+        PopupMenuItem(
+          value: 'entity-service',
+          child: Text('User Group x Service'),
+        ),
       ],
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -144,7 +135,11 @@ class _PeriodDropdown extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          border: Border.all(color: enabled ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.4)),
+          border: Border.all(
+            color: enabled
+                ? AppTheme.outline
+                : AppTheme.outline.withValues(alpha: 0.4),
+          ),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -190,10 +185,14 @@ class _CohortScoreRow extends StatelessWidget {
       stars.add(const Icon(Icons.star, color: AppTheme.accentYellow, size: 18));
     }
     if (hasHalf) {
-      stars.add(const Icon(Icons.star_half, color: AppTheme.accentYellow, size: 18));
+      stars.add(
+        const Icon(Icons.star_half, color: AppTheme.accentYellow, size: 18),
+      );
     }
     for (var i = 0; i < emptyStars; i++) {
-      stars.add(const Icon(Icons.star_border, color: AppTheme.textMuted, size: 18));
+      stars.add(
+        const Icon(Icons.star_border, color: AppTheme.textMuted, size: 18),
+      );
     }
     return Padding(
       padding: EdgeInsets.only(bottom: 12),
@@ -201,7 +200,9 @@ class _CohortScoreRow extends StatelessWidget {
         children: [
           Expanded(child: Text(label)),
           Expanded(child: Text('Avg Score: ${clamped.toStringAsFixed(2)}')),
-          Expanded(child: Text('Response: ${responseRate.toStringAsFixed(0)}%')),
+          Expanded(
+            child: Text('Response: ${responseRate.toStringAsFixed(0)}%'),
+          ),
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -226,39 +227,6 @@ class _DualBarData {
   final int secondary;
 }
 
-class _DualBarList extends StatelessWidget {
-  const _DualBarList({
-    required this.rows,
-    required this.primaryLabel,
-    required this.secondaryLabel,
-  });
-
-  final List<_DualBarData> rows;
-  final String primaryLabel;
-  final String secondaryLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final maxValue = rows.fold<int>(
-      1,
-      (value, row) => _max(value, _max(row.primary, row.secondary)),
-    );
-    return Column(
-      children: [
-        _LegendRow(primaryLabel: primaryLabel, secondaryLabel: secondaryLabel),
-        const SizedBox(height: 12),
-        ...rows.map(
-          (row) => _DualBarRow(
-            label: row.label,
-            primary: row.primary,
-            secondary: row.secondary,
-            maxValue: maxValue,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _VerticalDualBarChart extends StatelessWidget {
   const _VerticalDualBarChart({
@@ -426,7 +394,10 @@ class _HeatmapLegend extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Text('Tinggi (max $maxValue)', style: const TextStyle(color: AppTheme.textMuted)),
+        Text(
+          'Tinggi (max $maxValue)',
+          style: const TextStyle(color: AppTheme.textMuted),
+        ),
       ],
     );
   }
@@ -464,7 +435,9 @@ class _HeatmapTable extends StatelessWidget {
                 DataCell(Text(entity)),
                 ...categories.map((category) {
                   final value = row[category] ?? 0;
-                  return DataCell(_HeatmapCell(value: value, maxValue: maxValue));
+                  return DataCell(
+                    _HeatmapCell(value: value, maxValue: maxValue),
+                  );
                 }),
               ],
             );
@@ -562,10 +535,7 @@ class _CenteredSection extends StatelessWidget {
 }
 
 class _LegendRow extends StatelessWidget {
-  const _LegendRow({
-    required this.primaryLabel,
-    required this.secondaryLabel,
-  });
+  const _LegendRow({required this.primaryLabel, required this.secondaryLabel});
 
   final String primaryLabel;
   final String secondaryLabel;
@@ -629,7 +599,10 @@ class _DualBarRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 160,
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -817,10 +790,16 @@ class _RetentionSection extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Satisfaction Score by Cohort', style: TextStyle(fontWeight: FontWeight.w700)),
+              const Text(
+                'Satisfaction Score by Cohort',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
               const SizedBox(height: 12),
               if (cohortRows.isEmpty)
-                const Text('Belum ada data survey.', style: TextStyle(color: AppTheme.textMuted))
+                const Text(
+                  'Belum ada data survey.',
+                  style: TextStyle(color: AppTheme.textMuted),
+                )
               else
                 ...cohortRows.map(
                   (row) => _CohortScoreRow(
@@ -852,7 +831,10 @@ class _UsageSection extends ConsumerWidget {
       );
     }
     if (usageRows.isEmpty) {
-      return const Text('Belum ada data usage.', style: TextStyle(color: AppTheme.textMuted));
+      return const Text(
+        'Belum ada data usage.',
+        style: TextStyle(color: AppTheme.textMuted),
+      );
     }
     return Container(
       padding: const EdgeInsets.all(16),
@@ -864,9 +846,15 @@ class _UsageSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Time-based Usage Cohort', style: TextStyle(fontWeight: FontWeight.w700)),
+          const Text(
+            'Time-based Usage Cohort',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 4),
-          const Text('Jumlah tiket & survey per periode.', style: TextStyle(color: AppTheme.textMuted)),
+          const Text(
+            'Jumlah tiket & survey per periode.',
+            style: TextStyle(color: AppTheme.textMuted),
+          ),
           const SizedBox(height: 12),
           _VerticalDualBarChart(
             rows: usageRows
@@ -902,7 +890,10 @@ class _ServiceUtilSection extends ConsumerWidget {
       );
     }
     if (serviceUtilRows.isEmpty) {
-      return const Text('Belum ada data layanan.', style: TextStyle(color: AppTheme.textMuted));
+      return const Text(
+        'Belum ada data layanan.',
+        style: TextStyle(color: AppTheme.textMuted),
+      );
     }
     return Container(
       padding: const EdgeInsets.all(16),
@@ -914,9 +905,15 @@ class _ServiceUtilSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Service Utilization Cohort', style: TextStyle(fontWeight: FontWeight.w700)),
+          const Text(
+            'Service Utilization Cohort',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 4),
-          const Text('First ticket vs first survey per layanan.', style: TextStyle(color: AppTheme.textMuted)),
+          const Text(
+            'First ticket vs first survey per layanan.',
+            style: TextStyle(color: AppTheme.textMuted),
+          ),
           const SizedBox(height: 12),
           _VerticalDualBarChart(
             rows: serviceUtilRows
@@ -952,7 +949,10 @@ class _EntityServiceSection extends ConsumerWidget {
       );
     }
     if (entityServiceRows.isEmpty) {
-      return const Text('Belum ada data user group.', style: TextStyle(color: AppTheme.textMuted));
+      return const Text(
+        'Belum ada data user group.',
+        style: TextStyle(color: AppTheme.textMuted),
+      );
     }
     final categories = _sortedCategories(entityServiceRows);
     final entities = _sortedEntities(entityServiceRows);
@@ -968,9 +968,15 @@ class _EntityServiceSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('User Group x Service', style: TextStyle(fontWeight: FontWeight.w700)),
+          const Text(
+            'User Group x Service',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 4),
-          const Text('Heatmap penggunaan tiket per entitas & layanan.', style: TextStyle(color: AppTheme.textMuted)),
+          const Text(
+            'Heatmap penggunaan tiket per entitas & layanan.',
+            style: TextStyle(color: AppTheme.textMuted),
+          ),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.center,
@@ -991,4 +997,3 @@ class _EntityServiceSection extends ConsumerWidget {
     );
   }
 }
-
