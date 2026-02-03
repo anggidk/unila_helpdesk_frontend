@@ -17,4 +17,7 @@ Future<void> main() async {
       child: HelpdeskApp(),
     ),
   );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    FcmService.markNavigationReady();
+  });
 }
