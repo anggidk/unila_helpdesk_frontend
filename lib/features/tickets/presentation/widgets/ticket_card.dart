@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
+import 'package:unila_helpdesk_frontend/core/utils/ticket_ui.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
 
 class TicketCard extends StatelessWidget {
@@ -9,22 +10,6 @@ class TicketCard extends StatelessWidget {
 
   final Ticket ticket;
   final VoidCallback? onTap;
-
-  IconData _iconForCategory(String category) {
-    if (category.toLowerCase().contains('internet')) {
-      return Icons.wifi;
-    }
-    if (category.toLowerCase().contains('website')) {
-      return Icons.language;
-    }
-    if (category.toLowerCase().contains('email')) {
-      return Icons.email_outlined;
-    }
-    if (category.toLowerCase().contains('keanggotaan')) {
-      return Icons.verified_user_outlined;
-    }
-    return Icons.support_agent_outlined;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +35,7 @@ class TicketCard extends StatelessWidget {
           children: [
             CircleAvatar(
               backgroundColor: AppTheme.surface,
-              child: Icon(_iconForCategory(ticket.category), color: AppTheme.accentBlue),
+              child: Icon(iconForTicketCategory(ticket.category), color: AppTheme.accentBlue),
             ),
             const SizedBox(width: 12),
             Expanded(
