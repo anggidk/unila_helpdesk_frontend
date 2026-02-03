@@ -4,6 +4,7 @@ import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_shell.dart';
+import 'package:unila_helpdesk_frontend/features/auth/presentation/boot_page.dart';
 import 'package:unila_helpdesk_frontend/features/auth/presentation/login_page.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/presentation/survey_page.dart';
 import 'package:unila_helpdesk_frontend/features/guest/presentation/guest_ticket_form_page.dart';
@@ -15,6 +16,7 @@ import 'package:unila_helpdesk_frontend/features/tickets/presentation/ticket_for
 import 'package:unila_helpdesk_frontend/features/user/presentation/user_shell.dart';
 
 class AppRoutes {
+  static const boot = '/';
   static const login = '/login';
   static const guestTracking = '/guest-tracking';
   static const guestTicket = '/guest-ticket';
@@ -28,6 +30,7 @@ class AppRoutes {
 }
 
 class AppRouteNames {
+  static const boot = 'boot';
   static const login = 'login';
   static const guestTracking = 'guestTracking';
   static const guestTicket = 'guestTicket';
@@ -48,8 +51,13 @@ class SurveyPayload {
 }
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.login,
+  initialLocation: AppRoutes.boot,
   routes: [
+    GoRoute(
+      path: AppRoutes.boot,
+      name: AppRouteNames.boot,
+      builder: (context, state) => const BootPage(),
+    ),
     GoRoute(
       path: AppRoutes.login,
       name: AppRouteNames.login,
