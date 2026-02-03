@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:unila_helpdesk_frontend/core/config/api_config.dart';
+import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
+import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
 import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 
 class ApiResponse<T> {
@@ -27,6 +30,7 @@ class ApiClient {
   final String baseUrl;
   final http.Client _client;
   String? _authToken;
+  Completer<bool>? _refreshCompleter;
 
   void setAuthToken(String? token) {
     _authToken = token;
@@ -55,14 +59,9 @@ class ApiClient {
     String path, {
     Map<String, String>? query,
   }) async {
-    try {
-      final response = await _client
-          .get(buildUri(path, query), headers: _headers())
-          .timeout(ApiConfig.timeout);
-      return _parseResponse(response);
-    } catch (error) {
-      return ApiResponse(error: ApiError(message: error.toString()));
-    }
+    return _sendJson(
+      () => _client.get(buildUri(path, query), headers: _headers()),
+    );
   }
 
   Future<ApiResponse<String>> getRaw(
@@ -91,64 +90,112 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
   }) async {
-    try {
-      final response = await _client
-          .post(
-            buildUri(path),
-            headers: _headers(),
-            body: jsonEncode(body ?? {}),
-          )
-          .timeout(ApiConfig.timeout);
-      return _parseResponse(response);
-    } catch (error) {
-      return ApiResponse(error: ApiError(message: error.toString()));
-    }
+    return _sendJson(
+      () => _client.post(
+        buildUri(path),
+        headers: _headers(),
+        body: jsonEncode(body ?? {}),
+      ),
+    );
   }
 
   Future<ApiResponse<Map<String, dynamic>>> put(
     String path, {
     Map<String, dynamic>? body,
   }) async {
-    try {
-      final response = await _client
-          .put(
-            buildUri(path),
-            headers: _headers(),
-            body: jsonEncode(body ?? {}),
-          )
-          .timeout(ApiConfig.timeout);
-      return _parseResponse(response);
-    } catch (error) {
-      return ApiResponse(error: ApiError(message: error.toString()));
-    }
+    return _sendJson(
+      () => _client.put(
+        buildUri(path),
+        headers: _headers(),
+        body: jsonEncode(body ?? {}),
+      ),
+    );
   }
 
   Future<ApiResponse<Map<String, dynamic>>> patch(
     String path, {
     Map<String, dynamic>? body,
   }) async {
+    return _sendJson(
+      () => _client.patch(
+        buildUri(path),
+        headers: _headers(),
+        body: jsonEncode(body ?? {}),
+      ),
+    );
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> delete(String path) async {
+    return _sendJson(
+      () => _client.delete(buildUri(path), headers: _headers()),
+    );
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> _sendJson(
+    Future<http.Response> Function() request, {
+    bool retryOnUnauthorized = true,
+  }) async {
     try {
-      final response = await _client
-          .patch(
-            buildUri(path),
-            headers: _headers(),
-            body: jsonEncode(body ?? {}),
-          )
-          .timeout(ApiConfig.timeout);
+      final response = await request().timeout(ApiConfig.timeout);
+      if (response.statusCode == 401 && retryOnUnauthorized) {
+        final refreshed = await _refreshAccessToken();
+        if (refreshed) {
+          return _sendJson(request, retryOnUnauthorized: false);
+        }
+      }
       return _parseResponse(response);
     } catch (error) {
       return ApiResponse(error: ApiError(message: error.toString()));
     }
   }
 
-  Future<ApiResponse<Map<String, dynamic>>> delete(String path) async {
+  Future<bool> _refreshAccessToken() async {
+    if (_refreshCompleter != null) {
+      return _refreshCompleter!.future;
+    }
+    final completer = Completer<bool>();
+    _refreshCompleter = completer;
     try {
+      final refreshToken = await TokenStorage().readRefreshToken();
+      if (refreshToken == null || refreshToken.isEmpty) {
+        completer.complete(false);
+        return completer.future;
+      }
       final response = await _client
-          .delete(buildUri(path), headers: _headers())
+          .post(
+            buildUri(ApiEndpoints.refresh),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refreshToken}),
+          )
           .timeout(ApiConfig.timeout);
-      return _parseResponse(response);
-    } catch (error) {
-      return ApiResponse(error: ApiError(message: error.toString()));
+      final parsed = _parseResponse(response);
+      final data = parsed.data?['data'];
+      if (!parsed.isSuccess || data is! Map<String, dynamic>) {
+        await TokenStorage().clearToken();
+        setAuthToken(null);
+        completer.complete(false);
+        return completer.future;
+      }
+      final newToken = data['token']?.toString() ?? '';
+      final newRefreshToken = data['refreshToken']?.toString() ?? '';
+      final userJson = data['user'];
+      if (newToken.isNotEmpty) {
+        setAuthToken(newToken);
+        await TokenStorage().saveToken(newToken);
+      }
+      if (newRefreshToken.isNotEmpty) {
+        await TokenStorage().saveRefreshToken(newRefreshToken);
+      }
+      if (userJson is Map<String, dynamic>) {
+        await TokenStorage().saveUser(UserProfile.fromJson(userJson));
+      }
+      completer.complete(newToken.isNotEmpty);
+      return completer.future;
+    } catch (_) {
+      completer.complete(false);
+      return completer.future;
+    } finally {
+      _refreshCompleter = null;
     }
   }
 
@@ -182,26 +229,6 @@ class ApiClient {
         error: ApiError(message: 'Failed to parse response', statusCode: response.statusCode),
       );
     }
-  }
-}
-
-class MockApiClient extends ApiClient {
-  MockApiClient({required super.baseUrl});
-
-  @override
-  Future<ApiResponse<Map<String, dynamic>>> get(
-    String path, {
-    Map<String, String>? query,
-  }) async {
-    return ApiResponse(data: {'path': path, 'query': query});
-  }
-
-  @override
-  Future<ApiResponse<Map<String, dynamic>>> post(
-    String path, {
-    Map<String, dynamic>? body,
-  }) async {
-    return ApiResponse(data: {'path': path, 'body': body});
   }
 }
 
