@@ -58,7 +58,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (session.token.isNotEmpty) {
         await TokenStorage().saveToken(session.token);
       }
+      if (session.refreshToken.isNotEmpty) {
+        await TokenStorage().saveRefreshToken(session.refreshToken);
+      }
       final user = session.user;
+      await TokenStorage().saveUser(user);
       if (user.role == UserRole.admin) {
         ref.read(adminUserProvider.notifier).state = user;
       } else {
@@ -85,6 +89,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       setState(() => _isLoading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
