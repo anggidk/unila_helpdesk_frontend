@@ -6,6 +6,7 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
+import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 class TicketDetailPage extends ConsumerStatefulWidget {
@@ -19,10 +20,44 @@ class TicketDetailPage extends ConsumerStatefulWidget {
 
 class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
   bool _isDeleting = false;
+  bool _isLoadingSurvey = false;
+  bool _isLoadingDetail = false;
+  String? _detailError;
+  late Ticket _ticket;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticket = widget.ticket;
+    _loadDetail();
+  }
+
+  Future<void> _loadDetail() async {
+    setState(() {
+      _isLoadingDetail = true;
+      _detailError = null;
+    });
+    try {
+      final detail = await TicketRepository().fetchTicketById(_ticket.id);
+      if (!mounted) return;
+      setState(() {
+        _ticket = detail;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _detailError = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingDetail = false);
+      }
+    }
+  }
 
   void _handleMenu(String value) {
     if (value == 'edit') {
-      context.pushNamed(AppRouteNames.ticketForm, extra: widget.ticket);
+      context.pushNamed(AppRouteNames.ticketForm, extra: _ticket);
     } else if (value == 'delete') {
       showDialog<void>(
         context: context,
@@ -40,7 +75,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                   : () async {
                       setState(() => _isDeleting = true);
                       final response =
-                          await TicketRepository().deleteTicket(widget.ticket.id);
+                          await TicketRepository().deleteTicket(_ticket.id);
                       if (!mounted) return;
                       if (!response.isSuccess) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -73,9 +108,32 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
     }
   }
 
+  Future<void> _openSurvey() async {
+    if (_isLoadingSurvey) return;
+    setState(() => _isLoadingSurvey = true);
+    try {
+      final template = await SurveyRepository()
+          .fetchTemplateByCategory(_ticket.categoryId);
+      if (!mounted) return;
+      context.pushNamed(
+        AppRouteNames.survey,
+        extra: SurveyPayload(ticket: _ticket, template: template),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingSurvey = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final ticket = widget.ticket;
+    final ticket = _ticket;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ticket Detail'),
@@ -167,24 +225,45 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
               border: Border.all(color: AppTheme.outline),
             ),
             child: Column(
-              children: ticket.history
-                  .map(
-                    (update) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const CircleAvatar(
-                        backgroundColor: AppTheme.surface,
-                        child: Icon(Icons.person_outline, color: AppTheme.navy),
-                      ),
-                      title: Text(
-                        update.title,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      subtitle: Text(
-                        '${update.description}\n${formatDateTime(update.timestamp)}',
-                      ),
+              children: [
+                if (_isLoadingDetail && ticket.history.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: LinearProgressIndicator(),
+                  ),
+                if (_detailError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      'Gagal memuat detail: $_detailError',
+                      style: const TextStyle(color: AppTheme.textMuted),
                     ),
-                  )
-                  .toList(),
+                  ),
+                if (!_isLoadingDetail && ticket.history.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Belum ada riwayat status.',
+                      style: TextStyle(color: AppTheme.textMuted),
+                    ),
+                  ),
+                ...ticket.history.map(
+                  (update) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const CircleAvatar(
+                      backgroundColor: AppTheme.surface,
+                      child: Icon(Icons.person_outline, color: AppTheme.navy),
+                    ),
+                    title: Text(
+                      update.title,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      '${update.description}\n${formatDateTime(update.timestamp)}',
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),
@@ -196,6 +275,28 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
           ...ticket.comments
               .where((comment) => comment.isStaff)
               .map((comment) => _CommentBubble(comment: comment)),
+          if (ticket.isResolved && ticket.surveyRequired) ...[
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoadingSurvey ? null : _openSurvey,
+                icon: _isLoadingSurvey
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.rate_review_outlined),
+                label: Text(
+                  _isLoadingSurvey ? 'Memuat...' : 'Isi Feedback',
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
