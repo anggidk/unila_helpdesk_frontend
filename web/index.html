@@ -28,11 +28,69 @@
   <link rel="icon" type="image/png" href="assets/icon/app_icon.png">
 
   <title>Helpdesk TIK Unila</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #ffffff;
+    }
+    .splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 20% 10%, #f1f4f8 0%, #ffffff 50%),
+                  radial-gradient(circle at 80% 90%, #f1f4f8 0%, #ffffff 55%);
+      z-index: 9999;
+    }
+    .splash-content {
+      text-align: center;
+    }
+    .splash-logo {
+      width: 140px;
+      height: 140px;
+      object-fit: contain;
+      margin-bottom: 24px;
+    }
+    .splash-title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #0B2E4E;
+      margin: 0 0 8px 0;
+    }
+    .splash-subtitle {
+      font-size: 18px;
+      color: #64748B;
+      margin: 0;
+    }
+  </style>
   <link rel="manifest" href="manifest.json">
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 </head>
 <body>
+  <div class="splash" id="app-splash">
+    <div class="splash-content">
+      <img class="splash-logo" src="assets/assets/logo/Logo_unila.png" alt="Unila Logo">
+      <h1 class="splash-title">HELPDESK UNILA</h1>
+      <p class="splash-subtitle">Layanan Bantuan TI Unila</p>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var splash = document.getElementById('app-splash');
+      if (splash) {
+        splash.style.opacity = '0';
+        splash.style.transition = 'opacity 300ms ease';
+        setTimeout(function () {
+          splash.remove();
+        }, 350);
+      }
+    });
+  </script>
   <script src="flutter_bootstrap.js" async=""></script>
-
-
 </body></html>
