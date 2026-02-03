@@ -5,6 +5,7 @@ import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
+import 'package:unila_helpdesk_frontend/core/utils/ticket_ui.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
 import 'package:unila_helpdesk_frontend/features/home/application/home_provider.dart';
 import 'package:unila_helpdesk_frontend/features/home/domain/home_models.dart';
@@ -213,7 +214,10 @@ class _TicketPreview extends StatelessWidget {
           children: [
             CircleAvatar(
               backgroundColor: AppTheme.surface,
-              child: Icon(Icons.wifi, color: AppTheme.accentBlue),
+              child: Icon(
+                iconForTicketCategory(ticket.category),
+                color: AppTheme.accentBlue,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
