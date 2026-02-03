@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
-import 'package:unila_helpdesk_frontend/features/auth/data/auth_repository.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final guestTicketSelectedCategoryProvider = StateProvider.autoDispose<String?>(
@@ -83,10 +82,6 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     setState(() => _isSubmitting = true);
     try {
       final name = _nameController.text.trim();
-      final email = _emailController.text.trim();
-      final auth = AuthRepository();
-      await auth.signInAsGuest(name: name, email: email);
-
       final categories = ref.read(guestCategoriesProvider).value ?? [];
       final categoryName = categories
           .where((item) => item.id == selectedCategory)
@@ -103,7 +98,10 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
         category: selectedCategory,
         priority: ref.read(guestTicketPriorityProvider),
       );
-      final response = await TicketRepository().createTicket(draft);
+      final response = await TicketRepository().createGuestTicket(
+        draft: draft,
+        reporterName: name,
+      );
       if (!response.isSuccess) {
         throw Exception(
           response.error?.message ?? 'Gagal mengirim laporan guest',
