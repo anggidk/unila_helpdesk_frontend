@@ -29,7 +29,7 @@ class NotificationsPage extends ConsumerWidget {
             child: SwitchListTile(
               value: fcmEnabled,
               onChanged: (value) => ref.read(notificationsFcmEnabledProvider.notifier).state = value,
-              title: const Text('Push Notification (FCM Mock)'),
+              title: const Text('Push Notification (FCM)'),
               subtitle: const Text('Notifikasi status tiket dan survey'),
             ),
           ),

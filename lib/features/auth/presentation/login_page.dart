@@ -8,6 +8,7 @@ import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
+import 'package:unila_helpdesk_frontend/core/notifications/fcm_service.dart';
 
 final loginEntityProvider = StateProvider.autoDispose<String>(
   (ref) => 'Mahasiswa',
@@ -63,6 +64,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       } else {
         ref.read(adminUserProvider.notifier).state = null;
       }
+
+      await FcmService.syncToken();
 
       if (user.role == UserRole.admin) {
         context.goNamed(AppRouteNames.admin);
