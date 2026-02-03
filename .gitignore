@@ -48,13 +48,12 @@ app.*.map.json
 # Environment & secrets (jangan commit!)
 .env
 .env.*
-*.env
-secrets/
-**/secrets/
 
-# Keystore (jangan commit!)
-*.keystore
-*.jks
-key.properties
-android/app/google-services.json
+# Firebase config files (sensitive data)
+**/google-services.json
+**/GoogleService-Info.plist  
 lib/firebase_options.dart
+
+# API keys & credentials
+**/api_keys.dart
+**/secrets.dart
