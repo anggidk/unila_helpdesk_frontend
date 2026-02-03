@@ -37,6 +37,16 @@ class TicketRepository {
     return _client.post(ApiEndpoints.tickets, body: draft.toJson());
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> createGuestTicket({
+    required TicketDraft draft,
+    required String reporterName,
+  }) {
+    return _client.post(ApiEndpoints.guestTickets, body: {
+      ...draft.toJson(),
+      'reporter_name': reporterName,
+    });
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> updateTicket({
     required String id,
     required TicketDraft draft,
