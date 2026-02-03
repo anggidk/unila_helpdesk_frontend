@@ -116,9 +116,9 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       context.pop();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -169,7 +169,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                           ),
                         ),
                       DropdownButtonFormField<String>(
-                        value: selectedCategory,
+                        initialValue: selectedCategory,
                         items: categories
                             .map(
                               (category) => DropdownMenuItem(
@@ -178,9 +178,14 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                               ),
                             )
                             .toList(),
-                        onChanged: (value) => ref
-                            .read(guestTicketSelectedCategoryProvider.notifier)
-                            .state = value,
+                        onChanged: (value) =>
+                            ref
+                                    .read(
+                                      guestTicketSelectedCategoryProvider
+                                          .notifier,
+                                    )
+                                    .state =
+                                value,
                         decoration: const InputDecoration(
                           hintText: '--Pilih Layanan--',
                         ),
@@ -205,11 +210,14 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                               child: _PriorityChip(
                                 label: priority.label,
                                 selected: isSelected,
-                                onTap: () => ref
-                                    .read(
-                                      guestTicketPriorityProvider.notifier,
-                                    )
-                                    .state = priority,
+                                onTap: () =>
+                                    ref
+                                            .read(
+                                              guestTicketPriorityProvider
+                                                  .notifier,
+                                            )
+                                            .state =
+                                        priority,
                               ),
                             ),
                           );
@@ -242,13 +250,16 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                       const _RequiredLabel(text: 'Status User'),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: _statusUser,
+                        initialValue: _statusUser,
                         items: const [
                           DropdownMenuItem(
                             value: 'Mahasiswa',
                             child: Text('Mahasiswa'),
                           ),
-                          DropdownMenuItem(value: 'Dosen', child: Text('Dosen')),
+                          DropdownMenuItem(
+                            value: 'Dosen',
+                            child: Text('Dosen'),
+                          ),
                           DropdownMenuItem(
                             value: 'Tendik',
                             child: Text('Tendik'),
@@ -441,9 +452,7 @@ class _InfoBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.accentBlue.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.accentBlue.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppTheme.accentBlue.withValues(alpha: 0.2)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,7 +549,9 @@ class _PriorityChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.navy.withValues(alpha: 0.08) : Colors.white,
+          color: selected
+              ? AppTheme.navy.withValues(alpha: 0.08)
+              : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selected ? AppTheme.navy : AppTheme.outline,
