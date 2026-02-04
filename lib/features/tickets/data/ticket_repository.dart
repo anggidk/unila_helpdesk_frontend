@@ -24,6 +24,42 @@ class TicketRepository {
     return [];
   }
 
+  Future<TicketPage> fetchTicketsPaged({
+    String? query,
+    String? status,
+    String? categoryId,
+    DateTime? start,
+    DateTime? end,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+    if (query != null && query.trim().isNotEmpty) {
+      params['q'] = query.trim();
+    }
+    if (status != null && status.isNotEmpty) {
+      params['status'] = status;
+    }
+    if (categoryId != null && categoryId.isNotEmpty) {
+      params['categoryId'] = categoryId;
+    }
+    if (start != null) {
+      params['start'] = start.toUtc().toIso8601String();
+    }
+    if (end != null) {
+      params['end'] = end.toUtc().toIso8601String();
+    }
+    final response = await _client.get(ApiEndpoints.ticketsPaged, query: params);
+    final data = response.data?['data'];
+    if (response.isSuccess && data is Map<String, dynamic>) {
+      return TicketPage.fromJson(data);
+    }
+    return const TicketPage(items: [], page: 1, limit: 50, total: 0, totalPages: 1);
+  }
+
   Future<Ticket> fetchTicketById(String id) async {
     final response = await _client.get(ApiEndpoints.ticketById(id));
     final data = response.data?['data'];

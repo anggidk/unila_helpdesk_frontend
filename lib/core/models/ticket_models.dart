@@ -165,6 +165,39 @@ class Ticket {
   }
 }
 
+class TicketPage {
+  const TicketPage({
+    required this.items,
+    required this.page,
+    required this.limit,
+    required this.total,
+    required this.totalPages,
+  });
+
+  final List<Ticket> items;
+  final int page;
+  final int limit;
+  final int total;
+  final int totalPages;
+
+  bool get hasNext => page < totalPages;
+  bool get hasPrev => page > 1;
+
+  factory TicketPage.fromJson(Map<String, dynamic> json) {
+    final items = (json['items'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(Ticket.fromJson)
+        .toList();
+    return TicketPage(
+      items: items,
+      page: (json['page'] as num?)?.toInt() ?? 1,
+      limit: (json['limit'] as num?)?.toInt() ?? items.length,
+      total: (json['total'] as num?)?.toInt() ?? items.length,
+      totalPages: (json['totalPages'] as num?)?.toInt() ?? 1,
+    );
+  }
+}
+
 TicketStatus _statusFromString(String value) {
   switch (value) {
     case 'processing':

@@ -5,6 +5,7 @@ class ApiEndpoints {
   static const String refresh = '/auth/refresh';
 
   static const String tickets = '/tickets';
+  static const String ticketsPaged = '/tickets/paged';
   static const String guestTickets = '/tickets/guest';
   static String ticketById(String id) => '/tickets/$id';
   static const String ticketSearch = '/tickets/search';
