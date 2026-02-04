@@ -10,6 +10,7 @@ class ApiEndpoints {
   static const String ticketSearch = '/tickets/search';
   static const String categories = '/categories';
   static const String guestCategories = '/categories/guest';
+  static String categoryTemplate(String id) => '/categories/$id/template';
 
   static const String surveys = '/surveys';
   static const String surveyTemplates = '/surveys/templates';
@@ -24,6 +25,7 @@ class ApiEndpoints {
   static const String reportsSummary = '/reports/summary';
   static const String reportsSatisfactionSummary = '/reports/satisfaction-summary';
   static const String reportsSatisfaction = '/reports/satisfaction';
+  static const String reportsTemplates = '/reports/templates';
   static const String cohort = '/reports/cohort';
   static const String usageCohort = '/reports/usage';
   static const String serviceUtilization = '/reports/service-utilization';
