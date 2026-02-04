@@ -87,6 +87,87 @@ class SurveyTemplate {
   }
 }
 
+class SurveyResponseItem {
+  const SurveyResponseItem({
+    required this.id,
+    required this.ticketId,
+    required this.userId,
+    required this.userName,
+    required this.userEmail,
+    required this.userEntity,
+    required this.categoryId,
+    required this.category,
+    required this.templateId,
+    required this.template,
+    required this.score,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String ticketId;
+  final String userId;
+  final String userName;
+  final String userEmail;
+  final String userEntity;
+  final String categoryId;
+  final String category;
+  final String templateId;
+  final String template;
+  final double score;
+  final DateTime createdAt;
+
+  factory SurveyResponseItem.fromJson(Map<String, dynamic> json) {
+    return SurveyResponseItem(
+      id: json['id']?.toString() ?? '',
+      ticketId: json['ticketId']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? '',
+      userName: json['userName']?.toString() ?? '',
+      userEmail: json['userEmail']?.toString() ?? '',
+      userEntity: json['userEntity']?.toString() ?? '',
+      categoryId: json['categoryId']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      templateId: json['templateId']?.toString() ?? '',
+      template: json['template']?.toString() ?? '',
+      score: (json['score'] as num?)?.toDouble() ?? 0,
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+    );
+  }
+}
+
+class SurveyResponsePage {
+  const SurveyResponsePage({
+    required this.items,
+    required this.page,
+    required this.limit,
+    required this.total,
+    required this.totalPages,
+  });
+
+  final List<SurveyResponseItem> items;
+  final int page;
+  final int limit;
+  final int total;
+  final int totalPages;
+
+  bool get hasNext => page < totalPages;
+  bool get hasPrev => page > 1;
+
+  factory SurveyResponsePage.fromJson(Map<String, dynamic> json) {
+    final items = (json['items'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(SurveyResponseItem.fromJson)
+        .toList();
+    return SurveyResponsePage(
+      items: items,
+      page: (json['page'] as num?)?.toInt() ?? 1,
+      limit: (json['limit'] as num?)?.toInt() ?? items.length,
+      total: (json['total'] as num?)?.toInt() ?? items.length,
+      totalPages: (json['totalPages'] as num?)?.toInt() ?? 1,
+    );
+  }
+}
+
 SurveyQuestionType _questionTypeFromString(String value) {
   switch (value) {
     case 'yesNo':

@@ -11,6 +11,7 @@ import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_cohort
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_dashboard_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_reports_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_survey_page.dart';
+import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_survey_history_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_tickets_page.dart';
 
 final adminShellIndexProvider = StateProvider.autoDispose<int>((ref) => 0);
@@ -36,6 +37,7 @@ class AdminShell extends ConsumerWidget {
       const AdminReportsPage(),
       const AdminCohortPage(),
       const AdminSurveyPage(),
+      const AdminSurveyHistoryPage(),
     ];
 
     return Scaffold(
@@ -153,6 +155,15 @@ class AdminShell extends ConsumerWidget {
                             .read(adminShellIndexProvider.notifier)
                             .state = 4,
                       ),
+                      _NavItem(
+                        icon: Icons.history,
+                        label: 'Survey History',
+                        selected: index == 5,
+                        showLabel: !isCompact,
+                        onTap: () => ref
+                            .read(adminShellIndexProvider.notifier)
+                            .state = 5,
+                      ),
                       const Spacer(),
                       _ProfileSection(
                         isExpanded: !isCompact,
@@ -233,6 +244,8 @@ class AdminShell extends ConsumerWidget {
         return 'Cohort Analysis';
       case 4:
         return 'Pengaturan Survey';
+      case 5:
+        return 'Survey History';
       default:
         return 'Dashboard';
     }

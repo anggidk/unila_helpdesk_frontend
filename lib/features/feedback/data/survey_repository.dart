@@ -102,4 +102,40 @@ class SurveyRepository {
       throw Exception(response.error?.message ?? 'Gagal menghapus template');
     }
   }
+
+  Future<SurveyResponsePage> fetchSurveyResponsesPaged({
+    String? query,
+    String? categoryId,
+    String? templateId,
+    DateTime? start,
+    DateTime? end,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+    if (query != null && query.trim().isNotEmpty) {
+      params['q'] = query.trim();
+    }
+    if (categoryId != null && categoryId.isNotEmpty) {
+      params['categoryId'] = categoryId;
+    }
+    if (templateId != null && templateId.isNotEmpty) {
+      params['templateId'] = templateId;
+    }
+    if (start != null) {
+      params['start'] = start.toUtc().toIso8601String();
+    }
+    if (end != null) {
+      params['end'] = end.toUtc().toIso8601String();
+    }
+    final response = await _client.get(ApiEndpoints.surveyResponsesAdmin, query: params);
+    final data = response.data?['data'];
+    if (response.isSuccess && data is Map<String, dynamic>) {
+      return SurveyResponsePage.fromJson(data);
+    }
+    return const SurveyResponsePage(items: [], page: 1, limit: 50, total: 0, totalPages: 1);
+  }
 }

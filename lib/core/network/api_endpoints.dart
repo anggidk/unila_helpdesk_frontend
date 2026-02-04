@@ -18,6 +18,7 @@ class ApiEndpoints {
   static String surveyTemplateById(String id) => '/surveys/templates/$id';
   static String surveyByCategory(String categoryId) => '/surveys/categories/$categoryId';
   static const String surveyResponses = '/surveys/responses';
+  static const String surveyResponsesAdmin = '/surveys/responses';
 
   static const String notifications = '/notifications';
   static const String fcmRegister = '/notifications/fcm';
