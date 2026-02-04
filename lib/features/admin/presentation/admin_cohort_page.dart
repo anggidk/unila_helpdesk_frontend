@@ -36,8 +36,7 @@ class AdminCohortPage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-          if (analysis == 'retention')
-            _CenteredSection(child: _RetentionSection(period: selectedPeriod)),
+          if (analysis == 'retention') _RetentionSection(period: selectedPeriod),
           if (analysis == 'usage') _CenteredSection(child: _UsageSection()),
           if (analysis == 'service')
             _CenteredSection(child: _ServiceUtilSection()),
@@ -103,7 +102,10 @@ class _AnalysisDropdown extends StatelessWidget {
           children: [
             const Icon(Icons.expand_more, size: 18),
             const SizedBox(width: 6),
-            Text('Analisis: ${_analysisLabel(value)}'),
+            Text(
+              'Analisis: ${_analysisLabel(value)}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
           ],
         ),
       ),
@@ -154,6 +156,7 @@ class _PeriodDropdown extends StatelessWidget {
               'Periode: ${_periodLabel(value)}',
               style: TextStyle(
                 color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -289,6 +292,7 @@ class _VerticalBarGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const labelHeight = 36.0;
     return Padding(
       padding: const EdgeInsets.only(right: 16),
       child: Column(
@@ -316,6 +320,7 @@ class _VerticalBarGroup extends StatelessWidget {
           const SizedBox(height: 8),
           SizedBox(
             width: 80,
+            height: labelHeight,
             child: Text(
               label,
               textAlign: TextAlign.center,
@@ -418,6 +423,8 @@ class _HeatmapTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const entityWidth = 140.0;
+    const categoryWidth = 140.0;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Align(
@@ -425,18 +432,49 @@ class _HeatmapTable extends StatelessWidget {
         child: DataTable(
           headingRowColor: WidgetStateProperty.all(AppTheme.surface),
           columns: [
-            const DataColumn(label: Text('Entitas')),
-            ...categories.map((category) => DataColumn(label: Text(category))),
+            const DataColumn(
+              label: SizedBox(
+                width: entityWidth,
+                child: Text(
+                  'Entitas',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            ...categories.map(
+              (category) => DataColumn(
+                label: SizedBox(
+                  width: categoryWidth,
+                  child: Text(
+                    category,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ),
           ],
           rows: entities.map((entity) {
             final row = matrix[entity] ?? const <String, int>{};
             return DataRow(
               cells: [
-                DataCell(Text(entity)),
+                DataCell(
+                  SizedBox(
+                    width: entityWidth,
+                    child: Text(entity),
+                  ),
+                ),
                 ...categories.map((category) {
                   final value = row[category] ?? 0;
                   return DataCell(
-                    _HeatmapCell(value: value, maxValue: maxValue),
+                    SizedBox(
+                      width: categoryWidth,
+                      child: Center(
+                        child: _HeatmapCell(value: value, maxValue: maxValue),
+                      ),
+                    ),
                   );
                 }),
               ],
@@ -525,7 +563,7 @@ class _CenteredSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: Alignment.topCenter,
+      alignment: Alignment.topLeft,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 980),
         child: child,
@@ -646,66 +684,76 @@ class _RetentionSection extends ConsumerWidget {
       );
     }
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.outline),
-          ),
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(AppTheme.surface),
-            columns: [
-              const DataColumn(label: Text('Cohort')),
-              const DataColumn(label: Text('Users')),
-              ...retentionLabels.map((label) => DataColumn(label: Text(label))),
-            ],
-            rows: cohortRows.map((row) {
-              final retention = row.retention;
-              return DataRow(
-                cells: [
-                  DataCell(Text(row.label)),
-                  DataCell(Text(row.users.toString())),
-                  ...List.generate(retention.length, (index) {
-                    final value = retention[index];
-                    return DataCell(_RetentionCell(value: value));
-                  }),
+        Align(
+          alignment: Alignment.topLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 980),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.outline),
+              ),
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(AppTheme.surface),
+                columns: [
+                  const DataColumn(label: Text('Cohort')),
+                  const DataColumn(label: Text('Users')),
+                  ...retentionLabels.map((label) => DataColumn(label: Text(label))),
                 ],
-              );
-            }).toList(),
+                rows: cohortRows.map((row) {
+                  final retention = row.retention;
+                  return DataRow(
+                    cells: [
+                      DataCell(Text(row.label)),
+                      DataCell(Text(row.users.toString())),
+                      ...List.generate(retention.length, (index) {
+                        final value = retention[index];
+                        return DataCell(_RetentionCell(value: value));
+                      }),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.outline),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Satisfaction Score by Cohort',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              if (cohortRows.isEmpty)
+        SizedBox(
+          width: double.infinity,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.outline),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 const Text(
-                  'Belum ada data survey.',
-                  style: TextStyle(color: AppTheme.textMuted),
-                )
-              else
-                ...cohortRows.map(
-                  (row) => _CohortScoreRow(
-                    label: row.label,
-                    score: row.avgScore,
-                    responseRate: row.responseRate,
-                  ),
+                  'Satisfaction Score by Cohort',
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
-            ],
+                const SizedBox(height: 12),
+                if (cohortRows.isEmpty)
+                  const Text(
+                    'Belum ada data survey.',
+                    style: TextStyle(color: AppTheme.textMuted),
+                  )
+                else
+                  ...cohortRows.map(
+                    (row) => _CohortScoreRow(
+                      label: row.label,
+                      score: row.avgScore,
+                      responseRate: row.responseRate,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ],
@@ -876,12 +924,12 @@ class _EntityServiceSection extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Align(
-            alignment: Alignment.center,
+            alignment: Alignment.centerLeft,
             child: _HeatmapLegend(maxValue: maxValue),
           ),
           const SizedBox(height: 12),
           Align(
-            alignment: Alignment.center,
+            alignment: Alignment.centerLeft,
             child: _HeatmapTable(
               entities: entities,
               categories: categories,
