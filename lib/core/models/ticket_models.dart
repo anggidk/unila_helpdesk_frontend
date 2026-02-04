@@ -35,17 +35,20 @@ class ServiceCategory {
     required this.id,
     required this.name,
     required this.guestAllowed,
+    this.surveyTemplateId,
   });
 
   final String id;
   final String name;
   final bool guestAllowed;
+  final String? surveyTemplateId;
 
   factory ServiceCategory.fromJson(Map<String, dynamic> json) {
     return ServiceCategory(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       guestAllowed: json['guestAllowed'] == true,
+      surveyTemplateId: json['templateId']?.toString(),
     );
   }
 }
