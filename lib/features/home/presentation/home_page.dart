@@ -9,6 +9,7 @@ import 'package:unila_helpdesk_frontend/core/utils/ticket_ui.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
 import 'package:unila_helpdesk_frontend/features/home/application/home_provider.dart';
 import 'package:unila_helpdesk_frontend/features/home/domain/home_models.dart';
+import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key, required this.user});
@@ -55,7 +56,12 @@ class _HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        20 + Style15BottomNavBar.heightFor(context),
+      ),
       children: [
         Row(
           children: [
@@ -136,7 +142,7 @@ class _HomeContent extends StatelessWidget {
             ),
             TextButton(
               onPressed: () =>
-                  context.pushNamed(AppRouteNames.tickets, extra: summary.user),
+                  context.pushNamed(AppRouteNames.tickets),
               child: const Text('Lihat Semua'),
             ),
           ],

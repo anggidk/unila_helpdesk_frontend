@@ -24,6 +24,15 @@ class Style15BottomNavBar extends StatelessWidget {
   final Style15NavItem middleItem;
   final VoidCallback onMiddleTap;
 
+  static double heightFor(BuildContext context) {
+    const barHeight = 64.0;
+    const fabSize = 56.0;
+    const extraGap = 8.0;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final totalHeight = barHeight + (fabSize / 2);
+    return totalHeight + extraGap + bottomInset;
+  }
+
   @override
   Widget build(BuildContext context) {
     final barHeight = 64.0;

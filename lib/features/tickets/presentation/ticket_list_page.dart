@@ -5,8 +5,8 @@ import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
-import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/presentation/widgets/ticket_card.dart';
+import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 final ticketListSearchQueryProvider =
     StateProvider.autoDispose<String>((ref) => '');
@@ -14,9 +14,7 @@ final ticketListFilterProvider =
     StateProvider.autoDispose<TicketFilter>((ref) => TicketFilter.all);
 
 class TicketListPage extends ConsumerStatefulWidget {
-  const TicketListPage({super.key, required this.user});
-
-  final UserProfile user;
+  const TicketListPage({super.key});
 
   @override
   ConsumerState<TicketListPage> createState() => _TicketListPageState();
@@ -75,7 +73,12 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Tickets')),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          20 + Style15BottomNavBar.heightFor(context),
+        ),
         children: [
           TextField(
             controller: _searchController,

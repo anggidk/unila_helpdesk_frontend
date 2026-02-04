@@ -6,13 +6,11 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
-import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
+import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 class FeedbackPage extends ConsumerWidget {
-  const FeedbackPage({super.key, required this.user});
-
-  final UserProfile user;
+  const FeedbackPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -79,7 +77,12 @@ class _FeedbackList extends ConsumerWidget {
       return Center(child: Text(emptyText));
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        20 + Style15BottomNavBar.heightFor(context),
+      ),
       itemCount: tickets.length,
       itemBuilder: (context, index) {
         final ticket = tickets[index];

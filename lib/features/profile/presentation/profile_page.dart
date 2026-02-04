@@ -8,6 +8,7 @@ import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
+import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key, required this.user});
@@ -28,7 +29,12 @@ class ProfilePage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('My Profile')),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          20 + Style15BottomNavBar.heightFor(context),
+        ),
         children: [
           Column(
             children: [
@@ -115,6 +121,7 @@ class ProfilePage extends ConsumerWidget {
               await TokenStorage().clearToken();
               sharedApiClient.setAuthToken(null);
               ref.read(adminUserProvider.notifier).state = null;
+              ref.read(currentUserProvider.notifier).state = null;
               ref.invalidate(ticketsProvider);
               ref.invalidate(notificationsProvider);
               if (!context.mounted) return;
