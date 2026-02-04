@@ -171,6 +171,19 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                 },
               ),
               const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  ref.read(adminTicketSearchProvider.notifier).state = '';
+                  ref.read(adminTicketStatusFilterProvider.notifier).state = null;
+                  ref.read(adminTicketCategoryFilterProvider.notifier).state = null;
+                  ref.read(adminTicketDateFilterProvider.notifier).state =
+                      _DateFilter.all;
+                  ref.read(adminTicketPageProvider.notifier).state = 1;
+                  _searchController.clear();
+                },
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Reset'),
+              ),
             ],
           ),
           const SizedBox(height: 20),

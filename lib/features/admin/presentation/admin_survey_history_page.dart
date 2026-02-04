@@ -190,6 +190,21 @@ class _AdminSurveyHistoryPageState
                 },
               ),
               const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  ref.read(adminSurveyHistorySearchProvider.notifier).state = '';
+                  ref.read(adminSurveyHistoryCategoryProvider.notifier).state =
+                      null;
+                  ref.read(adminSurveyHistoryTemplateProvider.notifier).state =
+                      null;
+                  ref.read(adminSurveyHistoryDateFilterProvider.notifier).state =
+                      _DateFilter.all;
+                  ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
+                  _searchController.clear();
+                },
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Reset'),
+              ),
             ],
           ),
           const SizedBox(height: 20),
