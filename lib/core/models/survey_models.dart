@@ -1,18 +1,42 @@
-enum SurveyQuestionType { likert, likert7, likert6, likert4, likert3, yesNo, multipleChoice, text }
+enum SurveyQuestionType {
+  likert,
+  likertQuality,
+  likert7Puas,
+  likert7,
+  likert6Puas,
+  likert6,
+  likert4Puas,
+  likert4,
+  likert3Puas,
+  likert3,
+  yesNo,
+  multipleChoice,
+  text,
+}
 
 extension SurveyQuestionTypeX on SurveyQuestionType {
   String get label {
     switch (this) {
       case SurveyQuestionType.likert:
-        return 'Skala Likert (1-5)';
+        return 'Skala Likert (1-5) - Puas';
+      case SurveyQuestionType.likertQuality:
+        return 'Skala Likert (1-5) - Baik';
+      case SurveyQuestionType.likert7Puas:
+        return 'Skala Likert (1-7) - Puas';
       case SurveyQuestionType.likert7:
-        return 'Skala Likert (1-7)';
+        return 'Skala Likert (1-7) - Baik';
+      case SurveyQuestionType.likert6Puas:
+        return 'Skala Likert (1-6) - Puas';
       case SurveyQuestionType.likert6:
-        return 'Skala Likert (1-6)';
+        return 'Skala Likert (1-6) - Baik';
+      case SurveyQuestionType.likert4Puas:
+        return 'Skala Likert (1-4) - Puas';
       case SurveyQuestionType.likert4:
-        return 'Skala Likert (1-4)';
+        return 'Skala Likert (1-4) - Baik';
+      case SurveyQuestionType.likert3Puas:
+        return 'Skala Likert (1-3) - Puas';
       case SurveyQuestionType.likert3:
-        return 'Skala Likert (1-3)';
+        return 'Skala Likert (1-3) - Baik';
       case SurveyQuestionType.yesNo:
         return 'Ya / Tidak';
       case SurveyQuestionType.multipleChoice:
@@ -172,12 +196,22 @@ SurveyQuestionType _questionTypeFromString(String value) {
   switch (value) {
     case 'yesNo':
       return SurveyQuestionType.yesNo;
+    case 'likertQuality':
+      return SurveyQuestionType.likertQuality;
+    case 'likert7Puas':
+      return SurveyQuestionType.likert7Puas;
     case 'likert7':
       return SurveyQuestionType.likert7;
+    case 'likert6Puas':
+      return SurveyQuestionType.likert6Puas;
     case 'likert6':
       return SurveyQuestionType.likert6;
+    case 'likert4Puas':
+      return SurveyQuestionType.likert4Puas;
     case 'likert4':
       return SurveyQuestionType.likert4;
+    case 'likert3Puas':
+      return SurveyQuestionType.likert3Puas;
     case 'likert3':
       return SurveyQuestionType.likert3;
     case 'multipleChoice':

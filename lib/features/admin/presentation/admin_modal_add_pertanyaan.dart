@@ -341,15 +341,65 @@ class _PreviewSection extends StatelessWidget {
           Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           if (type == SurveyQuestionType.likert)
-            _LikertPreview(count: 5),
+            _LikertPreview(
+              count: 5,
+              lowLabel: 'SANGAT TIDAK PUAS',
+              highLabel: 'SANGAT PUAS',
+            ),
+          if (type == SurveyQuestionType.likertQuality)
+            _LikertPreview(
+              count: 5,
+              lowLabel: 'SANGAT BURUK',
+              highLabel: 'SANGAT BAIK',
+            ),
+          if (type == SurveyQuestionType.likert7Puas)
+            _LikertPreview(
+              count: 7,
+              lowLabel: 'SANGAT TIDAK PUAS',
+              highLabel: 'SANGAT PUAS',
+            ),
           if (type == SurveyQuestionType.likert7)
-            _LikertPreview(count: 7),
+            _LikertPreview(
+              count: 7,
+              lowLabel: 'SANGAT BURUK',
+              highLabel: 'SANGAT BAIK',
+            ),
+          if (type == SurveyQuestionType.likert6Puas)
+            _LikertPreview(
+              count: 6,
+              lowLabel: 'SANGAT TIDAK PUAS',
+              highLabel: 'SANGAT PUAS',
+            ),
           if (type == SurveyQuestionType.likert6)
-            _LikertPreview(count: 6),
+            _LikertPreview(
+              count: 6,
+              lowLabel: 'SANGAT BURUK',
+              highLabel: 'SANGAT BAIK',
+            ),
+          if (type == SurveyQuestionType.likert4Puas)
+            _LikertPreview(
+              count: 4,
+              lowLabel: 'SANGAT TIDAK PUAS',
+              highLabel: 'SANGAT PUAS',
+            ),
           if (type == SurveyQuestionType.likert4)
-            _LikertPreview(count: 4),
+            _LikertPreview(
+              count: 4,
+              lowLabel: 'SANGAT BURUK',
+              highLabel: 'SANGAT BAIK',
+            ),
+          if (type == SurveyQuestionType.likert3Puas)
+            _LikertPreview(
+              count: 3,
+              lowLabel: 'SANGAT TIDAK PUAS',
+              highLabel: 'SANGAT PUAS',
+            ),
           if (type == SurveyQuestionType.likert3)
-            _LikertPreview(count: 3),
+            _LikertPreview(
+              count: 3,
+              lowLabel: 'SANGAT BURUK',
+              highLabel: 'SANGAT BAIK',
+            ),
           if (type == SurveyQuestionType.yesNo) _YesNoPreview(),
           if (type == SurveyQuestionType.multipleChoice)
             _MultipleChoicePreview(options: options),
@@ -367,9 +417,15 @@ class _PreviewSection extends StatelessWidget {
 }
 
 class _LikertPreview extends StatelessWidget {
-  const _LikertPreview({required this.count});
+  const _LikertPreview({
+    required this.count,
+    required this.lowLabel,
+    required this.highLabel,
+  });
 
   final int count;
+  final String lowLabel;
+  final String highLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -400,15 +456,15 @@ class _LikertPreview extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'SANGAT BURUK',
+              lowLabel,
               style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
             ),
             Text(
-              'SANGAT BAIK',
+              highLabel,
               style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
             ),
           ],
