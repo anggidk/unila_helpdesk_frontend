@@ -60,15 +60,25 @@ class AdminShell extends ConsumerWidget {
                         child: SizedBox(
                           height: 56,
                           child: isCompact
-                              ? const Center(
-                                  child: Icon(Icons.shield, color: Colors.white),
+                              ? Center(
+                                  child: Image.asset(
+                                    'assets/logo/Logo_unila.png',
+                                    width: 36,
+                                    height: 36,
+                                    fit: BoxFit.contain,
+                                  ),
                                 )
                               : Row(
                                   mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Icon(Icons.shield, color: Colors.white),
-                                    SizedBox(width: 12),
-                                    Expanded(
+                                  children: [
+                                    Image.asset(
+                                      'assets/logo/Logo_unila.png',
+                                      width: 36,
+                                      height: 36,
+                                      fit: BoxFit.contain,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Expanded(
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,14 +206,6 @@ class AdminShell extends ConsumerWidget {
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                             ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: () {},
-                            icon: const Icon(Icons.notifications_outlined),
                           ),
                         ],
                       ),
