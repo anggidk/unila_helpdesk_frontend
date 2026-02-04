@@ -74,95 +74,114 @@ class AdminDashboardPage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: _cardDecoration(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Tiket per Kategori', style: TextStyle(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 12),
-                      if (serviceTrendsAsync.isLoading)
-                        const Center(child: CircularProgressIndicator())
-                      else if (serviceTrendsAsync.hasError)
-                        Text(
-                          'Gagal memuat kategori: ${serviceTrendsAsync.error}',
-                          style: const TextStyle(color: AppTheme.textMuted),
-                        )
-                      else if (serviceTrends.isEmpty)
-                        const Text('Belum ada data kategori.', style: TextStyle(color: AppTheme.textMuted))
-                      else
-                        Column(
-                          children: [
-                            SizedBox(
-                              height: 180,
-                              child: _PieChart(
-                                sections: _trendSections(serviceTrends),
-                                centerText: '${_formatCount(summary?.totalTickets)}\nTOTAL',
-                              ),
+                child: SizedBox(
+                  height: _dashboardCardHeight,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: _cardDecoration(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Tiket per Kategori', style: TextStyle(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 12),
+                        if (serviceTrendsAsync.isLoading)
+                          const Expanded(child: Center(child: CircularProgressIndicator()))
+                        else if (serviceTrendsAsync.hasError)
+                          Expanded(
+                            child: Text(
+                              'Gagal memuat kategori: ${serviceTrendsAsync.error}',
+                              style: const TextStyle(color: AppTheme.textMuted),
                             ),
-                            const SizedBox(height: 12),
-                            ..._trendLegend(serviceTrends),
-                          ],
-                        ),
-                    ],
+                          )
+                        else if (serviceTrends.isEmpty)
+                          const Expanded(
+                            child: Text('Belum ada data kategori.', style: TextStyle(color: AppTheme.textMuted)),
+                          )
+                        else
+                          Expanded(
+                            child: Column(
+                              children: [
+                                SizedBox(
+                                  height: 180,
+                                  child: _PieChart(
+                                    sections: _trendSections(serviceTrends),
+                                    centerText: '${_formatCount(summary?.totalTickets)}\nTOTAL',
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      children: _trendLegend(serviceTrends),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: _cardDecoration(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Trend Bulanan', style: TextStyle(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 8),
-                      const Text('Volume tiket masuk tahun ini', style: TextStyle(color: AppTheme.textMuted)),
-                      const SizedBox(height: 12),
-                      Container(
-                        height: 240,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.outline),
-                        ),
-                        child: usageAsync.when(
-                          data: (rows) {
-                            if (rows.isEmpty) {
-                              return const Center(
-                                child: Text('Belum ada data.', style: TextStyle(color: AppTheme.textMuted)),
-                              );
-                            }
-                            return _LineChart(
-                              labels: rows.map((row) => row.label).toList(),
-                              series: [
-                                _LineSeries(
-                                  label: 'Tiket',
-                                  color: AppTheme.navy,
-                                  values: rows.map((row) => row.tickets).toList(),
+                child: SizedBox(
+                  height: _dashboardCardHeight,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: _cardDecoration(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Trend Bulanan', style: TextStyle(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 8),
+                        const Text('Volume tiket masuk tahun ini', style: TextStyle(color: AppTheme.textMuted)),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppTheme.outline),
+                            ),
+                            child: usageAsync.when(
+                              data: (rows) {
+                                if (rows.isEmpty) {
+                                  return const Center(
+                                    child: Text('Belum ada data.', style: TextStyle(color: AppTheme.textMuted)),
+                                  );
+                                }
+                                return _LineChart(
+                                  labels: rows.map((row) => row.label).toList(),
+                                  series: [
+                                    _LineSeries(
+                                      label: 'Tiket',
+                                      color: AppTheme.navy,
+                                      values: rows.map((row) => row.tickets).toList(),
+                                    ),
+                                    _LineSeries(
+                                      label: 'Survey',
+                                      color: AppTheme.accentYellow,
+                                      values: rows.map((row) => row.surveys).toList(),
+                                    ),
+                                  ],
+                                );
+                              },
+                              loading: () => const Center(child: CircularProgressIndicator()),
+                              error: (error, _) => Center(
+                                child: Text(
+                                  'Gagal memuat trend: $error',
+                                  style: const TextStyle(color: AppTheme.textMuted),
+                                  textAlign: TextAlign.center,
                                 ),
-                                _LineSeries(
-                                  label: 'Survey',
-                                  color: AppTheme.accentYellow,
-                                  values: rows.map((row) => row.surveys).toList(),
-                                ),
-                              ],
-                            );
-                          },
-                          loading: () => const Center(child: CircularProgressIndicator()),
-                          error: (error, _) => Center(
-                            child: Text(
-                              'Gagal memuat trend: $error',
-                              style: const TextStyle(color: AppTheme.textMuted),
-                              textAlign: TextAlign.center,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -212,6 +231,8 @@ class AdminDashboardPage extends ConsumerWidget {
   }
 }
 
+const double _dashboardCardHeight = 420;
+
 class _StatCard extends StatelessWidget {
   const _StatCard({
     required this.label,
@@ -246,7 +267,13 @@ class _StatCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: const TextStyle(color: AppTheme.textMuted)),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
                 ],
@@ -477,16 +504,35 @@ class _LineChartPainter extends CustomPainter {
     if (maxValue <= 0) {
       return;
     }
-    final chartRect = Rect.fromLTWH(0, 4, size.width, size.height - 8);
+    final axisStep = _axisStepFor(maxValue);
+    final axisMax = axisStep * 5;
+    const axisPadding = 36.0;
+    final chartRect = Rect.fromLTWH(
+      axisPadding,
+      4,
+      size.width - axisPadding,
+      size.height - 8,
+    );
     final gridPaint = Paint()
       ..color = AppTheme.outline
       ..strokeWidth = 1;
-    for (var i = 1; i <= 2; i++) {
-      final dy = chartRect.top + (chartRect.height / 3) * i;
+    final labelStyle = const TextStyle(fontSize: 10, color: AppTheme.textMuted);
+    for (var i = 0; i <= 5; i++) {
+      final ratio = i / 5;
+      final dy = chartRect.bottom - (chartRect.height * ratio);
       canvas.drawLine(
         Offset(chartRect.left, dy),
         Offset(chartRect.right, dy),
         gridPaint,
+      );
+      final value = axisStep * i;
+      final textPainter = TextPainter(
+        text: TextSpan(text: value.toString(), style: labelStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      textPainter.paint(
+        canvas,
+        Offset(chartRect.left - 6 - textPainter.width, dy - textPainter.height / 2),
       );
     }
 
@@ -495,7 +541,7 @@ class _LineChartPainter extends CustomPainter {
         ..color = line.color
         ..strokeWidth = 2
         ..style = PaintingStyle.stroke;
-      final points = _pointsForLine(line, chartRect, maxValue);
+      final points = _pointsForLine(line, chartRect, axisMax);
       if (points.isEmpty) continue;
       final path = Path()..moveTo(points.first.dx, points.first.dy);
       for (var i = 1; i < points.length; i++) {
@@ -535,6 +581,14 @@ class _LineChartPainter extends CustomPainter {
       }
     }
     return maxValue == 0 ? 1 : maxValue;
+  }
+
+  int _axisStepFor(int maxValue) {
+    var step = 10;
+    while (maxValue > step * 5) {
+      step *= 2;
+    }
+    return step;
   }
 
   @override
