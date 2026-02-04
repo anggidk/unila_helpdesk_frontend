@@ -8,19 +8,47 @@ import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/presentation/widgets/ticket_card.dart';
 
-final ticketListSearchQueryProvider = StateProvider.autoDispose<String>((ref) => '');
-final ticketListFilterProvider = StateProvider.autoDispose<TicketFilter>((ref) => TicketFilter.all);
+final ticketListSearchQueryProvider =
+    StateProvider.autoDispose<String>((ref) => '');
+final ticketListFilterProvider =
+    StateProvider.autoDispose<TicketFilter>((ref) => TicketFilter.all);
 
-class TicketListPage extends ConsumerWidget {
+class TicketListPage extends ConsumerStatefulWidget {
   const TicketListPage({super.key, required this.user});
 
   final UserProfile user;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TicketListPage> createState() => _TicketListPageState();
+}
+
+class _TicketListPageState extends ConsumerState<TicketListPage> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController =
+        TextEditingController(text: ref.read(ticketListSearchQueryProvider));
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final searchQuery = ref.watch(ticketListSearchQueryProvider);
     final selectedFilter = ref.watch(ticketListFilterProvider);
     final ticketsAsync = ref.watch(ticketsProvider);
+    if (_searchController.text != searchQuery) {
+      _searchController.text = searchQuery;
+      _searchController.selection = TextSelection.collapsed(
+        offset: _searchController.text.length,
+      );
+    }
     final tickets = (ticketsAsync.value ?? []).where((ticket) {
       if (selectedFilter == TicketFilter.open) {
         if (ticket.status == TicketStatus.resolved) {
@@ -41,7 +69,7 @@ class TicketListPage extends ConsumerWidget {
         return ticket.id.toLowerCase().contains(query) ||
             ticket.title.toLowerCase().contains(query);
       }
-          return true;
+      return true;
     }).toList();
 
     return Scaffold(
@@ -50,10 +78,23 @@ class TicketListPage extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         children: [
           TextField(
-            onChanged: (value) => ref.read(ticketListSearchQueryProvider.notifier).state = value,
-            decoration: const InputDecoration(
+            controller: _searchController,
+            onChanged: (value) =>
+                ref.read(ticketListSearchQueryProvider.notifier).state = value,
+            decoration: InputDecoration(
               hintText: 'Cari ID atau kata kunci',
               prefixIcon: Icon(Icons.search),
+              suffixIcon: searchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () {
+                        ref.read(ticketListSearchQueryProvider.notifier).state =
+                            '';
+                        _searchController.clear();
+                      },
+                      icon: const Icon(Icons.close),
+                      tooltip: 'Hapus',
+                    ),
             ),
           ),
           const SizedBox(height: 16),

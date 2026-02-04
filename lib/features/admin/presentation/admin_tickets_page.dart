@@ -123,6 +123,19 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                   decoration: const InputDecoration(
                     hintText: 'Search by ticket ID or title...',
                     prefixIcon: Icon(Icons.search),
+                    suffixIcon: null,
+                  ).copyWith(
+                    suffixIcon: searchValue.isEmpty
+                        ? null
+                        : IconButton(
+                            onPressed: () {
+                              ref.read(adminTicketSearchProvider.notifier).state = '';
+                              ref.read(adminTicketPageProvider.notifier).state = 1;
+                              _searchController.clear();
+                            },
+                            icon: const Icon(Icons.close),
+                            tooltip: 'Hapus',
+                          ),
                   ),
                 ),
               ),

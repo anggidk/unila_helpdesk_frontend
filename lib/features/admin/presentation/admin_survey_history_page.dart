@@ -138,6 +138,19 @@ class _AdminSurveyHistoryPageState
                   decoration: const InputDecoration(
                     hintText: 'Search by ticket ID or user...',
                     prefixIcon: Icon(Icons.search),
+                    suffixIcon: null,
+                  ).copyWith(
+                    suffixIcon: searchValue.isEmpty
+                        ? null
+                        : IconButton(
+                            onPressed: () {
+                              ref.read(adminSurveyHistorySearchProvider.notifier).state = '';
+                              ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
+                              _searchController.clear();
+                            },
+                            icon: const Icon(Icons.close),
+                            tooltip: 'Hapus',
+                          ),
                   ),
                 ),
               ),
