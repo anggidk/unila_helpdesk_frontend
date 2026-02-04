@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
-import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 
 class AdminReportsPage extends ConsumerStatefulWidget {
@@ -14,6 +13,8 @@ class AdminReportsPage extends ConsumerStatefulWidget {
 }
 
 class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
+  String? _lastCategoryId;
+
   void _syncCategory(List<ServiceCategory> categories) {
     final filtered = categories.where((category) => !category.guestAllowed).toList();
     if (filtered.isEmpty) {
@@ -25,35 +26,33 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
     }
   }
 
-  void _syncTemplate(String? categoryId, List<SurveyTemplate> templates) {
-    if (categoryId == null) {
-      ref.read(reportsTemplateIdProvider.notifier).state = null;
-      return;
-    }
-    final filtered = templates.where((template) => template.categoryId == categoryId).toList();
-    if (filtered.isEmpty) {
-      ref.read(reportsTemplateIdProvider.notifier).state = null;
-      return;
-    }
-    final selected = ref.read(reportsTemplateIdProvider);
-    if (selected == null || !filtered.any((item) => item.id == selected)) {
-      ref.read(reportsTemplateIdProvider.notifier).state = filtered.first.id;
-    }
+  void _syncTemplateFromCategory(ServiceCategory? category) {
+    final templateId = category?.surveyTemplateId;
+    ref.read(reportsTemplateIdProvider.notifier).state =
+        (templateId == null || templateId.isEmpty) ? null : templateId;
   }
 
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<List<ServiceCategory>>>(
       serviceCategoriesProvider,
-      (_, next) => _syncCategory(next.value ?? []),
-    );
-    ref.listen<AsyncValue<List<SurveyTemplate>>>(
-      surveyTemplatesProvider,
-      (_, next) => _syncTemplate(ref.read(reportsCategoryIdProvider), next.value ?? []),
+      (_, next) {
+        final list = next.value ?? [];
+        _syncCategory(list);
+      },
     );
     ref.listen<String?>(
       reportsCategoryIdProvider,
-      (_, next) => _syncTemplate(next, ref.read(surveyTemplatesProvider).value ?? []),
+      (_, next) {
+        final categories = ref.read(serviceCategoriesProvider).value ?? [];
+        final selected = categories
+            .where((item) => item.id == next)
+            .toList();
+        if (next != null && next != _lastCategoryId) {
+          _lastCategoryId = next;
+          _syncTemplateFromCategory(selected.isNotEmpty ? selected.first : null);
+        }
+      },
     );
 
     final period = ref.watch(reportsPeriodProvider);
@@ -62,16 +61,26 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
     final trendsAsync = ref.watch(reportsChartServiceTrendsProvider);
     final satisfactionAsync = ref.watch(surveySatisfactionProvider);
     final categoriesAsync = ref.watch(serviceCategoriesProvider);
-    final templatesAsync = ref.watch(surveyTemplatesProvider);
+    final templatesAsync = ref.watch(reportsTemplatesProvider);
     final selectedCategoryId = ref.watch(reportsCategoryIdProvider);
     final selectedTemplateId = ref.watch(reportsTemplateIdProvider);
 
     final categories = (categoriesAsync.value ?? [])
         .where((category) => !category.guestAllowed)
         .toList();
-    final templates = (templatesAsync.value ?? [])
-        .where((template) => selectedCategoryId == null || template.categoryId == selectedCategoryId)
-        .toList();
+    final templates = templatesAsync.value ?? [];
+    final hasSelected = selectedTemplateId != null &&
+        templates.any((template) => template.id == selectedTemplateId);
+    if (!hasSelected && templates.isEmpty && selectedTemplateId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(reportsTemplateIdProvider.notifier).state = null;
+      });
+    }
+    if (!hasSelected && templates.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(reportsTemplateIdProvider.notifier).state = templates.first.id;
+      });
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -204,7 +213,7 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
               Expanded(
                 child: _CardPlaceholder(
                   title: 'Top Isu per Layanan',
-                  description: 'Kategori dengan tiket paling sering.',
+                  description: 'Persentase tiket per kategori layanan.',
                   child: trendsAsync.when(
                     data: (rows) {
                       if (rows.isEmpty) {
@@ -256,7 +265,7 @@ class _CardPlaceholder extends StatelessWidget {
           Text(description, style: const TextStyle(color: AppTheme.textMuted)),
           const SizedBox(height: 12),
           Container(
-            height: 190,
+            height: 300,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppTheme.surface,
@@ -297,7 +306,10 @@ class _PeriodDropdown extends StatelessWidget {
           children: [
             const Icon(Icons.expand_more, size: 18),
             const SizedBox(width: 6),
-            Text('Periode: ${_periodLabel(value)}'),
+            Text(
+              'Periode: ${_periodLabel(value)}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
           ],
         ),
       ),
@@ -351,6 +363,7 @@ class _SelectDropdown extends StatelessWidget {
               '$label: $selectedLabel',
               style: TextStyle(
                 color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -437,16 +450,35 @@ class _LineChartPainter extends CustomPainter {
     if (maxValue <= 0) {
       return;
     }
-    final chartRect = Rect.fromLTWH(0, 4, size.width, size.height - 8);
+    final axisStep = _axisStepFor(maxValue);
+    final axisMax = axisStep * 5;
+    const axisPadding = 36.0;
+    final chartRect = Rect.fromLTWH(
+      axisPadding,
+      4,
+      size.width - axisPadding,
+      size.height - 8,
+    );
     final gridPaint = Paint()
       ..color = AppTheme.outline
       ..strokeWidth = 1;
-    for (var i = 1; i <= 2; i++) {
-      final dy = chartRect.top + (chartRect.height / 3) * i;
+    final labelStyle = const TextStyle(fontSize: 10, color: AppTheme.textMuted);
+    for (var i = 0; i <= 5; i++) {
+      final ratio = i / 5;
+      final dy = chartRect.bottom - (chartRect.height * ratio);
       canvas.drawLine(
         Offset(chartRect.left, dy),
         Offset(chartRect.right, dy),
         gridPaint,
+      );
+      final value = axisStep * i;
+      final textPainter = TextPainter(
+        text: TextSpan(text: value.toString(), style: labelStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      textPainter.paint(
+        canvas,
+        Offset(chartRect.left - 6 - textPainter.width, dy - textPainter.height / 2),
       );
     }
 
@@ -455,7 +487,7 @@ class _LineChartPainter extends CustomPainter {
         ..color = line.color
         ..strokeWidth = 2
         ..style = PaintingStyle.stroke;
-      final points = _pointsForLine(line, chartRect, maxValue);
+      final points = _pointsForLine(line, chartRect, axisMax);
       if (points.isEmpty) continue;
       final path = Path()..moveTo(points.first.dx, points.first.dy);
       for (var i = 1; i < points.length; i++) {
@@ -495,6 +527,14 @@ class _LineChartPainter extends CustomPainter {
       }
     }
     return maxValue == 0 ? 1 : maxValue;
+  }
+
+  int _axisStepFor(int maxValue) {
+    var step = 10;
+    while (maxValue > step * 5) {
+      step *= 2;
+    }
+    return step;
   }
 
   @override
@@ -557,7 +597,7 @@ class _TopIssuesBarChart extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Text(
-                      row.percentage.toStringAsFixed(0),
+                      '${row.percentage.toStringAsFixed(0)}%',
                       style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
                     ),
                     const SizedBox(height: 4),
@@ -601,30 +641,38 @@ class _SatisfactionTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DataTable(
-      headingRowColor: WidgetStateProperty.all(AppTheme.surface),
-      columns: const [
-        DataColumn(label: Text('Pertanyaan')),
-        DataColumn(label: Text('Tipe')),
-        DataColumn(label: Text('Skor (AVG)')),
-        DataColumn(label: Text('Respon')),
-      ],
-      rows: report.rows.map((row) {
-        final supportsScore = row.type != 'text' && row.type != 'multipleChoice';
-        final avgText =
-            !supportsScore || row.responses == 0 ? '-' : row.avgScore.toStringAsFixed(2);
-        return DataRow(
-          cells: [
-            DataCell(SizedBox(
-              width: 280,
-              child: Text(row.question, maxLines: 2, overflow: TextOverflow.ellipsis),
-            )),
-            DataCell(Text(_questionTypeLabel(row.type))),
-            DataCell(Text(avgText)),
-            DataCell(Text(row.responses.toString())),
-          ],
-        );
-      }).toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+          child: DataTable(
+            headingRowColor: WidgetStateProperty.all(AppTheme.surface),
+            columns: const [
+              DataColumn(label: Text('Pertanyaan')),
+              DataColumn(label: Text('Tipe')),
+              DataColumn(label: Text('Skor (AVG)')),
+              DataColumn(label: Text('Respon')),
+            ],
+            rows: report.rows.map((row) {
+              final supportsScore = row.type != 'text' && row.type != 'multipleChoice';
+              final avgText =
+                  !supportsScore || row.responses == 0 ? '-' : row.avgScore.toStringAsFixed(2);
+              return DataRow(
+                cells: [
+                  DataCell(SizedBox(
+                    width: 360,
+                    child: Text(row.question, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  )),
+                  DataCell(Text(_questionTypeLabel(row.type))),
+                  DataCell(Text(avgText)),
+                  DataCell(Text(row.responses.toString())),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -633,6 +681,14 @@ String _questionTypeLabel(String type) {
   switch (type) {
     case 'yesNo':
       return 'Ya/Tidak';
+    case 'likert7':
+      return 'Likert 1-7';
+    case 'likert6':
+      return 'Likert 1-6';
+    case 'likert4':
+      return 'Likert 1-4';
+    case 'likert3':
+      return 'Likert 1-3';
     case 'multipleChoice':
       return 'Pilihan Ganda';
     case 'text':
