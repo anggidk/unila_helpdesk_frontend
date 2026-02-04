@@ -36,6 +36,14 @@ final reportsPeriodProvider = StateProvider<String>((ref) => 'monthly');
 final reportsCategoryIdProvider = StateProvider<String?>((ref) => null);
 final reportsTemplateIdProvider = StateProvider<String?>((ref) => null);
 final reportsChartPeriodProvider = StateProvider<String>((ref) => 'monthly');
+final reportsTemplatesProvider =
+    FutureProvider.autoDispose<List<SurveyTemplate>>((ref) async {
+  final categoryId = ref.watch(reportsCategoryIdProvider);
+  if (categoryId == null || categoryId.isEmpty) {
+    return [];
+  }
+  return ReportRepository().fetchTemplatesByCategory(categoryId);
+});
 final cohortRowsProvider = FutureProvider.autoDispose<List<CohortRow>>((ref) async {
   final period = ref.watch(cohortPeriodProvider);
   return ReportRepository().fetchCohort(
@@ -55,7 +63,7 @@ final serviceUtilizationProvider =
   final period = ref.watch(cohortPeriodProvider);
   return ReportRepository().fetchServiceUtilization(
     period: period,
-    periods: _cohortPeriodsFor(period),
+    periods: 1,
   );
 });
 final entityServiceProvider =
@@ -63,7 +71,7 @@ final entityServiceProvider =
   final period = ref.watch(cohortPeriodProvider);
   return ReportRepository().fetchEntityService(
     period: period,
-    periods: _cohortPeriodsFor(period),
+    periods: 1,
   );
 });
 final reportsUsageProvider = FutureProvider.autoDispose<List<UsageCohortRow>>((ref) async {
