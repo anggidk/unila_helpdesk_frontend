@@ -22,7 +22,7 @@ class HomePage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
+        title: const Text('Beranda'),
         actions: [
           IconButton(
             onPressed: () {

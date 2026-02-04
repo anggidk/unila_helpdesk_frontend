@@ -84,12 +84,12 @@ class _AnalysisDropdown extends StatelessWidget {
     return PopupMenuButton<String>(
       onSelected: onChanged,
       itemBuilder: (context) => const [
-        PopupMenuItem(value: 'retention', child: Text('Retention Cohort')),
-        PopupMenuItem(value: 'usage', child: Text('Time-based Usage')),
-        PopupMenuItem(value: 'service', child: Text('Service Utilization')),
+        PopupMenuItem(value: 'retention', child: Text('Kohort Retensi')),
+        PopupMenuItem(value: 'usage', child: Text('Penggunaan Berbasis Waktu')),
+        PopupMenuItem(value: 'service', child: Text('Pemanfaatan Layanan')),
         PopupMenuItem(
           value: 'entity-service',
-          child: Text('User Group x Service'),
+          child: Text('Kelompok Pengguna x Layanan'),
         ),
       ],
       child: Container(
@@ -202,9 +202,9 @@ class _CohortScoreRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(label)),
-          Expanded(child: Text('Avg Score: ${clamped.toStringAsFixed(2)}')),
+          Expanded(child: Text('Skor Rata-rata: ${clamped.toStringAsFixed(2)}')),
           Expanded(
-            child: Text('Response: ${responseRate.toStringAsFixed(0)}%'),
+            child: Text('Respon: ${responseRate.toStringAsFixed(0)}%'),
           ),
           Expanded(
             child: Row(
@@ -648,13 +648,13 @@ String _periodLabel(String period) {
 String _analysisLabel(String value) {
   switch (value) {
     case 'usage':
-      return 'Time-based Usage';
+      return 'Penggunaan Berbasis Waktu';
     case 'service':
-      return 'Service Utilization';
+      return 'Pemanfaatan Layanan';
     case 'entity-service':
-      return 'User Group x Service';
+      return 'Kelompok Pengguna x Layanan';
     default:
-      return 'Retention Cohort';
+      return 'Kohort Retensi';
   }
 }
 
@@ -678,7 +678,7 @@ class _RetentionSection extends ConsumerWidget {
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
-          'Gagal memuat cohort: ${cohortRowsAsync.error}',
+          'Gagal memuat kohort: ${cohortRowsAsync.error}',
           style: const TextStyle(color: AppTheme.textMuted),
         ),
       );
@@ -700,8 +700,8 @@ class _RetentionSection extends ConsumerWidget {
               child: DataTable(
                 headingRowColor: WidgetStateProperty.all(AppTheme.surface),
                 columns: [
-                  const DataColumn(label: Text('Cohort')),
-                  const DataColumn(label: Text('Users')),
+                  const DataColumn(label: Text('Kohort')),
+                  const DataColumn(label: Text('Pengguna')),
                   ...retentionLabels.map((label) => DataColumn(label: Text(label))),
                 ],
                 rows: cohortRows.map((row) {
@@ -735,13 +735,13 @@ class _RetentionSection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Satisfaction Score by Cohort',
+                  'Skor Kepuasan per Kohort',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 12),
                 if (cohortRows.isEmpty)
                   const Text(
-                    'Belum ada data survey.',
+                    'Belum ada data survei.',
                     style: TextStyle(color: AppTheme.textMuted),
                   )
                 else
@@ -771,13 +771,13 @@ class _UsageSection extends ConsumerWidget {
     }
     if (usageAsync.hasError) {
       return Text(
-        'Gagal memuat usage cohort: ${usageAsync.error}',
+        'Gagal memuat kohort penggunaan: ${usageAsync.error}',
         style: const TextStyle(color: AppTheme.textMuted),
       );
     }
     if (usageRows.isEmpty) {
       return const Text(
-        'Belum ada data usage.',
+        'Belum ada data penggunaan.',
         style: TextStyle(color: AppTheme.textMuted),
       );
     }
@@ -792,12 +792,12 @@ class _UsageSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Time-based Usage Cohort',
+            'Kohort Penggunaan Berbasis Waktu',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           const Text(
-            'Jumlah tiket & survey per periode.',
+            'Jumlah tiket & survei per periode.',
             style: TextStyle(color: AppTheme.textMuted),
           ),
           const SizedBox(height: 12),
@@ -812,7 +812,7 @@ class _UsageSection extends ConsumerWidget {
                 )
                 .toList(),
             primaryLabel: 'Tiket',
-            secondaryLabel: 'Survey',
+            secondaryLabel: 'Survei',
           ),
         ],
       ),
@@ -830,7 +830,7 @@ class _ServiceUtilSection extends ConsumerWidget {
     }
     if (serviceUtilAsync.hasError) {
       return Text(
-        'Gagal memuat service utilization: ${serviceUtilAsync.error}',
+        'Gagal memuat pemanfaatan layanan: ${serviceUtilAsync.error}',
         style: const TextStyle(color: AppTheme.textMuted),
       );
     }
@@ -851,12 +851,12 @@ class _ServiceUtilSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Service Utilization Cohort',
+            'Kohort Pemanfaatan Layanan',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           const Text(
-            'First ticket vs first survey per layanan.',
+            'Tiket pertama vs survei pertama per layanan.',
             style: TextStyle(color: AppTheme.textMuted),
           ),
           const SizedBox(height: 12),
@@ -870,8 +870,8 @@ class _ServiceUtilSection extends ConsumerWidget {
                   ),
                 )
                 .toList(),
-            primaryLabel: 'First Ticket',
-            secondaryLabel: 'First Survey',
+            primaryLabel: 'Tiket Pertama',
+            secondaryLabel: 'Survei Pertama',
           ),
         ],
       ),
@@ -889,13 +889,13 @@ class _EntityServiceSection extends ConsumerWidget {
     }
     if (entityServiceAsync.hasError) {
       return Text(
-        'Gagal memuat user group x service: ${entityServiceAsync.error}',
+        'Gagal memuat kelompok pengguna x layanan: ${entityServiceAsync.error}',
         style: const TextStyle(color: AppTheme.textMuted),
       );
     }
     if (entityServiceRows.isEmpty) {
       return const Text(
-        'Belum ada data user group.',
+        'Belum ada data kelompok pengguna.',
         style: TextStyle(color: AppTheme.textMuted),
       );
     }
@@ -914,7 +914,7 @@ class _EntityServiceSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'User Group x Service',
+            'Kelompok Pengguna x Layanan',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),

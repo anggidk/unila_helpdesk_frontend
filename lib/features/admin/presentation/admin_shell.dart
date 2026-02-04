@@ -86,7 +86,7 @@ class AdminShell extends ConsumerWidget {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'UNILA Admin',
+                                            'Admin UNILA',
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.w700,
@@ -96,7 +96,7 @@ class AdminShell extends ConsumerWidget {
                                             softWrap: false,
                                           ),
                                           Text(
-                                            'Helpdesk System',
+                                            'Sistem Helpdesk',
                                             style: TextStyle(color: Colors.white70),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -112,7 +112,7 @@ class AdminShell extends ConsumerWidget {
                       const SizedBox(height: 12),
                       _NavItem(
                         icon: Icons.dashboard_outlined,
-                        label: 'Dashboard',
+                        label: 'Dasbor',
                         selected: index == 0,
                         showLabel: !isCompact,
                         onTap: () => ref
@@ -121,7 +121,7 @@ class AdminShell extends ConsumerWidget {
                       ),
                       _NavItem(
                         icon: Icons.confirmation_number_outlined,
-                        label: 'Ticket',
+                        label: 'Tiket',
                         selected: index == 1,
                         showLabel: !isCompact,
                         onTap: () => ref
@@ -139,7 +139,7 @@ class AdminShell extends ConsumerWidget {
                       ),
                       _NavItem(
                         icon: Icons.group_work_outlined,
-                        label: 'Cohort',
+                        label: 'Kohort',
                         selected: index == 3,
                         showLabel: !isCompact,
                         onTap: () => ref
@@ -148,7 +148,7 @@ class AdminShell extends ConsumerWidget {
                       ),
                       _NavItem(
                         icon: Icons.quiz_outlined,
-                        label: 'Survey',
+                        label: 'Survei',
                         selected: index == 4,
                         showLabel: !isCompact,
                         onTap: () => ref
@@ -157,7 +157,7 @@ class AdminShell extends ConsumerWidget {
                       ),
                       _NavItem(
                         icon: Icons.history,
-                        label: 'Survey History',
+                        label: 'Riwayat Survei',
                         selected: index == 5,
                         showLabel: !isCompact,
                         onTap: () => ref
@@ -236,19 +236,19 @@ class AdminShell extends ConsumerWidget {
   String _titleForIndex(int index) {
     switch (index) {
       case 0:
-        return 'Dashboard Overview';
+        return 'Ringkasan Dasbor';
       case 1:
         return 'Manajemen Tiket';
       case 2:
-        return 'Laporan Survey Kepuasan';
+        return 'Laporan Survei Kepuasan';
       case 3:
-        return 'Cohort Analysis';
+        return 'Analisis Kohort';
       case 4:
-        return 'Pengaturan Survey';
+        return 'Pengaturan Survei';
       case 5:
-        return 'Survey History';
+        return 'Riwayat Survei';
       default:
-        return 'Dashboard';
+        return 'Dasbor';
     }
   }
 }
@@ -348,7 +348,7 @@ class _ProfileSection extends StatelessWidget {
             if (value == 'logout') onLogout();
           },
           itemBuilder: (context) => const [
-            PopupMenuItem(value: 'logout', child: Text('Logout')),
+            PopupMenuItem(value: 'logout', child: Text('Keluar')),
           ],
           child: SizedBox(
             width: 48,
@@ -419,7 +419,7 @@ class _ProfileSection extends StatelessWidget {
                 ),
                 onPressed: onLogout,
                 icon: const Icon(Icons.logout),
-                label: const Text('Logout'),
+                label: const Text('Keluar'),
               ),
             ),
           ),

@@ -24,7 +24,7 @@ class AdminDashboardPage extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Dashboard',
+                'Dasbor',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ],
@@ -41,28 +41,28 @@ class AdminDashboardPage extends ConsumerWidget {
             Row(
               children: [
                 _StatCard(
-                  label: 'Total Ticket',
+                  label: 'Total Tiket',
                   value: _formatCount(summary?.totalTickets),
                   icon: Icons.folder_open,
                   color: AppTheme.accentBlue,
                 ),
                 const SizedBox(width: 16),
                 _StatCard(
-                  label: 'Open Ticket',
+                  label: 'Tiket Terbuka',
                   value: _formatCount(summary?.openTickets),
                   icon: Icons.warning_amber,
                   color: AppTheme.warning,
                 ),
                 const SizedBox(width: 16),
                 _StatCard(
-                  label: 'Resolved Bulan Ini',
+                  label: 'Tiket Selesai Bulan Ini',
                   value: _formatCount(summary?.resolvedThisPeriod),
                   icon: Icons.check_circle,
                   color: AppTheme.success,
                 ),
                 const SizedBox(width: 16),
                 _StatCard(
-                  label: 'Avg. Rating',
+                  label: 'Rata-rata Penilaian',
                   value: '${_formatScore(summary?.avgRating)} / 5.0',
                   icon: Icons.star,
                   color: AppTheme.accentYellow,
@@ -134,7 +134,7 @@ class AdminDashboardPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Trend Bulanan', style: TextStyle(fontWeight: FontWeight.w700)),
+                        const Text('Tren Bulanan', style: TextStyle(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 8),
                         const Text('Volume tiket masuk tahun ini', style: TextStyle(color: AppTheme.textMuted)),
                         const SizedBox(height: 12),
@@ -162,7 +162,7 @@ class AdminDashboardPage extends ConsumerWidget {
                                       values: rows.map((row) => row.tickets).toList(),
                                     ),
                                     _LineSeries(
-                                      label: 'Survey',
+                                      label: 'Survei',
                                       color: AppTheme.accentYellow,
                                       values: rows.map((row) => row.surveys).toList(),
                                     ),
@@ -172,7 +172,7 @@ class AdminDashboardPage extends ConsumerWidget {
                               loading: () => const Center(child: CircularProgressIndicator()),
                               error: (error, _) => Center(
                                 child: Text(
-                                  'Gagal memuat trend: $error',
+                                  'Gagal memuat tren: $error',
                                   style: const TextStyle(color: AppTheme.textMuted),
                                   textAlign: TextAlign.center,
                                 ),
@@ -194,13 +194,13 @@ class AdminDashboardPage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Kepuasan per Layanan (Survey Results)', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text('Kepuasan per Layanan (Hasil Survei)', style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
                 satisfactionAsync.when(
                   data: (rows) {
                     if (rows.isEmpty) {
                       return const Text(
-                        'Belum ada data survey.',
+                        'Belum ada data survei.',
                         style: TextStyle(color: AppTheme.textMuted),
                       );
                     }

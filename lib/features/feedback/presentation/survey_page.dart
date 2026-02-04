@@ -12,7 +12,9 @@ final surveyAnswersProvider = StateProvider.autoDispose<Map<String, dynamic>>(
 final surveyErrorsProvider = StateProvider.autoDispose<Map<String, String>>(
   (ref) => <String, String>{},
 );
-final surveySubmittingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final surveySubmittingProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
 
 class SurveyPage extends ConsumerWidget {
   const SurveyPage({super.key, required this.ticket, required this.template});
@@ -30,7 +32,7 @@ class SurveyPage extends ConsumerWidget {
         ? 0.0
         : answers.length / questions.length;
     return Scaffold(
-      appBar: AppBar(title: const Text('Survey Kepuasan')),
+      appBar: AppBar(title: const Text('Survei Kepuasan')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -102,50 +104,56 @@ class SurveyPage extends ConsumerWidget {
               onPressed: isSubmitting
                   ? null
                   : () async {
-                final nextErrors = <String, String>{};
-                for (final question in questions) {
-                  final value = answers[question.id];
-                  final isEmptyText =
-                      question.type == SurveyQuestionType.text &&
-                          (value == null || value.toString().trim().isEmpty);
-                  if (value == null || isEmptyText) {
-                    nextErrors[question.id] = 'Jawaban wajib diisi.';
-                  }
-                }
+                      final nextErrors = <String, String>{};
+                      for (final question in questions) {
+                        final value = answers[question.id];
+                        final isEmptyText =
+                            question.type == SurveyQuestionType.text &&
+                            (value == null || value.toString().trim().isEmpty);
+                        if (value == null || isEmptyText) {
+                          nextErrors[question.id] = 'Jawaban wajib diisi.';
+                        }
+                      }
 
-                if (nextErrors.isNotEmpty) {
-                  ref.read(surveyErrorsProvider.notifier).state = nextErrors;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Mohon lengkapi semua jawaban.'),
-                    ),
-                  );
-                  return;
-                }
+                      if (nextErrors.isNotEmpty) {
+                        ref.read(surveyErrorsProvider.notifier).state =
+                            nextErrors;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Mohon lengkapi semua jawaban.'),
+                          ),
+                        );
+                        return;
+                      }
 
-                ref.read(surveySubmittingProvider.notifier).state = true;
-                try {
-                  final response = await SurveyRepository().submitSurvey(
-                    ticketId: ticket.id,
-                    answers: answers,
-                  );
-                  if (!response.isSuccess) {
-                    throw Exception(response.error?.message ?? 'Gagal mengirim survey');
-                  }
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Survey berhasil dikirim.')),
-                  );
-                  Navigator.of(context).pop();
-                } catch (error) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(error.toString())),
-                  );
-                } finally {
-                  ref.read(surveySubmittingProvider.notifier).state = false;
-                }
-              },
+                      ref.read(surveySubmittingProvider.notifier).state = true;
+                      try {
+                        final response = await SurveyRepository().submitSurvey(
+                          ticketId: ticket.id,
+                          answers: answers,
+                        );
+                        if (!response.isSuccess) {
+                          throw Exception(
+                            response.error?.message ?? 'Gagal mengirim survei',
+                          );
+                        }
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Survei berhasil dikirim.'),
+                          ),
+                        );
+                        Navigator.of(context).pop();
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(error.toString())),
+                        );
+                      } finally {
+                        ref.read(surveySubmittingProvider.notifier).state =
+                            false;
+                      }
+                    },
               child: isSubmitting
                   ? const SizedBox(
                       height: 18,

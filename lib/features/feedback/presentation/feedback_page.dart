@@ -18,19 +18,21 @@ class FeedbackPage extends ConsumerWidget {
     final resolvedTickets = (ticketsAsync.value ?? [])
         .where((ticket) => ticket.status == TicketStatus.resolved)
         .toList();
-    final pending =
-        resolvedTickets.where((ticket) => ticket.surveyRequired).toList();
-    final filled =
-        resolvedTickets.where((ticket) => !ticket.surveyRequired).toList();
+    final pending = resolvedTickets
+        .where((ticket) => ticket.surveyRequired)
+        .toList();
+    final filled = resolvedTickets
+        .where((ticket) => !ticket.surveyRequired)
+        .toList();
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Feedback'),
+          title: const Text('Umpan Balik'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'Menunggu Feedback'),
+              Tab(text: 'Menunggu Umpan Balik'),
               Tab(text: 'Sudah Diisi'),
             ],
           ),
@@ -51,9 +53,8 @@ class FeedbackPage extends ConsumerWidget {
             ],
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(
-            child: Text('Gagal memuat tiket: $error'),
-          ),
+          error: (error, _) =>
+              Center(child: Text('Gagal memuat tiket: $error')),
         ),
       ),
     );
@@ -108,23 +109,35 @@ class _FeedbackList extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Unila Helpdesk', style: TextStyle(color: AppTheme.textMuted)),
+                        const Text(
+                          'Unila Helpdesk',
+                          style: TextStyle(color: AppTheme.textMuted),
+                        ),
                         Text(
                           '${ticket.id} - ${ticket.title}',
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 4),
-                        Text(formatDate(ticket.createdAt), style: const TextStyle(color: AppTheme.textMuted)),
+                        Text(
+                          formatDate(ticket.createdAt),
+                          style: const TextStyle(color: AppTheme.textMuted),
+                        ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: const Text('Selesai', style: TextStyle(color: AppTheme.success)),
+                    child: const Text(
+                      'Selesai',
+                      style: TextStyle(color: AppTheme.success),
+                    ),
                   ),
                 ],
               ),
@@ -133,19 +146,22 @@ class _FeedbackList extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                  onPressed: () async {
+                    onPressed: () async {
                       final categoryId = ticket.categoryId;
                       if (categoryId.isEmpty) {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Kategori survey tidak ditemukan.')),
+                          const SnackBar(
+                            content: Text('Kategori survei tidak ditemukan.'),
+                          ),
                         );
                         return;
                       }
                       SurveyTemplate template;
                       try {
-                        template = await ref
-                            .refresh(surveyTemplateByCategoryProvider(categoryId).future);
+                        template = await ref.refresh(
+                          surveyTemplateByCategoryProvider(categoryId).future,
+                        );
                       } catch (error) {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -157,7 +173,9 @@ class _FeedbackList extends ConsumerWidget {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Template survey belum memiliki pertanyaan.'),
+                            content: Text(
+                              'Template survei belum memiliki pertanyaan.',
+                            ),
                           ),
                         );
                         return;
@@ -165,17 +183,22 @@ class _FeedbackList extends ConsumerWidget {
                       if (!context.mounted) return;
                       await context.pushNamed(
                         AppRouteNames.survey,
-                        extra: SurveyPayload(ticket: ticket, template: template),
+                        extra: SurveyPayload(
+                          ticket: ticket,
+                          template: template,
+                        ),
                       );
                       ref.invalidate(ticketsProvider);
                     },
                     icon: const Icon(Icons.rate_review_outlined),
-                    label: const Text('ISI FEEDBACK'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentYellow, foregroundColor: AppTheme.navy),
+                    label: const Text('ISI UMPAN BALIK'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentYellow,
+                      foregroundColor: AppTheme.navy,
+                    ),
                   ),
                 ),
-              if (!showAction)
-                _RatingRow(score: ticket.surveyScore),
+              if (!showAction) _RatingRow(score: ticket.surveyScore),
             ],
           ),
         );
@@ -217,4 +240,3 @@ class _RatingRow extends StatelessWidget {
     );
   }
 }
-

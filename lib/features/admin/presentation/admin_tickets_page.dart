@@ -101,7 +101,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
       });
     }
     final categoryLabel = selectedCategoryId == null
-        ? 'All'
+        ? 'Semua'
         : categories
             .where((item) => item.id == selectedCategoryId)
             .map((item) => item.name)
@@ -121,7 +121,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                     ref.read(adminTicketPageProvider.notifier).state = 1;
                   },
                   decoration: const InputDecoration(
-                    hintText: 'Search by ticket ID or title...',
+                    hintText: 'Cari berdasarkan ID tiket atau judul...',
                     prefixIcon: Icon(Icons.search),
                     suffixIcon: null,
                   ).copyWith(
@@ -143,10 +143,10 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
               _FilterDropdown<TicketStatus?>(
                 label: 'Status',
                 icon: Icons.filter_list,
-                valueLabel: selectedStatus?.label ?? 'All',
+                valueLabel: selectedStatus?.label ?? 'Semua',
                 enabled: true,
                 options: {
-                  null: 'All',
+                  null: 'Semua',
                   for (final status in TicketStatus.values) status: status.label,
                 },
                 onChanged: (value) {
@@ -161,7 +161,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                 valueLabel: categoryLabel,
                 enabled: categories.isNotEmpty,
                 options: {
-                  null: 'All',
+                  null: 'Semua',
                   for (final category in categories) category.id: category.name,
                 },
                 onChanged: (value) {
@@ -195,7 +195,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                   _searchController.clear();
                 },
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Reset'),
+                label: const Text('Atur Ulang'),
               ),
             ],
           ),
@@ -241,7 +241,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                         columns: const [
                           DataColumn(
                             label: Text(
-                              'Ticket ID',
+                              'ID Tiket',
                               style: TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
@@ -271,7 +271,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                           ),
                           DataColumn(
                             label: Text(
-                              'Action',
+                              'Aksi',
                               style: TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
@@ -290,7 +290,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                                       style: const TextStyle(fontWeight: FontWeight.w600),
                                     ),
                                     Text(
-                                      'Reported by: ${ticket.reporter}',
+                                      'Dilaporkan oleh: ${ticket.reporter}',
                                       style: const TextStyle(color: AppTheme.textMuted),
                                     ),
                                   ],
@@ -454,7 +454,7 @@ extension _DateFilterX on _DateFilter {
       case _DateFilter.last30Days:
         return '30 hari';
       case _DateFilter.all:
-        return 'All';
+        return 'Semua';
     }
   }
 }

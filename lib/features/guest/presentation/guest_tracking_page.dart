@@ -50,7 +50,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
     } else {
       ref.read(guestTrackingFoundTicketProvider.notifier).state = null;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ticket tidak ditemukan.')),
+        const SnackBar(content: Text('Tiket tidak ditemukan.')),
       );
     }
   }
@@ -60,7 +60,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
     final foundTicket = ref.watch(guestTrackingFoundTicketProvider);
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Track Ticket')),
+      appBar: AppBar(title: const Text('Lacak Tiket')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -83,11 +83,11 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
                   child: Icon(Icons.search, color: AppTheme.accentBlue, size: 36),
                 ),
                 const SizedBox(height: 12),
-                Text('Check Ticket Status',
+                Text('Cek Status Tiket',
                     style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 Text(
-                  'Masukkan tracking ID dari email konfirmasi.',
+                  'Masukkan ID tiket dari email konfirmasi.',
                   style: textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
                   textAlign: TextAlign.center,
                 ),
@@ -98,7 +98,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
                   child: TextFormField(
                     controller: _controller,
                     decoration: const InputDecoration(
-                      labelText: 'Tracking ID',
+                      labelText: 'ID Tiket',
                       hintText: 'contoh: UNILA-2026-001',
                       prefixIcon: Icon(Icons.tag),
                     ),
@@ -116,7 +116,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
                   child: ElevatedButton.icon(
                     onPressed: _searchTicket,
                     icon: const Icon(Icons.search),
-                    label: const Text('Search Ticket'),
+                    label: const Text('Cari Tiket'),
                   ),
                 ),
               ],
@@ -134,7 +134,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
           ],
           const SizedBox(height: 24),
           Text(
-            'Lupa nomor tracking? Hubungi support helpdesk.',
+            'Lupa nomor tiket? Hubungi helpdesk.',
             style: textTheme.bodySmall?.copyWith(color: AppTheme.textMuted),
             textAlign: TextAlign.center,
           ),
@@ -142,7 +142,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Text(
-                'Ticket tidak ditemukan, pastikan ID benar.',
+                'Tiket tidak ditemukan, pastikan ID benar.',
                 style: textTheme.bodySmall?.copyWith(color: AppTheme.danger),
                 textAlign: TextAlign.center,
               ),

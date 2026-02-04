@@ -69,9 +69,9 @@ class _UserShellState extends ConsumerState<UserShell> {
       body: IndexedStack(index: index, children: pages),
       bottomNavigationBar: Style15BottomNavBar(
         items: const [
-          Style15NavItem(icon: Icons.home_outlined, label: 'Home'),
+          Style15NavItem(icon: Icons.home_outlined, label: 'Beranda'),
           Style15NavItem(icon: Icons.confirmation_number_outlined, label: 'Tiket'),
-          Style15NavItem(icon: Icons.chat_bubble_outline, label: 'Feedback'),
+          Style15NavItem(icon: Icons.chat_bubble_outline, label: 'Umpan Balik'),
           Style15NavItem(icon: Icons.person_outline, label: 'Profil'),
         ],
         currentIndex: index,
@@ -97,7 +97,7 @@ class _MissingUserPage extends StatelessWidget {
       );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('Error')),
+      appBar: AppBar(title: const Text('Kesalahan')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

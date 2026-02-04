@@ -27,7 +27,7 @@ class ProfilePage extends ConsumerWidget {
         .where((ticket) => ticket.status == TicketStatus.resolved)
         .length;
     return Scaffold(
-      appBar: AppBar(title: const Text('My Profile')),
+      appBar: AppBar(title: const Text('Profil Saya')),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
           20,
@@ -96,20 +96,20 @@ class ProfilePage extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _ProfileStat(label: 'Tickets', value: '$total'),
-              _ProfileStat(label: 'Pending', value: '$pending'),
-              _ProfileStat(label: 'Resolved', value: '$resolved'),
+              _ProfileStat(label: 'Tiket', value: '$total'),
+              _ProfileStat(label: 'Menunggu', value: '$pending'),
+              _ProfileStat(label: 'Selesai', value: '$resolved'),
             ],
           ),
           const SizedBox(height: 20),
           const Text(
-            'Application',
+            'Aplikasi',
             style: TextStyle(color: AppTheme.textMuted),
           ),
           const SizedBox(height: 8),
           _MenuTile(
             icon: Icons.notifications_outlined,
-            title: 'Notifications',
+            title: 'Notifikasi',
             subtitle: 'Status tiket dan survey',
             onTap: () {
               context.pushNamed(AppRouteNames.notifications);
@@ -128,7 +128,7 @@ class ProfilePage extends ConsumerWidget {
               context.goNamed(AppRouteNames.login);
             },
             icon: const Icon(Icons.logout),
-            label: const Text('Log Out'),
+            label: const Text('Keluar'),
             style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),
           ),
           const SizedBox(height: 8),

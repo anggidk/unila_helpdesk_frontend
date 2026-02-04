@@ -133,7 +133,7 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Hasil Kepuasan Survey', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text('Hasil Kepuasan Survei', style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
                 Text(
                   'Filter berdasarkan kategori, template, dan periode.',
@@ -143,13 +143,13 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
                 satisfactionAsync.when(
                   data: (report) {
                     if (report == null || report.rows.isEmpty) {
-                      return const Text('Belum ada data survey.', style: TextStyle(color: AppTheme.textMuted));
+                      return const Text('Belum ada data survei.', style: TextStyle(color: AppTheme.textMuted));
                     }
                     return _SatisfactionTable(report: report);
                   },
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (error, _) => Text(
-                    'Gagal memuat hasil survey: $error',
+                    'Gagal memuat hasil survei: $error',
                     style: const TextStyle(color: AppTheme.textMuted),
                   ),
                 ),
@@ -178,8 +178,8 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
             children: [
               Expanded(
                 child: _CardPlaceholder(
-                  title: 'Trend Tiket & Survey',
-                  description: 'Jumlah tiket dan survey per periode.',
+                  title: 'Tren Tiket & Survei',
+                  description: 'Jumlah tiket dan survei per periode.',
                   child: usageAsync.when(
                     data: (rows) {
                       if (rows.isEmpty) {
@@ -194,7 +194,7 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
                             values: rows.map((row) => row.tickets).toList(),
                           ),
                           _LineSeries(
-                            label: 'Survey',
+                            label: 'Survei',
                             color: AppTheme.accentYellow,
                             values: rows.map((row) => row.surveys).toList(),
                           ),
@@ -203,7 +203,7 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
                     },
                     loading: () => const Center(child: CircularProgressIndicator()),
                     error: (error, _) => Text(
-                      'Gagal memuat trend: $error',
+                      'Gagal memuat tren: $error',
                       style: const TextStyle(color: AppTheme.textMuted),
                     ),
                   ),

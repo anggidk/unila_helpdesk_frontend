@@ -51,7 +51,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       buffer.writeln(description);
     }
     buffer.writeln('');
-    buffer.writeln('--- Data Pelapor Guest ---');
+    buffer.writeln('--- Data Pelapor Tamu ---');
     buffer.writeln('Nama: ${_nameController.text.trim()}');
     buffer.writeln('Status: ${_statusUser ?? '-'}');
     buffer.writeln('No. Identitas: ${_idController.text.trim()}');
@@ -89,8 +89,8 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
           .cast<String?>()
           .firstWhere((item) => item != null, orElse: () => null);
       final title = categoryName == null
-          ? 'Laporan Guest'
-          : 'Laporan Guest - $categoryName';
+          ? 'Laporan Tamu'
+          : 'Laporan Tamu - $categoryName';
 
       final draft = TicketDraft(
         title: title,
@@ -104,12 +104,12 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       );
       if (!response.isSuccess) {
         throw Exception(
-          response.error?.message ?? 'Gagal mengirim laporan guest',
+          response.error?.message ?? 'Gagal mengirim laporan tamu',
         );
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Laporan guest berhasil dikirim.')),
+        const SnackBar(content: Text('Laporan tamu berhasil dikirim.')),
       );
       context.pop();
     } catch (error) {
@@ -132,7 +132,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     final selectedPriority = ref.watch(guestTicketPriorityProvider);
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Guest Ticket Form')),
+      appBar: AppBar(title: const Text('Form Tiket Tamu')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

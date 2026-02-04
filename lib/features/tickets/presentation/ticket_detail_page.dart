@@ -136,7 +136,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
     final ticket = _ticket;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ticket Detail'),
+        title: const Text('Detail Tiket'),
         actions: [
           PopupMenuButton<String>(
             onSelected: _handleMenu,
@@ -213,7 +213,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Status History',
+            'Riwayat Status',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
@@ -292,7 +292,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                       )
                     : const Icon(Icons.rate_review_outlined),
                 label: Text(
-                  _isLoadingSurvey ? 'Memuat...' : 'Isi Feedback',
+                  _isLoadingSurvey ? 'Memuat...' : 'Isi Umpan Balik',
                 ),
               ),
             ),

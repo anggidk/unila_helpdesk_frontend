@@ -66,7 +66,7 @@ class TicketRepository {
     if (response.isSuccess && data is Map<String, dynamic>) {
       return Ticket.fromJson(data);
     }
-    throw Exception(response.error?.message ?? 'Ticket tidak ditemukan');
+    throw Exception(response.error?.message ?? 'Tiket tidak ditemukan');
   }
 
   Future<ApiResponse<Map<String, dynamic>>> createTicket(TicketDraft draft) {

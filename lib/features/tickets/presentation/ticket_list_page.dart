@@ -71,7 +71,7 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tickets')),
+      appBar: AppBar(title: const Text('Tiket')),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
           20,
@@ -174,9 +174,9 @@ extension TicketFilterX on TicketFilter {
       case TicketFilter.all:
         return 'Semua';
       case TicketFilter.open:
-        return 'Open';
+        return 'Terbuka';
       case TicketFilter.inProgress:
-        return 'Progres';
+        return 'Diproses';
       case TicketFilter.resolved:
         return 'Selesai';
     }

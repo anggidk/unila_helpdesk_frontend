@@ -108,13 +108,13 @@ class _AdminSurveyHistoryPageState
     }
 
     final categoryLabel = selectedCategoryId == null
-        ? 'All'
+        ? 'Semua'
         : categories
             .where((item) => item.id == selectedCategoryId)
             .map((item) => item.name)
             .firstWhere((_) => true, orElse: () => selectedCategoryId);
     final templateLabel = selectedTemplateId == null
-        ? 'All'
+        ? 'Semua'
         : templates
             .where((item) => item.id == selectedTemplateId)
             .map((item) => item.title)
@@ -136,7 +136,7 @@ class _AdminSurveyHistoryPageState
                     ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
                   },
                   decoration: const InputDecoration(
-                    hintText: 'Search by ticket ID or user...',
+                    hintText: 'Cari berdasarkan ID tiket atau pengguna...',
                     prefixIcon: Icon(Icons.search),
                     suffixIcon: null,
                   ).copyWith(
@@ -161,7 +161,7 @@ class _AdminSurveyHistoryPageState
                 valueLabel: categoryLabel,
                 enabled: categories.isNotEmpty,
                 options: {
-                  null: 'All',
+                  null: 'Semua',
                   for (final category in categories) category.id: category.name,
                 },
                 onChanged: (value) {
@@ -177,7 +177,7 @@ class _AdminSurveyHistoryPageState
                 valueLabel: templateLabel,
                 enabled: templates.isNotEmpty,
                 options: {
-                  null: 'All',
+                  null: 'Semua',
                   for (final template in templates)
                     template.id: template.title,
                 },
@@ -216,7 +216,7 @@ class _AdminSurveyHistoryPageState
                   _searchController.clear();
                 },
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Reset'),
+                label: const Text('Atur Ulang'),
               ),
             ],
           ),
@@ -227,7 +227,7 @@ class _AdminSurveyHistoryPageState
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                'Gagal memuat survey: ${responsesAsync.error}',
+                'Gagal memuat survei: ${responsesAsync.error}',
                 style: const TextStyle(color: AppTheme.textMuted),
               ),
             ),
@@ -248,7 +248,7 @@ class _AdminSurveyHistoryPageState
                   const Padding(
                     padding: EdgeInsets.only(bottom: 12),
                     child: Text(
-                      'Tidak ada survey yang sesuai filter.',
+                      'Tidak ada survei yang sesuai filter.',
                       style: TextStyle(color: AppTheme.textMuted),
                     ),
                   ),
@@ -262,13 +262,13 @@ class _AdminSurveyHistoryPageState
                         columns: const [
                           DataColumn(
                             label: Text(
-                              'Ticket ID',
+                              'ID Tiket',
                               style: TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
                           DataColumn(
                             label: Text(
-                              'User',
+                              'Pengguna',
                               style: TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
@@ -453,7 +453,7 @@ extension _DateFilterX on _DateFilter {
       case _DateFilter.last30Days:
         return '30 hari';
       case _DateFilter.all:
-        return 'All';
+        return 'Semua';
     }
   }
 }

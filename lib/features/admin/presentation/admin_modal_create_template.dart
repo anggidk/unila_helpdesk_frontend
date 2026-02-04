@@ -94,8 +94,8 @@ class _AdminCreateTemplateDialogState
                       children: [
                         Text(
                           widget.initialTemplate == null
-                              ? 'Buat Template Survey Baru'
-                              : 'Edit Template Survey',
+                              ? 'Buat Template Survei Baru'
+                              : 'Edit Template Survei',
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 18,
@@ -103,7 +103,7 @@ class _AdminCreateTemplateDialogState
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Configure your new survey template details below.',
+                          'Lengkapi detail template survei di bawah ini.',
                           style: TextStyle(color: AppTheme.textMuted),
                         ),
                       ],
@@ -125,7 +125,7 @@ class _AdminCreateTemplateDialogState
                 controller: _nameController,
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  hintText: 'e.g., Survey Kepuasan Layanan Internet',
+                  hintText: 'contoh: Survei Kepuasan Layanan Internet',
                 ),
               ),
               const SizedBox(height: 16),
@@ -138,7 +138,7 @@ class _AdminCreateTemplateDialogState
                 controller: _descController,
                 maxLines: 3,
                 decoration: const InputDecoration(
-                  hintText: 'Describe the purpose of this survey...',
+                  hintText: 'Jelaskan tujuan survei ini...',
                 ),
               ),
               const SizedBox(height: 16),
@@ -152,7 +152,7 @@ class _AdminCreateTemplateDialogState
                     .toList(),
                 onChanged: (value) =>
                     setState(() => _framework = value ?? 'Custom'),
-                decoration: const InputDecoration(labelText: 'Framework'),
+                decoration: const InputDecoration(labelText: 'Kerangka'),
               ),
               const SizedBox(height: 16),
               Row(
@@ -172,7 +172,7 @@ class _AdminCreateTemplateDialogState
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
-                      '${_questions.length} Questions',
+                      '${_questions.length} Pertanyaan',
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),
@@ -347,7 +347,7 @@ String _stripFramework(String description) {
 String _buildDescription(String description, String framework) {
   final cleaned = _stripFramework(description);
   if (framework == 'Custom') {
-    return cleaned.isEmpty ? 'Template survey baru' : cleaned;
+    return cleaned.isEmpty ? 'Template survei baru' : cleaned;
   }
   final suffix = 'Framework: $framework';
   if (cleaned.isEmpty) {

@@ -83,16 +83,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ref.invalidate(notificationsProvider);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
 
     if (mounted) {
       setState(() => _isLoading = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +238,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                           color: Colors.white,
                                         ),
                                       )
-                                    : const Text('LOGIN'),
+                                    : const Text('MASUK'),
                               ),
                             ),
                             const SizedBox(height: 8),

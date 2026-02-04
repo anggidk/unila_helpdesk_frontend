@@ -15,7 +15,7 @@ class NotificationsPage extends ConsumerWidget {
     final notifications = notificationsAsync.value ?? [];
     final fcmEnabled = ref.watch(notificationsFcmEnabledProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: AppBar(title: const Text('Notifikasi')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -29,7 +29,7 @@ class NotificationsPage extends ConsumerWidget {
             child: SwitchListTile(
               value: fcmEnabled,
               onChanged: (value) => ref.read(notificationsFcmEnabledProvider.notifier).state = value,
-              title: const Text('Push Notification (FCM)'),
+              title: const Text('Notifikasi Push (FCM)'),
               subtitle: const Text('Notifikasi status tiket dan survey'),
             ),
           ),

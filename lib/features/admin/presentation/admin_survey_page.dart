@@ -173,7 +173,7 @@ class AdminSurveyPage extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(
-                      'Gagal memuat template survey: ${baseTemplatesAsync.error}',
+                      'Gagal memuat template survei: ${baseTemplatesAsync.error}',
                       style: const TextStyle(color: AppTheme.textMuted),
                     ),
                   ),
@@ -183,7 +183,7 @@ class AdminSurveyPage extends ConsumerWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Text('Pengaturan Survey', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                        Text('Pengaturan Survei', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                         SizedBox(height: 4),
                         Text('Kelola kuesioner untuk berbagai layanan kampus.', style: TextStyle(color: AppTheme.textMuted)),
                       ],
@@ -341,7 +341,7 @@ class AdminSurveyPage extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppTheme.outline),
                     ),
-                    child: const Text('Template survey belum tersedia.'),
+                    child: const Text('Template survei belum tersedia.'),
                   ),
                 const SizedBox(height: 16),
                 Container(
@@ -538,9 +538,9 @@ class AdminSurveyPage extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                  const Text('Pilih Template Survey', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const Text('Pilih Template Survei', style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
-                  const Text('Pilih kerangka survey sesuai kebutuhan.', style: TextStyle(color: AppTheme.textMuted)),
+                  const Text('Pilih kerangka survei sesuai kebutuhan.', style: TextStyle(color: AppTheme.textMuted)),
                   const SizedBox(height: 16),
                   if (baseTemplatesAsync.isLoading || categoriesAsync.isLoading)
                     const Padding(
@@ -805,7 +805,7 @@ class AdminSurveyPage extends ConsumerWidget {
 
   String? _validateTemplate(SurveyTemplate template) {
     if (template.questions.isEmpty) {
-      return 'Template survey wajib memiliki minimal 1 pertanyaan.';
+      return 'Template survei wajib memiliki minimal 1 pertanyaan.';
     }
     for (final question in template.questions) {
       if (question.text.trim().isEmpty) {
