@@ -340,7 +340,16 @@ class _PreviewSection extends StatelessWidget {
           const SizedBox(height: 12),
           Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          if (type == SurveyQuestionType.likert) _LikertPreview(),
+          if (type == SurveyQuestionType.likert)
+            _LikertPreview(count: 5),
+          if (type == SurveyQuestionType.likert7)
+            _LikertPreview(count: 7),
+          if (type == SurveyQuestionType.likert6)
+            _LikertPreview(count: 6),
+          if (type == SurveyQuestionType.likert4)
+            _LikertPreview(count: 4),
+          if (type == SurveyQuestionType.likert3)
+            _LikertPreview(count: 3),
           if (type == SurveyQuestionType.yesNo) _YesNoPreview(),
           if (type == SurveyQuestionType.multipleChoice)
             _MultipleChoicePreview(options: options),
@@ -358,6 +367,10 @@ class _PreviewSection extends StatelessWidget {
 }
 
 class _LikertPreview extends StatelessWidget {
+  const _LikertPreview({required this.count});
+
+  final int count;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -365,7 +378,7 @@ class _LikertPreview extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(
-            5,
+            count,
             (index) => Column(
               children: [
                 Container(
@@ -374,7 +387,7 @@ class _LikertPreview extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: AppTheme.outline),
-                    color: index == 2 ? AppTheme.navy : Colors.white,
+                    color: index == (count / 2).floor() ? AppTheme.navy : Colors.white,
                   ),
                 ),
                 const SizedBox(height: 6),
