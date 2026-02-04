@@ -255,6 +255,10 @@ class _AdminCreateTemplateDialogState
                                   widget.initialTemplate?.categoryId ??
                                   widget.selectedCategory.id,
                               questions: List.unmodifiable(_questions),
+                              createdAt:
+                                  widget.initialTemplate?.createdAt ??
+                                  DateTime.now(),
+                              updatedAt: DateTime.now(),
                             );
                             Navigator.pop(context, template);
                           },
