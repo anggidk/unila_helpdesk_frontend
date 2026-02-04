@@ -30,4 +30,17 @@ class CategoryRepository {
     }
     return [];
   }
+
+  Future<void> updateTemplate({
+    required String categoryId,
+    required String templateId,
+  }) async {
+    final response = await _client.put(
+      ApiEndpoints.categoryTemplate(categoryId),
+      body: {'templateId': templateId},
+    );
+    if (!response.isSuccess) {
+      throw Exception(response.error?.message ?? 'Gagal menyimpan template kategori');
+    }
+  }
 }
