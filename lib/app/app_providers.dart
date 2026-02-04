@@ -30,6 +30,7 @@ final surveyTemplateByCategoryProvider =
   return SurveyRepository().fetchTemplateByCategory(categoryId);
 });
 final adminUserProvider = StateProvider<UserProfile?>((ref) => null);
+final currentUserProvider = StateProvider<UserProfile?>((ref) => null);
 final cohortPeriodProvider = StateProvider<String>((ref) => 'monthly');
 final cohortAnalysisProvider = StateProvider<String>((ref) => 'retention');
 final reportsPeriodProvider = StateProvider<String>((ref) => 'monthly');

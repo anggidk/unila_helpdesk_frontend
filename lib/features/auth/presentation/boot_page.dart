@@ -38,8 +38,10 @@ class _BootPageState extends ConsumerState<BootPage> {
     sharedApiClient.setAuthToken(token);
     if (user.role == UserRole.admin) {
       ref.read(adminUserProvider.notifier).state = user;
+      ref.read(currentUserProvider.notifier).state = null;
     } else {
       ref.read(adminUserProvider.notifier).state = null;
+      ref.read(currentUserProvider.notifier).state = user;
     }
     await FcmService.syncToken();
     ref.invalidate(ticketsProvider);
@@ -48,7 +50,7 @@ class _BootPageState extends ConsumerState<BootPage> {
     if (user.role == UserRole.admin) {
       context.goNamed(AppRouteNames.admin);
     } else {
-      context.goNamed(AppRouteNames.userShell, extra: user);
+      context.goNamed(AppRouteNames.userShell);
     }
   }
 

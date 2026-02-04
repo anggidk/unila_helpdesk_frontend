@@ -176,6 +176,7 @@ class AdminShell extends ConsumerWidget {
                           await TokenStorage().clearToken();
                           sharedApiClient.setAuthToken(null);
                           ref.read(adminUserProvider.notifier).state = null;
+                          ref.read(currentUserProvider.notifier).state = null;
                           ref.invalidate(ticketsProvider);
                           ref.invalidate(notificationsProvider);
                           if (!context.mounted) return;

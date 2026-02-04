@@ -50,6 +50,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await TokenStorage().clearToken();
       sharedApiClient.setAuthToken(null);
       ref.read(adminUserProvider.notifier).state = null;
+      ref.read(currentUserProvider.notifier).state = null;
       final auth = AuthRepository();
       final session = await auth.signInWithPassword(
         username: username,
@@ -65,8 +66,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await TokenStorage().saveUser(user);
       if (user.role == UserRole.admin) {
         ref.read(adminUserProvider.notifier).state = user;
+        ref.read(currentUserProvider.notifier).state = null;
       } else {
         ref.read(adminUserProvider.notifier).state = null;
+        ref.read(currentUserProvider.notifier).state = user;
       }
 
       await FcmService.syncToken();
@@ -74,7 +77,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (user.role == UserRole.admin) {
         context.goNamed(AppRouteNames.admin);
       } else {
-        context.goNamed(AppRouteNames.userShell, extra: user);
+        context.goNamed(AppRouteNames.userShell);
       }
       ref.invalidate(ticketsProvider);
       ref.invalidate(notificationsProvider);

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
-import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_shell.dart';
 import 'package:unila_helpdesk_frontend/features/auth/presentation/boot_page.dart';
 import 'package:unila_helpdesk_frontend/features/auth/presentation/login_page.dart';
@@ -76,13 +75,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.userShell,
       name: AppRouteNames.userShell,
-      builder: (context, state) {
-        final user = state.extra is UserProfile ? state.extra as UserProfile : null;
-        if (user == null) {
-          return const _MissingDataPage(message: 'Data user tidak ditemukan.');
-        }
-        return UserShell(user: user);
-      },
+      builder: (context, state) => const UserShell(),
     ),
     GoRoute(
       path: AppRoutes.admin,
@@ -97,13 +90,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.tickets,
       name: AppRouteNames.tickets,
-      builder: (context, state) {
-        final user = state.extra is UserProfile ? state.extra as UserProfile : null;
-        if (user == null) {
-          return const _MissingDataPage(message: 'Data user tidak ditemukan.');
-        }
-        return TicketListPage(user: user);
-      },
+      builder: (context, state) => const TicketListPage(),
     ),
     GoRoute(
       path: AppRoutes.ticketForm,
