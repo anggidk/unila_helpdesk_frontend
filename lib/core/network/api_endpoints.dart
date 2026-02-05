@@ -30,6 +30,5 @@ class ApiEndpoints {
   static const String reportsTemplates = '/reports/templates';
   static const String cohort = '/reports/cohort';
   static const String usageCohort = '/reports/usage';
-  static const String serviceUtilization = '/reports/service-utilization';
   static const String entityService = '/reports/entity-service';
 }

@@ -183,31 +183,6 @@ class SurveySatisfactionReport {
   }
 }
 
-class ServiceUtilizationRow {
-  const ServiceUtilizationRow({
-    required this.categoryId,
-    required this.category,
-    required this.firstTicketUsers,
-    required this.firstSurveyUsers,
-  });
-
-  final String categoryId;
-  final String category;
-  final int firstTicketUsers;
-  final int firstSurveyUsers;
-
-  factory ServiceUtilizationRow.fromJson(Map<String, dynamic> json) {
-    return ServiceUtilizationRow(
-      categoryId: json['categoryId']?.toString() ?? '',
-      category: json['category']?.toString() ?? '',
-      firstTicketUsers:
-          int.tryParse(json['firstTicketUsers']?.toString() ?? '') ?? 0,
-      firstSurveyUsers:
-          int.tryParse(json['firstSurveyUsers']?.toString() ?? '') ?? 0,
-    );
-  }
-}
-
 class EntityServiceRow {
   const EntityServiceRow({
     required this.entity,

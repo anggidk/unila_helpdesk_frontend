@@ -59,14 +59,6 @@ final usageCohortProvider = FutureProvider.autoDispose<List<UsageCohortRow>>((re
     periods: _cohortPeriodsFor(period),
   );
 });
-final serviceUtilizationProvider =
-    FutureProvider.autoDispose<List<ServiceUtilizationRow>>((ref) async {
-  final period = ref.watch(cohortPeriodProvider);
-  return ReportRepository().fetchServiceUtilization(
-    period: period,
-    periods: 1,
-  );
-});
 final entityServiceProvider =
     FutureProvider.autoDispose<List<EntityServiceRow>>((ref) async {
   final period = ref.watch(cohortPeriodProvider);

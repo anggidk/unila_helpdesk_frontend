@@ -11,6 +11,12 @@ class AdminCohortPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedPeriod = ref.watch(cohortPeriodProvider);
     final analysis = ref.watch(cohortAnalysisProvider);
+    const allowedAnalyses = ['retention', 'entity-service'];
+    if (!allowedAnalyses.contains(analysis)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(cohortAnalysisProvider.notifier).state = 'retention';
+      });
+    }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -37,9 +43,6 @@ class AdminCohortPage extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           if (analysis == 'retention') _RetentionSection(period: selectedPeriod),
-          if (analysis == 'usage') _CenteredSection(child: _UsageSection()),
-          if (analysis == 'service')
-            _CenteredSection(child: _ServiceUtilSection()),
           if (analysis == 'entity-service')
             _CenteredSection(child: _EntityServiceSection()),
         ],
@@ -85,8 +88,6 @@ class _AnalysisDropdown extends StatelessWidget {
       onSelected: onChanged,
       itemBuilder: (context) => const [
         PopupMenuItem(value: 'retention', child: Text('Kohort Retensi')),
-        PopupMenuItem(value: 'usage', child: Text('Penggunaan Berbasis Waktu')),
-        PopupMenuItem(value: 'service', child: Text('Pemanfaatan Layanan')),
         PopupMenuItem(
           value: 'entity-service',
           child: Text('Kelompok Pengguna x Layanan'),
@@ -210,161 +211,6 @@ class _CohortScoreRow extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: stars,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DualBarData {
-  const _DualBarData({
-    required this.label,
-    required this.primary,
-    required this.secondary,
-  });
-
-  final String label;
-  final int primary;
-  final int secondary;
-}
-
-
-class _VerticalDualBarChart extends StatelessWidget {
-  const _VerticalDualBarChart({
-    required this.rows,
-    required this.primaryLabel,
-    required this.secondaryLabel,
-  });
-
-  final List<_DualBarData> rows;
-  final String primaryLabel;
-  final String secondaryLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final maxValue = rows.fold<int>(
-      1,
-      (value, row) => _max(value, _max(row.primary, row.secondary)),
-    );
-    const chartHeight = 160.0;
-    return Column(
-      children: [
-        _LegendRow(primaryLabel: primaryLabel, secondaryLabel: secondaryLabel),
-        const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: rows
-                .map(
-                  (row) => _VerticalBarGroup(
-                    label: row.label,
-                    primary: row.primary,
-                    secondary: row.secondary,
-                    maxValue: maxValue,
-                    height: chartHeight,
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _VerticalBarGroup extends StatelessWidget {
-  const _VerticalBarGroup({
-    required this.label,
-    required this.primary,
-    required this.secondary,
-    required this.maxValue,
-    required this.height,
-  });
-
-  final String label;
-  final int primary;
-  final int secondary;
-  final int maxValue;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    const labelHeight = 36.0;
-    return Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          SizedBox(
-            height: height,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _ColumnBar(
-                  value: primary,
-                  maxValue: maxValue,
-                  color: AppTheme.navy,
-                ),
-                const SizedBox(width: 6),
-                _ColumnBar(
-                  value: secondary,
-                  maxValue: maxValue,
-                  color: AppTheme.accentYellow,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: 80,
-            height: labelHeight,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ColumnBar extends StatelessWidget {
-  const _ColumnBar({
-    required this.value,
-    required this.maxValue,
-    required this.color,
-  });
-
-  final int value;
-  final int maxValue;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final ratio = maxValue <= 0 ? 0 : value / maxValue;
-    final barHeight = (ratio * 140).clamp(4.0, 140.0).toDouble();
-    return SizedBox(
-      width: 22,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text(
-            value.toString(),
-            style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            height: barHeight,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(6),
             ),
           ),
         ],
@@ -572,49 +418,6 @@ class _CenteredSection extends StatelessWidget {
   }
 }
 
-class _LegendRow extends StatelessWidget {
-  const _LegendRow({required this.primaryLabel, required this.secondaryLabel});
-
-  final String primaryLabel;
-  final String secondaryLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _LegendItem(label: primaryLabel, color: AppTheme.navy),
-        const SizedBox(width: 12),
-        _LegendItem(label: secondaryLabel, color: AppTheme.accentYellow),
-      ],
-    );
-  }
-}
-
-class _LegendItem extends StatelessWidget {
-  const _LegendItem({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(6),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(label, style: const TextStyle(color: AppTheme.textMuted)),
-      ],
-    );
-  }
-}
-
 
 int _max(int a, int b) => a > b ? a : b;
 
@@ -647,10 +450,6 @@ String _periodLabel(String period) {
 
 String _analysisLabel(String value) {
   switch (value) {
-    case 'usage':
-      return 'Penggunaan Berbasis Waktu';
-    case 'service':
-      return 'Pemanfaatan Layanan';
     case 'entity-service':
       return 'Kelompok Pengguna x Layanan';
     default:
@@ -697,26 +496,42 @@ class _RetentionSection extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppTheme.outline),
               ),
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(AppTheme.surface),
-                columns: [
-                  const DataColumn(label: Text('Kohort')),
-                  const DataColumn(label: Text('Pengguna')),
-                  ...retentionLabels.map((label) => DataColumn(label: Text(label))),
-                ],
-                rows: cohortRows.map((row) {
-                  final retention = row.retention;
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(row.label)),
-                      DataCell(Text(row.users.toString())),
-                      ...List.generate(retention.length, (index) {
-                        final value = retention[index];
-                        return DataCell(_RetentionCell(value: value));
-                      }),
-                    ],
-                  );
-                }).toList(),
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.all(AppTheme.surface),
+                      columns: [
+                        const DataColumn(
+                          label: Text('Kohort', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                        const DataColumn(
+                          label: Text('Pengguna', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                        ...retentionLabels.map(
+                          (label) => DataColumn(
+                            label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
+                      rows: cohortRows.map((row) {
+                        final retention = row.retention;
+                        return DataRow(
+                          cells: [
+                            DataCell(Text(row.label)),
+                            DataCell(Text(row.users.toString())),
+                            ...List.generate(retention.length, (index) {
+                              final value = retention[index];
+                              return DataCell(_RetentionCell(value: value));
+                            }),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -757,124 +572,6 @@ class _RetentionSection extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _UsageSection extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final usageAsync = ref.watch(usageCohortProvider);
-    final usageRows = usageAsync.value ?? [];
-    if (usageAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (usageAsync.hasError) {
-      return Text(
-        'Gagal memuat kohort penggunaan: ${usageAsync.error}',
-        style: const TextStyle(color: AppTheme.textMuted),
-      );
-    }
-    if (usageRows.isEmpty) {
-      return const Text(
-        'Belum ada data penggunaan.',
-        style: TextStyle(color: AppTheme.textMuted),
-      );
-    }
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.outline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Kohort Penggunaan Berbasis Waktu',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Jumlah tiket & survei per periode.',
-            style: TextStyle(color: AppTheme.textMuted),
-          ),
-          const SizedBox(height: 12),
-          _VerticalDualBarChart(
-            rows: usageRows
-                .map(
-                  (row) => _DualBarData(
-                    label: row.label,
-                    primary: row.tickets,
-                    secondary: row.surveys,
-                  ),
-                )
-                .toList(),
-            primaryLabel: 'Tiket',
-            secondaryLabel: 'Survei',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ServiceUtilSection extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final serviceUtilAsync = ref.watch(serviceUtilizationProvider);
-    final serviceUtilRows = serviceUtilAsync.value ?? [];
-    if (serviceUtilAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (serviceUtilAsync.hasError) {
-      return Text(
-        'Gagal memuat pemanfaatan layanan: ${serviceUtilAsync.error}',
-        style: const TextStyle(color: AppTheme.textMuted),
-      );
-    }
-    if (serviceUtilRows.isEmpty) {
-      return const Text(
-        'Belum ada data layanan.',
-        style: TextStyle(color: AppTheme.textMuted),
-      );
-    }
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.outline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Kohort Pemanfaatan Layanan',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Tiket pertama vs survei pertama per layanan.',
-            style: TextStyle(color: AppTheme.textMuted),
-          ),
-          const SizedBox(height: 12),
-          _VerticalDualBarChart(
-            rows: serviceUtilRows
-                .map(
-                  (row) => _DualBarData(
-                    label: row.category,
-                    primary: row.firstTicketUsers,
-                    secondary: row.firstSurveyUsers,
-                  ),
-                )
-                .toList(),
-            primaryLabel: 'Tiket Pertama',
-            secondaryLabel: 'Survei Pertama',
-          ),
-        ],
-      ),
     );
   }
 }

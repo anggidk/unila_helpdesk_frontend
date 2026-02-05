@@ -141,27 +141,6 @@ class ReportRepository {
     return [];
   }
 
-  Future<List<ServiceUtilizationRow>> fetchServiceUtilization({
-    required String period,
-    required int periods,
-  }) async {
-    final response = await _client.get(
-      ApiEndpoints.serviceUtilization,
-      query: {
-        'period': period,
-        'periods': periods.toString(),
-      },
-    );
-    final items = response.data?['data'];
-    if (response.isSuccess && items is List) {
-      return items
-          .whereType<Map<String, dynamic>>()
-          .map(ServiceUtilizationRow.fromJson)
-          .toList();
-    }
-    return [];
-  }
-
   Future<List<EntityServiceRow>> fetchEntityService({
     required String period,
     required int periods,
