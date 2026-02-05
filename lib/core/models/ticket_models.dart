@@ -110,6 +110,7 @@ class Ticket {
     required this.createdAt,
     required this.reporter,
     required this.isGuest,
+    required this.attachments,
     required this.history,
     required this.comments,
     required this.surveyRequired,
@@ -128,6 +129,7 @@ class Ticket {
   final String reporter;
   final bool isGuest;
   final String? assignee;
+  final List<String> attachments;
   final List<TicketUpdate> history;
   final List<TicketComment> comments;
   final bool surveyRequired;
@@ -144,6 +146,9 @@ class Ticket {
         .whereType<Map<String, dynamic>>()
         .map(TicketComment.fromJson)
         .toList();
+    final attachments = (json['attachments'] as List<dynamic>? ?? [])
+        .map((value) => value.toString())
+        .toList();
     return Ticket(
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
@@ -157,6 +162,7 @@ class Ticket {
       reporter: json['reporter']?.toString() ?? '',
       isGuest: json['isGuest'] == true,
       assignee: json['assignee']?.toString(),
+      attachments: attachments,
       history: history,
       comments: comments,
       surveyRequired: json['surveyRequired'] == true,

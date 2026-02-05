@@ -8,6 +8,7 @@ import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
+import 'package:unila_helpdesk_frontend/core/utils/ticket_ui.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 class FeedbackPage extends ConsumerWidget {
@@ -101,9 +102,12 @@ class _FeedbackList extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     backgroundColor: AppTheme.surface,
-                    child: Icon(Icons.support_agent, color: AppTheme.navy),
+                    child: Icon(
+                      iconForTicketCategory(ticket.category),
+                      color: AppTheme.accentBlue,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

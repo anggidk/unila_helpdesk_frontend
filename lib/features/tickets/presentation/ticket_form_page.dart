@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +28,8 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   bool _isSubmitting = false;
+  bool _isUploading = false;
+  final List<_AttachmentItem> _attachments = [];
 
   @override
   void initState() {
@@ -71,6 +74,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
         description: _descriptionController.text.trim(),
         category: selectedCategory,
         priority: selectedPriority,
+        attachments: _attachments.map((item) => item.url).toList(),
       );
       final repo = TicketRepository();
       final response = widget.existing == null
@@ -109,6 +113,48 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _pickAttachment() async {
+    if (_isUploading) return;
+    final result = await FilePicker.platform.pickFiles(withData: true);
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+    final file = result.files.first;
+    if (file.bytes == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal membaca file.')),
+      );
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ukuran file maksimal 5MB.')),
+      );
+      return;
+    }
+    setState(() => _isUploading = true);
+    try {
+      final url = await TicketRepository().uploadAttachment(
+        filename: file.name,
+        bytes: file.bytes!,
+      );
+      setState(() {
+        _attachments.add(_AttachmentItem(name: file.name, url: url));
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
       }
     }
   }
@@ -238,10 +284,28 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const _AttachmentTile(
+                if (_attachments.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _attachments
+                        .map(
+                          (item) => Chip(
+                            label: Text(item.name),
+                            onDeleted: () => setState(() {
+                              _attachments.remove(item);
+                            }),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                const SizedBox(height: 8),
+                _AttachmentTile(
                   title: 'Tambah Lampiran',
                   subtitle: 'Maks 5MB (JPG, PNG, PDF)',
                   icon: Icons.attach_file,
+                  isUploading: _isUploading,
+                  onTap: _pickAttachment,
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -367,50 +431,72 @@ class _AttachmentTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
+    required this.onTap,
+    required this.isUploading,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
+  final VoidCallback onTap;
+  final bool isUploading;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.outline, style: BorderStyle.solid),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: Colors.white,
-            child: Icon(icon, color: AppTheme.navy),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textMuted,
-                  ),
-                ),
-              ],
+    return InkWell(
+      onTap: isUploading ? null : onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.outline, style: BorderStyle.solid),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(icon, color: AppTheme.navy),
             ),
-          ),
-          const Icon(Icons.upload_file, color: AppTheme.textMuted),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isUploading)
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              const Icon(Icons.upload_file, color: AppTheme.textMuted),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _AttachmentItem {
+  const _AttachmentItem({required this.name, required this.url});
+
+  final String name;
+  final String url;
 }

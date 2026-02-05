@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,8 +31,12 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
   final _descriptionController = TextEditingController();
   bool _isSubmitting = false;
   String? _statusUser;
-  bool _identityUploaded = false;
-  bool _selfieUploaded = false;
+  String? _identityAttachment;
+  String? _selfieAttachment;
+  String? _identityName;
+  String? _selfieName;
+  bool _isUploadingIdentity = false;
+  bool _isUploadingSelfie = false;
   bool _attachmentsError = false;
 
   @override
@@ -63,7 +68,8 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
   Future<void> _submit() async {
     if (_isSubmitting) return;
     final isValid = _formKey.currentState!.validate();
-    final attachmentsValid = _identityUploaded && _selfieUploaded;
+    final attachmentsValid =
+        _identityAttachment != null && _selfieAttachment != null;
     if (!attachmentsValid) {
       setState(() => _attachmentsError = true);
     }
@@ -97,6 +103,10 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
         description: _composeDescription(),
         category: selectedCategory,
         priority: ref.read(guestTicketPriorityProvider),
+        attachments: [
+          if (_identityAttachment != null) _identityAttachment!,
+          if (_selfieAttachment != null) _selfieAttachment!,
+        ],
       );
       final response = await TicketRepository().createGuestTicket(
         draft: draft,
@@ -120,6 +130,70 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _pickGuestAttachment({
+    required bool isIdentity,
+  }) async {
+    if (isIdentity && _isUploadingIdentity) return;
+    if (!isIdentity && _isUploadingSelfie) return;
+    final result = await FilePicker.platform.pickFiles(withData: true);
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+    final file = result.files.first;
+    if (file.bytes == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal membaca file.')),
+      );
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ukuran file maksimal 5MB.')),
+      );
+      return;
+    }
+    setState(() {
+      if (isIdentity) {
+        _isUploadingIdentity = true;
+      } else {
+        _isUploadingSelfie = true;
+      }
+    });
+    try {
+      final url = await TicketRepository().uploadAttachment(
+        filename: file.name,
+        bytes: file.bytes!,
+      );
+      setState(() {
+        if (isIdentity) {
+          _identityAttachment = url;
+          _identityName = file.name;
+        } else {
+          _selfieAttachment = url;
+          _selfieName = file.name;
+        }
+        _attachmentsError = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (isIdentity) {
+            _isUploadingIdentity = false;
+          } else {
+            _isUploadingSelfie = false;
+          }
+        });
       }
     }
   }
@@ -380,24 +454,20 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                       const SizedBox(height: 8),
                       _UploadTile(
                         title: 'Foto KTM / ID Card / SK Pengangkatan',
-                        subtitle: 'JPG, PNG (Max 2MB)',
+                        subtitle: _identityName ?? 'JPG, PNG, PDF (Max 5MB)',
                         icon: Icons.badge_outlined,
-                        isUploaded: _identityUploaded,
-                        onTap: () => setState(() {
-                          _identityUploaded = true;
-                          _attachmentsError = false;
-                        }),
+                        isUploaded: _identityAttachment != null,
+                        isUploading: _isUploadingIdentity,
+                        onTap: () => _pickGuestAttachment(isIdentity: true),
                       ),
                       const SizedBox(height: 12),
                       _UploadTile(
                         title: 'Swafoto (Selfie) dengan KTM',
-                        subtitle: 'JPG, PNG (Max 2MB)',
+                        subtitle: _selfieName ?? 'JPG, PNG, PDF (Max 5MB)',
                         icon: Icons.camera_alt_outlined,
-                        isUploaded: _selfieUploaded,
-                        onTap: () => setState(() {
-                          _selfieUploaded = true;
-                          _attachmentsError = false;
-                        }),
+                        isUploaded: _selfieAttachment != null,
+                        isUploading: _isUploadingSelfie,
+                        onTap: () => _pickGuestAttachment(isIdentity: false),
                       ),
                       if (_attachmentsError)
                         Padding(
@@ -603,6 +673,7 @@ class _UploadTile extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.isUploaded,
+    required this.isUploading,
     required this.onTap,
   });
 
@@ -610,13 +681,14 @@ class _UploadTile extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final bool isUploaded;
+  final bool isUploading;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return InkWell(
-      onTap: onTap,
+      onTap: isUploading ? null : onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -654,10 +726,17 @@ class _UploadTile extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              isUploaded ? Icons.check_circle : Icons.upload_file,
-              color: isUploaded ? AppTheme.success : AppTheme.textMuted,
-            ),
+            if (isUploading)
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Icon(
+                isUploaded ? Icons.check_circle : Icons.upload_file,
+                color: isUploaded ? AppTheme.success : AppTheme.textMuted,
+              ),
           ],
         ),
       ),

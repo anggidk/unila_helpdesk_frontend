@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
+import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 
 class TicketRepository {
   TicketRepository({ApiClient? client})
@@ -102,6 +106,43 @@ class TicketRepository {
       '${ApiEndpoints.ticketById(id)}/comments',
       body: {'message': message},
     );
+  }
+
+  Future<String> uploadAttachment({
+    required String filename,
+    required Uint8List bytes,
+  }) async {
+    final uri = _client.buildUri(ApiEndpoints.uploads);
+    final request = http.MultipartRequest('POST', uri);
+    final headers = <String, String>{
+      'X-Client-Type': kIsWeb ? 'web' : 'mobile',
+    };
+    final token = await TokenStorage().readToken();
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    request.headers.addAll(headers);
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+      ),
+    );
+    final streamed = await request.send();
+    final body = await streamed.stream.bytesToString();
+    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
+      throw Exception('Upload gagal (${streamed.statusCode})');
+    }
+    final decoded = jsonDecode(body);
+    final data = decoded['data'];
+    if (data is Map<String, dynamic>) {
+      final url = data['url']?.toString() ?? '';
+      if (url.isNotEmpty) {
+        return url;
+      }
+    }
+    throw Exception('Upload gagal: respons tidak valid');
   }
 }
 
