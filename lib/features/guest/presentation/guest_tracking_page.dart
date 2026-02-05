@@ -45,6 +45,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
       ticket = null;
     }
 
+    if (!mounted) return;
     if (ticket != null) {
       ref.read(guestTrackingFoundTicketProvider.notifier).state = ticket;
     } else {

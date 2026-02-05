@@ -39,8 +39,9 @@ class _AdminCreateTemplateDialog extends StatefulWidget {
 
 class _AdminCreateTemplateDialogState
     extends State<_AdminCreateTemplateDialog> {
-  static const List<String> _frameworkOptions = [
-    'Custom',
+  static const String _frameworkNone = 'Tanpa Framework';
+  static const String _frameworkCustom = 'Tambah baru...';
+  static const List<String> _baseFrameworkOptions = [
     'ISO 9001',
     'UEQ',
     'COBIT',
@@ -49,8 +50,9 @@ class _AdminCreateTemplateDialogState
 
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
+  final _customFrameworkController = TextEditingController();
   late final List<SurveyQuestion> _questions;
-  String _framework = 'Custom';
+  String _framework = _frameworkNone;
 
   @override
   void initState() {
@@ -60,7 +62,16 @@ class _AdminCreateTemplateDialogState
       _descController.text = _stripFramework(
         widget.initialTemplate!.description,
       );
-      _framework = _detectFramework(widget.initialTemplate!.description);
+      final frameworkValue =
+          widget.initialTemplate!.framework.trim();
+      if (frameworkValue.isNotEmpty) {
+        _setFrameworkValue(frameworkValue);
+      } else {
+        final detected = _detectFramework(widget.initialTemplate!.description);
+        if (detected.isNotEmpty) {
+          _setFrameworkValue(detected);
+        }
+      }
       _questions = [...widget.initialTemplate!.questions];
     } else {
       _questions = [];
@@ -71,7 +82,33 @@ class _AdminCreateTemplateDialogState
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
+    _customFrameworkController.dispose();
     super.dispose();
+  }
+
+  void _setFrameworkValue(String value) {
+    if (value.isEmpty) {
+      _framework = _frameworkNone;
+      _customFrameworkController.clear();
+      return;
+    }
+    if (_baseFrameworkOptions.contains(value)) {
+      _framework = value;
+      _customFrameworkController.clear();
+      return;
+    }
+    _framework = _frameworkCustom;
+    _customFrameworkController.text = value;
+  }
+
+  String get _resolvedFramework {
+    if (_framework == _frameworkCustom) {
+      return _customFrameworkController.text.trim();
+    }
+    if (_framework == _frameworkNone) {
+      return '';
+    }
+    return _framework;
   }
 
   @override
@@ -144,16 +181,37 @@ class _AdminCreateTemplateDialogState
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _framework,
-                items: _frameworkOptions
+                items: [
+                  _frameworkNone,
+                  ..._baseFrameworkOptions,
+                  _frameworkCustom,
+                ]
                     .map(
                       (value) =>
                           DropdownMenuItem(value: value, child: Text(value)),
                     )
                     .toList(),
-                onChanged: (value) =>
-                    setState(() => _framework = value ?? 'Custom'),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    _framework = value;
+                    if (_framework != _frameworkCustom) {
+                      _customFrameworkController.clear();
+                    }
+                  });
+                },
                 decoration: const InputDecoration(labelText: 'Kerangka'),
               ),
+              if (_framework == _frameworkCustom) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _customFrameworkController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Framework',
+                    hintText: 'contoh: ISO 27001',
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -241,16 +299,24 @@ class _AdminCreateTemplateDialogState
                     onPressed: _nameController.text.trim().isEmpty
                         ? null
                         : () {
+                            final resolvedFramework = _resolvedFramework;
+                            if (_framework == _frameworkCustom &&
+                                resolvedFramework.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Nama framework wajib diisi.'),
+                                ),
+                              );
+                              return;
+                            }
                             final template = SurveyTemplate(
                               id:
                                   widget.initialTemplate?.id ??
                                   DateTime.now().millisecondsSinceEpoch
                                       .toString(),
                               title: _nameController.text.trim(),
-                              description: _buildDescription(
-                                _descController.text.trim(),
-                                _framework,
-                              ),
+                              description: _descController.text.trim(),
+                              framework: resolvedFramework,
                               categoryId:
                                   widget.initialTemplate?.categoryId ??
                                   widget.selectedCategory.id,
@@ -330,28 +396,16 @@ class _QuestionTile extends StatelessWidget {
 }
 
 String _detectFramework(String? description) {
-  if (description == null) return 'Custom';
+  if (description == null) return '';
   final lower = description.toLowerCase();
   if (lower.contains('iso')) return 'ISO 9001';
   if (lower.contains('ueq')) return 'UEQ';
   if (lower.contains('cobit')) return 'COBIT';
   if (lower.contains('itil')) return 'ITIL';
-  return 'Custom';
+  return '';
 }
 
 String _stripFramework(String description) {
   final regex = RegExp(r'\n?Framework:\s?.*$', caseSensitive: false);
   return description.replaceAll(regex, '').trim();
-}
-
-String _buildDescription(String description, String framework) {
-  final cleaned = _stripFramework(description);
-  if (framework == 'Custom') {
-    return cleaned.isEmpty ? 'Template survei baru' : cleaned;
-  }
-  final suffix = 'Framework: $framework';
-  if (cleaned.isEmpty) {
-    return suffix;
-  }
-  return '$cleaned\n$suffix';
 }

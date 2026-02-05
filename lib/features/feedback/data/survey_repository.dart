@@ -44,12 +44,14 @@ class SurveyRepository {
   Future<SurveyTemplate> createTemplate({
     required String title,
     required String description,
+    required String framework,
     required String categoryId,
     required List<SurveyQuestion> questions,
   }) async {
     final response = await _client.post(ApiEndpoints.surveyTemplates, body: {
       'title': title,
       'description': description,
+      'framework': framework,
       'categoryId': categoryId,
       'questions': questions
           .map(
@@ -72,12 +74,14 @@ class SurveyRepository {
     required String templateId,
     required String title,
     required String description,
+    required String framework,
     required String categoryId,
     required List<SurveyQuestion> questions,
   }) async {
     final response = await _client.put(ApiEndpoints.surveyTemplateById(templateId), body: {
       'title': title,
       'description': description,
+      'framework': framework,
       'categoryId': categoryId,
       'questions': questions
           .map(

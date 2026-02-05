@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:unila_helpdesk_frontend/core/config/api_config.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
@@ -49,6 +50,7 @@ class ApiClient {
 
   Map<String, String> _headers() {
     final headers = <String, String>{'Content-Type': 'application/json'};
+    headers['X-Client-Type'] = kIsWeb ? 'web' : 'mobile';
     if (_authToken != null && _authToken!.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_authToken';
     }
@@ -164,7 +166,7 @@ class ApiClient {
       final response = await _client
           .post(
             buildUri(ApiEndpoints.refresh),
-            headers: {'Content-Type': 'application/json'},
+            headers: _headers(),
             body: jsonEncode({'refresh_token': refreshToken}),
           )
           .timeout(ApiConfig.timeout);

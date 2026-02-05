@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
+import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
 
 class AdminDashboardPage extends ConsumerWidget {
   const AdminDashboardPage({super.key});
@@ -324,7 +325,8 @@ class _SatisfactionBarRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ratio = (row.avgScore / 5).clamp(0.0, 1.0);
+    final normalizedScore = scoreToFive(row.avgScore);
+    final ratio = (normalizedScore / 5).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -339,7 +341,7 @@ class _SatisfactionBarRow extends StatelessWidget {
                 ),
               ),
               Text(
-                '${row.avgScore.toStringAsFixed(2)} / 5 • ${row.responses} respon',
+                '${normalizedScore.toStringAsFixed(2)} / 5 • ${row.responses} respon',
                 style: const TextStyle(color: AppTheme.textMuted),
               ),
             ],
@@ -636,7 +638,7 @@ String _formatScore(double? value) {
   if (value == null) {
     return '-';
   }
-  return value.toStringAsFixed(2);
+  return scoreToFive(value).toStringAsFixed(2);
 }
 
 List<_LegendRow> _trendLegend(List<ServiceTrend> rows) {

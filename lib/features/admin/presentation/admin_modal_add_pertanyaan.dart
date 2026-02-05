@@ -352,30 +352,6 @@ class _PreviewSection extends StatelessWidget {
               lowLabel: 'SANGAT BURUK',
               highLabel: 'SANGAT BAIK',
             ),
-          if (type == SurveyQuestionType.likert7Puas)
-            _LikertPreview(
-              count: 7,
-              lowLabel: 'SANGAT TIDAK PUAS',
-              highLabel: 'SANGAT PUAS',
-            ),
-          if (type == SurveyQuestionType.likert7)
-            _LikertPreview(
-              count: 7,
-              lowLabel: 'SANGAT BURUK',
-              highLabel: 'SANGAT BAIK',
-            ),
-          if (type == SurveyQuestionType.likert6Puas)
-            _LikertPreview(
-              count: 6,
-              lowLabel: 'SANGAT TIDAK PUAS',
-              highLabel: 'SANGAT PUAS',
-            ),
-          if (type == SurveyQuestionType.likert6)
-            _LikertPreview(
-              count: 6,
-              lowLabel: 'SANGAT BURUK',
-              highLabel: 'SANGAT BAIK',
-            ),
           if (type == SurveyQuestionType.likert4Puas)
             _LikertPreview(
               count: 4,

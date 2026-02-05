@@ -7,6 +7,7 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
+import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 class FeedbackPage extends ConsumerWidget {
@@ -217,7 +218,7 @@ class _RatingRow extends StatelessWidget {
     if (score <= 0) {
       return const Text('Rating belum tersedia.');
     }
-    final clamped = score.clamp(0, 5);
+    final clamped = scoreToFive(score).clamp(0, 5);
     final fullStars = clamped.floor();
     final hasHalf = (clamped - fullStars) >= 0.5;
     final emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);

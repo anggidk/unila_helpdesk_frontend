@@ -4,6 +4,9 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/utils/csv_exporter.dart';
+import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
+import 'package:unila_helpdesk_frontend/features/admin/data/report_repository.dart';
 
 class AdminReportsPage extends ConsumerStatefulWidget {
   const AdminReportsPage({super.key});
@@ -14,6 +17,53 @@ class AdminReportsPage extends ConsumerStatefulWidget {
 
 class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
   String? _lastCategoryId;
+
+  int _periodCount(String period) {
+    switch (period) {
+      case 'daily':
+        return 7;
+      case 'weekly':
+        return 4;
+      case 'yearly':
+        return 5;
+      default:
+        return 6;
+    }
+  }
+
+  Future<void> _exportSurveyCsv({
+    required BuildContext context,
+    required String period,
+    required String? categoryId,
+    required String? templateId,
+  }) async {
+    if (categoryId == null || categoryId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih kategori terlebih dahulu.')),
+      );
+      return;
+    }
+    final periods = _periodCount(period);
+    try {
+      final csv = await ReportRepository().exportSurveySatisfactionCsv(
+        categoryId: categoryId,
+        templateId: templateId,
+        period: period,
+        periods: periods,
+      );
+      final filename = 'survey_${categoryId}_$period.csv';
+      await downloadCsv(filename: filename, content: csv);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Export CSV berhasil.')),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal export: $error')),
+      );
+    }
+  }
 
   void _syncCategory(List<ServiceCategory> categories) {
     final filtered = categories.where((category) => !category.guestAllowed).toList();
@@ -133,7 +183,22 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Hasil Kepuasan Survei', style: TextStyle(fontWeight: FontWeight.w700)),
+                Row(
+                  children: [
+                    const Text('Hasil Kepuasan Survei', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    OutlinedButton.icon(
+                      onPressed: () => _exportSurveyCsv(
+                        context: context,
+                        period: period,
+                        categoryId: selectedCategoryId,
+                        templateId: selectedTemplateId,
+                      ),
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('Export CSV'),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Filter berdasarkan kategori, template, dan periode.',
@@ -657,7 +722,7 @@ class _SatisfactionTable extends StatelessWidget {
             rows: report.rows.map((row) {
               final supportsScore = row.type != 'text' && row.type != 'multipleChoice';
               final avgText =
-                  !supportsScore || row.responses == 0 ? '-' : row.avgScore.toStringAsFixed(2);
+                  !supportsScore || row.responses == 0 ? '-' : formatScoreFive(row.avgScore);
               return DataRow(
                 cells: [
                   DataCell(SizedBox(
@@ -681,14 +746,6 @@ String _questionTypeLabel(String type) {
   switch (type) {
     case 'yesNo':
       return 'Ya/Tidak';
-    case 'likert7':
-      return 'Likert 1-7 (Baik)';
-    case 'likert7Puas':
-      return 'Likert 1-7 (Puas)';
-    case 'likert6':
-      return 'Likert 1-6 (Baik)';
-    case 'likert6Puas':
-      return 'Likert 1-6 (Puas)';
     case 'likert4':
       return 'Likert 1-4 (Baik)';
     case 'likert4Puas':

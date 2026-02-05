@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -64,6 +65,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
       final user = session.user;
       await TokenStorage().saveUser(user);
+      if (user.role == UserRole.admin && !kIsWeb) {
+        await TokenStorage().clearToken();
+        await TokenStorage().saveRefreshToken('');
+        sharedApiClient.setAuthToken(null);
+        ref.read(adminUserProvider.notifier).state = null;
+        ref.read(currentUserProvider.notifier).state = null;
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Admin hanya bisa login via web.')),
+        );
+        return;
+      }
       if (user.role == UserRole.admin) {
         ref.read(adminUserProvider.notifier).state = user;
         ref.read(currentUserProvider.notifier).state = null;
@@ -74,6 +87,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       await FcmService.syncToken();
 
+      if (!mounted) return;
       if (user.role == UserRole.admin) {
         context.goNamed(AppRouteNames.admin);
       } else {

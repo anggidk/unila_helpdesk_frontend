@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
+import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
 
 class AdminCohortPage extends ConsumerWidget {
   const AdminCohortPage({super.key});
@@ -181,7 +182,7 @@ class _CohortScoreRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final clamped = score.clamp(0, 5);
+    final clamped = scoreToFive(score).clamp(0, 5);
     final fullStars = clamped.floor();
     final hasHalf = (clamped - fullStars) >= 0.5;
     final emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
@@ -205,7 +206,7 @@ class _CohortScoreRow extends StatelessWidget {
         children: [
           Expanded(child: Text(label)),
           Expanded(
-            child: Text('Skor Rata-rata: ${clamped.toStringAsFixed(2)}'),
+            child: Text('Skor Rata-rata: ${clamped.toStringAsFixed(2)} / 5'),
           ),
           Expanded(child: Text('Respon: ${responseRate.toStringAsFixed(0)}%')),
           Expanded(

@@ -4,6 +4,7 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
+import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
 
 final adminSurveyHistorySearchProvider =
@@ -37,6 +38,14 @@ final adminSurveyHistoryProvider =
       break;
     case _DateFilter.last30Days:
       start = now.subtract(const Duration(days: 30));
+      end = now;
+      break;
+    case _DateFilter.last6Months:
+      start = _monthsAgo(now, 6);
+      end = now;
+      break;
+    case _DateFilter.last1Year:
+      start = _monthsAgo(now, 12);
       end = now;
       break;
     case _DateFilter.all:
@@ -330,7 +339,7 @@ class _AdminSurveyHistoryPageState
                               DataCell(Text(row.userEntity)),
                               DataCell(Text(category)),
                               DataCell(Text(template)),
-                              DataCell(Text(row.score.toStringAsFixed(2))),
+                              DataCell(Text(formatScoreFive(row.score))),
                               DataCell(Text(formatDate(row.createdAt))),
                             ],
                           );
@@ -441,7 +450,7 @@ class _FilterDropdown<T> extends StatelessWidget {
   }
 }
 
-enum _DateFilter { all, today, last7Days, last30Days }
+enum _DateFilter { all, today, last7Days, last30Days, last6Months, last1Year }
 
 extension _DateFilterX on _DateFilter {
   String get label {
@@ -452,8 +461,33 @@ extension _DateFilterX on _DateFilter {
         return '7 hari';
       case _DateFilter.last30Days:
         return '30 hari';
+      case _DateFilter.last6Months:
+        return '6 bulan';
+      case _DateFilter.last1Year:
+        return '1 tahun';
       case _DateFilter.all:
         return 'Semua';
     }
   }
+}
+
+DateTime _monthsAgo(DateTime now, int months) {
+  var year = now.year;
+  var month = now.month - months;
+  while (month <= 0) {
+    month += 12;
+    year -= 1;
+  }
+  final lastDay = DateTime(year, month + 1, 0).day;
+  final day = now.day > lastDay ? lastDay : now.day;
+  return DateTime(
+    year,
+    month,
+    day,
+    now.hour,
+    now.minute,
+    now.second,
+    now.millisecond,
+    now.microsecond,
+  );
 }

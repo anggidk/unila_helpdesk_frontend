@@ -1,10 +1,6 @@
 enum SurveyQuestionType {
   likert,
   likertQuality,
-  likert7Puas,
-  likert7,
-  likert6Puas,
-  likert6,
   likert4Puas,
   likert4,
   likert3Puas,
@@ -21,14 +17,6 @@ extension SurveyQuestionTypeX on SurveyQuestionType {
         return 'Skala Likert (1-5) - Puas';
       case SurveyQuestionType.likertQuality:
         return 'Skala Likert (1-5) - Baik';
-      case SurveyQuestionType.likert7Puas:
-        return 'Skala Likert (1-7) - Puas';
-      case SurveyQuestionType.likert7:
-        return 'Skala Likert (1-7) - Baik';
-      case SurveyQuestionType.likert6Puas:
-        return 'Skala Likert (1-6) - Puas';
-      case SurveyQuestionType.likert6:
-        return 'Skala Likert (1-6) - Baik';
       case SurveyQuestionType.likert4Puas:
         return 'Skala Likert (1-4) - Puas';
       case SurveyQuestionType.likert4:
@@ -78,6 +66,7 @@ class SurveyTemplate {
     required this.id,
     required this.title,
     required this.description,
+    required this.framework,
     required this.categoryId,
     required this.questions,
     required this.createdAt,
@@ -87,6 +76,7 @@ class SurveyTemplate {
   final String id;
   final String title;
   final String description;
+  final String framework;
   final String categoryId;
   final List<SurveyQuestion> questions;
   final DateTime createdAt;
@@ -101,6 +91,7 @@ class SurveyTemplate {
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
+      framework: json['framework']?.toString() ?? '',
       categoryId: json['categoryId']?.toString() ?? '',
       questions: questions,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
@@ -198,14 +189,6 @@ SurveyQuestionType _questionTypeFromString(String value) {
       return SurveyQuestionType.yesNo;
     case 'likertQuality':
       return SurveyQuestionType.likertQuality;
-    case 'likert7Puas':
-      return SurveyQuestionType.likert7Puas;
-    case 'likert7':
-      return SurveyQuestionType.likert7;
-    case 'likert6Puas':
-      return SurveyQuestionType.likert6Puas;
-    case 'likert6':
-      return SurveyQuestionType.likert6;
     case 'likert4Puas':
       return SurveyQuestionType.likert4Puas;
     case 'likert4':

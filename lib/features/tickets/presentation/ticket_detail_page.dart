@@ -74,14 +74,16 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                   ? null
                   : () async {
                       setState(() => _isDeleting = true);
-                      final response =
-                          await TicketRepository().deleteTicket(_ticket.id);
+                      final response = await TicketRepository().deleteTicket(
+                        _ticket.id,
+                      );
                       if (!mounted) return;
                       if (!response.isSuccess) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              response.error?.message ?? 'Gagal menghapus tiket.',
+                              response.error?.message ??
+                                  'Gagal menghapus tiket.',
                             ),
                           ),
                         );
@@ -112,8 +114,9 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
     if (_isLoadingSurvey) return;
     setState(() => _isLoadingSurvey = true);
     try {
-      final template = await SurveyRepository()
-          .fetchTemplateByCategory(_ticket.categoryId);
+      final template = await SurveyRepository().fetchTemplateByCategory(
+        _ticket.categoryId,
+      );
       if (!mounted) return;
       context.pushNamed(
         AppRouteNames.survey,
@@ -121,9 +124,9 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() => _isLoadingSurvey = false);
@@ -134,17 +137,20 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
   @override
   Widget build(BuildContext context) {
     final ticket = _ticket;
+    final canEdit = ticket.status != TicketStatus.resolved;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail Tiket'),
         actions: [
-          PopupMenuButton<String>(
-            onSelected: _handleMenu,
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'edit', child: Text('Edit Tiket')),
-              PopupMenuItem(value: 'delete', child: Text('Hapus Tiket')),
-            ],
-          ),
+          if (canEdit) // Only show edit menu if ticket can be edited
+            PopupMenuButton<String>(
+              onSelected: _handleMenu,
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: 'edit', child: Text('Edit Tiket')),
+                PopupMenuItem(value: 'delete', child: Text('Hapus Tiket')),
+              ],
+            ),
         ],
       ),
       body: ListView(
@@ -291,9 +297,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                         ),
                       )
                     : const Icon(Icons.rate_review_outlined),
-                label: Text(
-                  _isLoadingSurvey ? 'Memuat...' : 'Isi Umpan Balik',
-                ),
+                label: Text(_isLoadingSurvey ? 'Memuat...' : 'Isi Umpan Balik'),
               ),
             ),
           ],

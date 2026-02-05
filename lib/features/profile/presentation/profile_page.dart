@@ -102,10 +102,7 @@ class ProfilePage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Aplikasi',
-            style: TextStyle(color: AppTheme.textMuted),
-          ),
+          const Text('Aplikasi', style: TextStyle(color: AppTheme.textMuted)),
           const SizedBox(height: 8),
           _MenuTile(
             icon: Icons.notifications_outlined,
@@ -133,7 +130,7 @@ class ProfilePage extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Unila Helpdesk v2.4.0',
+            'Unila Helpdesk v1.0.0',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppTheme.textMuted),
           ),

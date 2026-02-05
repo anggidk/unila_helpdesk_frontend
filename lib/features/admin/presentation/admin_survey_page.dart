@@ -222,6 +222,7 @@ class AdminSurveyPage extends ConsumerWidget {
                                 final saved = await SurveyRepository().createTemplate(
                                   title: template.title,
                                   description: template.description,
+                                  framework: template.framework,
                                   categoryId: template.categoryId,
                                   questions: template.questions,
                                 );
@@ -285,6 +286,7 @@ class AdminSurveyPage extends ConsumerWidget {
                             templateId: edited.id,
                             title: edited.title,
                             description: edited.description,
+                            framework: edited.framework,
                             categoryId: edited.categoryId,
                             questions: edited.questions,
                           );
@@ -387,6 +389,7 @@ class AdminSurveyPage extends ConsumerWidget {
                                     templateId: template.id,
                                     title: template.title,
                                     description: template.description,
+                                    framework: template.framework,
                                     categoryId: template.categoryId,
                                     questions: updatedQuestions,
                                   );
@@ -434,6 +437,7 @@ class AdminSurveyPage extends ConsumerWidget {
                                 templateId: template.id,
                                 title: template.title,
                                 description: template.description,
+                                framework: template.framework,
                                 categoryId: template.categoryId,
                                 questions: updatedQuestions,
                               );
@@ -482,6 +486,7 @@ class AdminSurveyPage extends ConsumerWidget {
                                 templateId: template.id,
                                 title: template.title,
                                 description: template.description,
+                                framework: template.framework,
                                 categoryId: template.categoryId,
                                 questions: updatedQuestions,
                               );
@@ -616,6 +621,7 @@ class AdminSurveyPage extends ConsumerWidget {
                                                 templateId: edited.id,
                                                 title: edited.title,
                                                 description: edited.description,
+                                                framework: edited.framework,
                                                 categoryId: edited.categoryId,
                                                 questions: edited.questions,
                                               );
@@ -720,6 +726,7 @@ class AdminSurveyPage extends ConsumerWidget {
                           final saved = await SurveyRepository().createTemplate(
                             title: template.title,
                             description: template.description,
+                            framework: template.framework,
                             categoryId: template.categoryId,
                             questions: template.questions,
                           );
@@ -782,6 +789,7 @@ class AdminSurveyPage extends ConsumerWidget {
                             );
                             return;
                           }
+                          if (!context.mounted) return;
                           context.pop(true);
                         },
                         child: const Text('Terapkan'),

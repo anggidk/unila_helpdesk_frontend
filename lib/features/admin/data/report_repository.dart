@@ -105,6 +105,30 @@ class ReportRepository {
     return null;
   }
 
+  Future<String> exportSurveySatisfactionCsv({
+    required String categoryId,
+    String? templateId,
+    required String period,
+    required int periods,
+  }) async {
+    final query = <String, String>{
+      'period': period,
+      'periods': periods.toString(),
+      'categoryId': categoryId,
+    };
+    if (templateId != null && templateId.isNotEmpty) {
+      query['templateId'] = templateId;
+    }
+    final response = await _client.getRaw(
+      ApiEndpoints.reportsSatisfactionExport,
+      query: query,
+    );
+    if (response.isSuccess && response.data != null) {
+      return response.data!;
+    }
+    throw Exception(response.error?.message ?? 'Gagal export CSV');
+  }
+
   Future<List<SurveyTemplate>> fetchTemplatesByCategory(String categoryId) async {
     final response = await _client.get(
       ApiEndpoints.reportsTemplates,

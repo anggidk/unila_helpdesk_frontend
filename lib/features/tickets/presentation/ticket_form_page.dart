@@ -93,9 +93,19 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
       context.pop();
     } catch (error) {
       if (!mounted) return;
+      String errorMessage = error.toString();
+      // Handle specific error messages from backend
+      if (errorMessage.contains(
+        'tiket yang sudah selesai tidak dapat diedit',
+      )) {
+        errorMessage = 'Tiket yang sudah selesai tidak dapat diedit';
+      } else if (errorMessage.contains('tidak memiliki akses')) {
+        errorMessage = 'Anda tidak memiliki akses untuk mengedit tiket ini';
+      }
+
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
