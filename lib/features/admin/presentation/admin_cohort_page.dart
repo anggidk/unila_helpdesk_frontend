@@ -42,7 +42,8 @@ class AdminCohortPage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-          if (analysis == 'retention') _RetentionSection(period: selectedPeriod),
+          if (analysis == 'retention')
+            _RetentionSection(period: selectedPeriod),
           if (analysis == 'entity-service')
             _CenteredSection(child: _EntityServiceSection()),
         ],
@@ -203,10 +204,10 @@ class _CohortScoreRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(label)),
-          Expanded(child: Text('Skor Rata-rata: ${clamped.toStringAsFixed(2)}')),
           Expanded(
-            child: Text('Respon: ${responseRate.toStringAsFixed(0)}%'),
+            child: Text('Skor Rata-rata: ${clamped.toStringAsFixed(2)}'),
           ),
+          Expanded(child: Text('Respon: ${responseRate.toStringAsFixed(0)}%')),
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -306,12 +307,7 @@ class _HeatmapTable extends StatelessWidget {
             final row = matrix[entity] ?? const <String, int>{};
             return DataRow(
               cells: [
-                DataCell(
-                  SizedBox(
-                    width: entityWidth,
-                    child: Text(entity),
-                  ),
-                ),
+                DataCell(SizedBox(width: entityWidth, child: Text(entity))),
                 ...categories.map((category) {
                   final value = row[category] ?? 0;
                   return DataCell(
@@ -418,9 +414,6 @@ class _CenteredSection extends StatelessWidget {
   }
 }
 
-
-int _max(int a, int b) => a > b ? a : b;
-
 List<String> _retentionLabels(String period, int? length) {
   final count = length ?? 5;
   switch (period) {
@@ -502,17 +495,30 @@ class _RetentionSection extends ConsumerWidget {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(minWidth: constraints.maxWidth),
                     child: DataTable(
-                      headingRowColor: WidgetStateProperty.all(AppTheme.surface),
+                      headingRowColor: WidgetStateProperty.all(
+                        AppTheme.surface,
+                      ),
                       columns: [
                         const DataColumn(
-                          label: Text('Kohort', style: TextStyle(fontWeight: FontWeight.w600)),
+                          label: Text(
+                            'Kohort',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
                         const DataColumn(
-                          label: Text('Pengguna', style: TextStyle(fontWeight: FontWeight.w600)),
+                          label: Text(
+                            'Pengguna',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
                         ...retentionLabels.map(
                           (label) => DataColumn(
-                            label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            label: Text(
+                              label,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
                       ],
