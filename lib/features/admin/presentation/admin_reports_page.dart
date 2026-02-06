@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
@@ -37,6 +38,12 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
     required String? categoryId,
     required String? templateId,
   }) async {
+    if (!kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Export CSV hanya tersedia di web.')),
+      );
+      return;
+    }
     if (categoryId == null || categoryId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih kategori terlebih dahulu.')),
@@ -188,12 +195,14 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
                     const Text('Hasil Kepuasan Survei', style: TextStyle(fontWeight: FontWeight.w700)),
                     const Spacer(),
                     OutlinedButton.icon(
-                      onPressed: () => _exportSurveyCsv(
-                        context: context,
-                        period: period,
-                        categoryId: selectedCategoryId,
-                        templateId: selectedTemplateId,
-                      ),
+                      onPressed: kIsWeb
+                          ? () => _exportSurveyCsv(
+                                context: context,
+                                period: period,
+                                categoryId: selectedCategoryId,
+                                templateId: selectedTemplateId,
+                              )
+                          : null,
                       icon: const Icon(Icons.download, size: 18),
                       label: const Text('Export CSV'),
                     ),
