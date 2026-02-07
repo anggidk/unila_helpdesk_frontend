@@ -1,9 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:unila_helpdesk_frontend/app/app_router.dart';
+import 'package:unila_helpdesk_frontend/core/navigation/ticket_navigation.dart';
+import 'package:unila_helpdesk_frontend/core/notifications/notification_settings_storage.dart';
 import 'package:unila_helpdesk_frontend/features/notifications/data/notification_repository.dart';
-import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 const String fcmChannelId = 'helpdesk_updates';
 const String fcmChannelName = 'Helpdesk Updates';
@@ -21,6 +21,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class FcmService {
   static bool _initialized = false;
   static bool _navigationReady = false;
+  static bool _pushEnabled = true;
   static String? _pendingTicketId;
 
   static Future<void> initialize() async {
@@ -36,7 +37,12 @@ class FcmService {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await _setupLocalNotifications();
     await _requestPermissions();
-    await _registerToken();
+    await _loadPushSetting();
+    if (_pushEnabled) {
+      await _registerToken();
+    } else {
+      await FirebaseMessaging.instance.setAutoInitEnabled(false);
+    }
 
     FirebaseMessaging.onMessage.listen(_showForegroundNotification);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
@@ -59,23 +65,58 @@ class FcmService {
     }
   }
 
+  static void markNavigationUnavailable() {
+    _navigationReady = false;
+  }
+
+  static Future<bool> isPushEnabled() async {
+    if (!_initialized) {
+      await initialize();
+    }
+    return _pushEnabled;
+  }
+
+  static Future<void> setPushEnabled(bool enabled) async {
+    if (!_initialized) {
+      await initialize();
+    }
+    _pushEnabled = enabled;
+    await NotificationSettingsStorage().savePushEnabled(enabled);
+    await FirebaseMessaging.instance.setAutoInitEnabled(enabled);
+    if (enabled) {
+      await _requestPermissions();
+      await syncToken();
+      return;
+    }
+    await unregisterCurrentToken();
+  }
+
   static Future<void> syncToken() async {
     if (!_initialized) {
       await initialize();
       return;
     }
+    if (!_pushEnabled) return;
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null || token.isEmpty) return;
     await _sendToken(token);
   }
 
   static Future<void> unregisterCurrentToken() async {
+    String? token;
     try {
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token == null || token.isEmpty) return;
-      await NotificationRepository().unregisterFcmToken(token);
+      token = await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        await NotificationRepository().unregisterFcmToken(token);
+      }
     } catch (_) {
       // Ignore unregister failure during logout.
+    } finally {
+      try {
+        await FirebaseMessaging.instance.deleteToken();
+      } catch (_) {
+        // Ignore local token delete failure during logout.
+      }
     }
   }
 
@@ -127,6 +168,7 @@ class FcmService {
   }
 
   static Future<void> _registerTokenFromStream(String token) async {
+    if (!_pushEnabled) return;
     if (token.isEmpty) return;
     await _sendToken(token);
   }
@@ -140,24 +182,30 @@ class FcmService {
   }
 
   static Future<void> _showForegroundNotification(RemoteMessage message) async {
+    if (!_pushEnabled) return;
     final notification = message.notification;
-    final title = notification?.title ?? message.data['title']?.toString();
-    final body = notification?.body ?? message.data['body']?.toString();
-    if (title == null && body == null) return;
     final ticketId = message.data['ticket_id']?.toString();
+    final title = notification?.title ?? message.data['title']?.toString() ?? 'Helpdesk';
+    final body =
+        notification?.body ??
+        message.data['body']?.toString() ??
+        (ticketId == null || ticketId.isEmpty
+            ? 'Ada pembaruan notifikasi.'
+            : 'Ada pembaruan pada tiket $ticketId.');
 
     const androidDetails = AndroidNotificationDetails(
       fcmChannelId,
       fcmChannelName,
       channelDescription: fcmChannelDescription,
-      importance: Importance.high,
-      priority: Priority.high,
+      importance: Importance.max,
+      priority: Priority.max,
+      playSound: true,
     );
     const details = NotificationDetails(android: androidDetails);
     await _localNotifications.show(
       message.hashCode,
-      title ?? 'Helpdesk',
-      body ?? '',
+      title,
+      body,
       details,
       payload: ticketId,
     );
@@ -178,14 +226,10 @@ class FcmService {
   }
 
   static Future<void> _openTicketById(String ticketId) async {
-    try {
-      final ticket = await TicketRepository().fetchTicketById(ticketId);
-      appRouter.pushNamed(
-        AppRouteNames.ticketDetail,
-        extra: ticket,
-      );
-    } catch (_) {
-      // Ignore if user is not authenticated or ticket is missing.
-    }
+    await openTicketDetailById(ticketId);
+  }
+
+  static Future<void> _loadPushSetting() async {
+    _pushEnabled = await NotificationSettingsStorage().readPushEnabled();
   }
 }

@@ -1,6 +1,7 @@
 class AppNotification {
   const AppNotification({
     required this.id,
+    required this.ticketId,
     required this.title,
     required this.message,
     required this.timestamp,
@@ -8,6 +9,7 @@ class AppNotification {
   });
 
   final String id;
+  final String ticketId;
   final String title;
   final String message;
   final DateTime timestamp;
@@ -16,6 +18,7 @@ class AppNotification {
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
       id: json['id']?.toString() ?? '',
+      ticketId: json['ticketId']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       message: json['message']?.toString() ?? '',
       timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??

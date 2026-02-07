@@ -5,6 +5,7 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
+import 'package:unila_helpdesk_frontend/core/notifications/fcm_service.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/presentation/feedback_page.dart';
 import 'package:unila_helpdesk_frontend/features/home/presentation/home_page.dart';
 import 'package:unila_helpdesk_frontend/features/profile/presentation/profile_page.dart';
@@ -26,6 +27,9 @@ class _UserShellState extends ConsumerState<UserShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FcmService.markNavigationReady();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _restoreSession());
   }
 

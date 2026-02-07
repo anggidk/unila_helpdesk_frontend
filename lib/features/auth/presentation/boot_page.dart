@@ -31,6 +31,7 @@ class _BootPageState extends ConsumerState<BootPage> {
     final token = await TokenStorage().readToken();
     final user = await TokenStorage().readUser();
     if (token == null || token.isEmpty || user == null) {
+      FcmService.markNavigationUnavailable();
       if (!mounted) return;
       context.goNamed(AppRouteNames.login);
       return;

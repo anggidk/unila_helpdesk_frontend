@@ -6,6 +6,7 @@ import 'package:unila_helpdesk_frontend/core/notifications/fcm_service.dart';
 
 Future<void> performLogout(WidgetRef ref) async {
   await FcmService.unregisterCurrentToken();
+  FcmService.markNavigationUnavailable();
   await TokenStorage().clearToken();
   sharedApiClient.setAuthToken(null);
   ref.read(adminUserProvider.notifier).state = null;
