@@ -2,6 +2,7 @@ import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
+import 'package:unila_helpdesk_frontend/core/network/query_params.dart';
 
 class ReportRepository {
   ReportRepository({ApiClient? client}) : _client = client ?? sharedApiClient;
@@ -34,12 +35,7 @@ class ReportRepository {
     DateTime? end,
   }) async {
     final query = <String, String>{};
-    if (start != null) {
-      query['start'] = start.toUtc().toIso8601String();
-    }
-    if (end != null) {
-      query['end'] = end.toUtc().toIso8601String();
-    }
+    appendUtcDateRange(query, start: start, end: end);
     final response = await _client.get(ApiEndpoints.reports, query: query);
     final items = response.data?['data'];
     if (response.isSuccess && items is List) {

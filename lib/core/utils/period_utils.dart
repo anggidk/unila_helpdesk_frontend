@@ -15,35 +15,6 @@ int periodsFor(String period) {
   }
 }
 
-DateRange periodRangeFor(String period, DateTime now) {
-  final current = now.toUtc();
-  final normalized = period.trim().toLowerCase();
-  final periods = periodsFor(normalized);
-
-  switch (normalized) {
-    case 'daily':
-      return DateRange(
-        start: current.subtract(Duration(days: periods)),
-        end: current,
-      );
-    case 'weekly':
-      return DateRange(
-        start: current.subtract(Duration(days: periods * 7)),
-        end: current,
-      );
-    case 'yearly':
-      return DateRange(
-        start: DateTime(current.year - periods, current.month, current.day),
-        end: current,
-      );
-    default:
-      return DateRange(
-        start: DateTime(current.year, current.month - periods, current.day),
-        end: current,
-      );
-  }
-}
-
 int reportPeriodsFor(String period) {
   return 1;
 }

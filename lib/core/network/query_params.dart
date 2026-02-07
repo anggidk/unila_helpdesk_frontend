@@ -20,11 +20,19 @@ Map<String, String> buildPagedQueryParams({
       params[entry.key] = value;
     }
   }
+  appendUtcDateRange(params, start: start, end: end);
+  return params;
+}
+
+void appendUtcDateRange(
+  Map<String, String> params, {
+  DateTime? start,
+  DateTime? end,
+}) {
   if (start != null) {
     params['start'] = start.toUtc().toIso8601String();
   }
   if (end != null) {
     params['end'] = end.toUtc().toIso8601String();
   }
-  return params;
 }
