@@ -1,7 +1,7 @@
-const Duration _wibOffset = Duration(hours: 7);
+import 'timezone_utils.dart';
 
 String formatDate(DateTime date) {
-  final normalized = date.toUtc().add(_wibOffset);
+  final normalized = toWib(date);
   const months = [
     'Jan',
     'Feb',
@@ -21,7 +21,7 @@ String formatDate(DateTime date) {
 }
 
 String formatTime(DateTime date) {
-  final normalized = date.toUtc().add(_wibOffset);
+  final normalized = toWib(date);
   final hour = normalized.hour.toString().padLeft(2, '0');
   final minute = normalized.minute.toString().padLeft(2, '0');
   return '$hour:$minute';
