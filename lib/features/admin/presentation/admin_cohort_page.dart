@@ -4,6 +4,8 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/period_dropdown.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/star_icons.dart';
 
 class AdminCohortPage extends ConsumerWidget {
   const AdminCohortPage({super.key});
@@ -32,7 +34,7 @@ class AdminCohortPage extends ConsumerWidget {
                 },
               ),
               const SizedBox(width: 12),
-              _PeriodDropdown(
+              PeriodDropdown(
                 value: selectedPeriod,
                 enabled: true,
                 onChanged: (value) {
@@ -116,59 +118,6 @@ class _AnalysisDropdown extends StatelessWidget {
   }
 }
 
-class _PeriodDropdown extends StatelessWidget {
-  const _PeriodDropdown({
-    required this.value,
-    required this.onChanged,
-    required this.enabled,
-  });
-
-  final String value;
-  final ValueChanged<String> onChanged;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      onSelected: enabled ? onChanged : null,
-      itemBuilder: (context) => const [
-        PopupMenuItem(value: 'daily', child: Text('Harian')),
-        PopupMenuItem(value: 'weekly', child: Text('Mingguan')),
-        PopupMenuItem(value: 'monthly', child: Text('Bulanan')),
-        PopupMenuItem(value: 'yearly', child: Text('Tahunan')),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: enabled
-                ? AppTheme.outline
-                : AppTheme.outline.withValues(alpha: 0.4),
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.expand_more,
-              size: 18,
-              color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'Periode: ${_periodLabel(value)}',
-              style: TextStyle(
-                color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _CohortScoreRow extends StatelessWidget {
   const _CohortScoreRow({
     required this.label,
@@ -182,24 +131,8 @@ class _CohortScoreRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final clamped = scoreToFive(score).clamp(0, 5);
-    final fullStars = clamped.floor();
-    final hasHalf = (clamped - fullStars) >= 0.5;
-    final emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
-    final stars = <Widget>[];
-    for (var i = 0; i < fullStars; i++) {
-      stars.add(const Icon(Icons.star, color: AppTheme.accentYellow, size: 18));
-    }
-    if (hasHalf) {
-      stars.add(
-        const Icon(Icons.star_half, color: AppTheme.accentYellow, size: 18),
-      );
-    }
-    for (var i = 0; i < emptyStars; i++) {
-      stars.add(
-        const Icon(Icons.star_border, color: AppTheme.textMuted, size: 18),
-      );
-    }
+    final clamped = scoreToFive(score).clamp(0, 5).toDouble();
+    final stars = buildStarIcons(clamped, size: 18);
     return Padding(
       padding: EdgeInsets.only(bottom: 12),
       child: Row(
@@ -426,19 +359,6 @@ List<String> _retentionLabels(String period, int? length) {
       return List<String>.generate(count, (index) => 'Y$index');
     default:
       return List<String>.generate(count, (index) => 'M$index');
-  }
-}
-
-String _periodLabel(String period) {
-  switch (period) {
-    case 'daily':
-      return 'Harian';
-    case 'weekly':
-      return 'Mingguan';
-    case 'yearly':
-      return 'Tahunan';
-    default:
-      return 'Bulanan';
   }
 }
 

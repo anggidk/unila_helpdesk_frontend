@@ -18,10 +18,11 @@ class ApiEndpoints {
   static String surveyTemplateById(String id) => '/surveys/templates/$id';
   static String surveyByCategory(String categoryId) => '/surveys/categories/$categoryId';
   static const String surveyResponses = '/surveys/responses';
-  static const String surveyResponsesAdmin = '/surveys/responses';
+  static const String surveyResponsesAdmin = surveyResponses;
 
   static const String notifications = '/notifications';
   static const String fcmRegister = '/notifications/fcm';
+  static const String fcmUnregister = '/notifications/fcm/unregister';
 
   static const String reports = '/reports';
   static const String reportsSummary = '/reports/summary';

@@ -20,19 +20,12 @@ class AuthRepository {
     final token = data['token']?.toString() ?? '';
     final refreshToken = data['refreshToken']?.toString() ?? '';
     final userJson = data['user'] as Map<String, dynamic>? ?? {};
-    final expiresAt = DateTime.tryParse(data['expiresAt']?.toString() ?? '') ??
-        DateTime.now();
-    final refreshExpiresAt =
-        DateTime.tryParse(data['refreshExpiresAt']?.toString() ?? '') ??
-            DateTime.now();
     if (token.isNotEmpty) {
       _client.setAuthToken(token);
     }
     return AuthSession(
       token: token,
       refreshToken: refreshToken,
-      expiresAt: expiresAt,
-      refreshExpiresAt: refreshExpiresAt,
       user: UserProfile.fromJson(userJson),
     );
   }
@@ -52,14 +45,10 @@ class AuthSession {
   const AuthSession({
     required this.token,
     required this.refreshToken,
-    required this.expiresAt,
-    required this.refreshExpiresAt,
     required this.user,
   });
 
   final String token;
   final String refreshToken;
-  final DateTime expiresAt;
-  final DateTime refreshExpiresAt;
   final UserProfile user;
 }

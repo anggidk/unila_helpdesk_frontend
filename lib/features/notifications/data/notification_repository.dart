@@ -23,4 +23,8 @@ class NotificationRepository {
   Future<ApiResponse<Map<String, dynamic>>> registerFcmToken(String token) {
     return _client.post(ApiEndpoints.fcmRegister, body: {'token': token});
   }
+
+  Future<ApiResponse<Map<String, dynamic>>> unregisterFcmToken(String token) {
+    return _client.post(ApiEndpoints.fcmUnregister, body: {'token': token});
+  }
 }

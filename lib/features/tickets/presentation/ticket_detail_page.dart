@@ -134,15 +134,36 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
     }
   }
 
+  void _finishOrBack() {
+    if (Navigator.of(context).canPop()) {
+      context.pop();
+      return;
+    }
+    context.goNamed(AppRouteNames.boot);
+  }
+
   @override
   Widget build(BuildContext context) {
     final ticket = _ticket;
     final canEdit = ticket.status != TicketStatus.resolved;
+    final canGoBack = Navigator.of(context).canPop();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail Tiket'),
+        leading: canGoBack
+            ? null
+            : IconButton(
+                onPressed: _finishOrBack,
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Kembali',
+              ),
         actions: [
+          if (!canGoBack)
+            TextButton(
+              onPressed: _finishOrBack,
+              child: const Text('Selesai'),
+            ),
           if (canEdit) // Only show edit menu if ticket can be edited
             PopupMenuButton<String>(
               onSelected: _handleMenu,
@@ -281,7 +302,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
           ...ticket.comments
               .where((comment) => comment.isStaff)
               .map((comment) => _CommentBubble(comment: comment)),
-          if (ticket.isResolved && ticket.surveyRequired) ...[
+          if (ticket.isResolved && ticket.surveyRequired && !ticket.isGuest) ...[
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,

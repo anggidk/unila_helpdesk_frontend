@@ -3,8 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
+import 'package:unila_helpdesk_frontend/core/utils/date_filters.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/admin_filter_toolbar.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/filter_dropdown.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/pagination_controls.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
 
 final adminSurveyHistorySearchProvider =
@@ -14,9 +18,17 @@ final adminSurveyHistoryCategoryProvider =
 final adminSurveyHistoryTemplateProvider =
     StateProvider.autoDispose<String?>((ref) => null);
 final adminSurveyHistoryDateFilterProvider =
-    StateProvider.autoDispose<_DateFilter>((ref) => _DateFilter.all);
+    StateProvider.autoDispose<AdminDateFilter>((ref) => AdminDateFilter.all);
 final adminSurveyHistoryPageProvider =
     StateProvider.autoDispose<int>((ref) => 1);
+const List<AdminDateFilter> _surveyDateFilters = [
+  AdminDateFilter.all,
+  AdminDateFilter.today,
+  AdminDateFilter.last7Days,
+  AdminDateFilter.last30Days,
+  AdminDateFilter.last6Months,
+  AdminDateFilter.last1Year,
+];
 final adminSurveyHistoryProvider =
     FutureProvider.autoDispose<SurveyResponsePage>((ref) async {
   final query = ref.watch(adminSurveyHistorySearchProvider);
@@ -27,29 +39,10 @@ final adminSurveyHistoryProvider =
   final now = DateTime.now();
   DateTime? start;
   DateTime? end;
-  switch (dateFilter) {
-    case _DateFilter.today:
-      start = DateTime(now.year, now.month, now.day);
-      end = start.add(const Duration(days: 1));
-      break;
-    case _DateFilter.last7Days:
-      start = now.subtract(const Duration(days: 7));
-      end = now;
-      break;
-    case _DateFilter.last30Days:
-      start = now.subtract(const Duration(days: 30));
-      end = now;
-      break;
-    case _DateFilter.last6Months:
-      start = _monthsAgo(now, 6);
-      end = now;
-      break;
-    case _DateFilter.last1Year:
-      start = _monthsAgo(now, 12);
-      end = now;
-      break;
-    case _DateFilter.all:
-      break;
+  final range = adminDateRange(dateFilter, now);
+  if (range != null) {
+    start = range.start;
+    end = range.end;
   }
   return SurveyRepository().fetchSurveyResponsesPaged(
     query: query,
@@ -134,37 +127,28 @@ class _AdminSurveyHistoryPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    ref.read(adminSurveyHistorySearchProvider.notifier).state =
-                        value;
-                    ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
-                  },
-                  decoration: const InputDecoration(
-                    hintText: 'Cari berdasarkan ID tiket atau pengguna...',
-                    prefixIcon: Icon(Icons.search),
-                    suffixIcon: null,
-                  ).copyWith(
-                    suffixIcon: searchValue.isEmpty
-                        ? null
-                        : IconButton(
-                            onPressed: () {
-                              ref.read(adminSurveyHistorySearchProvider.notifier).state = '';
-                              ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
-                              _searchController.clear();
-                            },
-                            icon: const Icon(Icons.close),
-                            tooltip: 'Hapus',
-                          ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              _FilterDropdown<String?>(
+          AdminFilterToolbar(
+            controller: _searchController,
+            searchHintText: 'Cari berdasarkan ID tiket atau pengguna...',
+            searchValue: searchValue,
+            onSearchChanged: (value) {
+              ref.read(adminSurveyHistorySearchProvider.notifier).state = value;
+              ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
+            },
+            onClearSearch: () {
+              ref.read(adminSurveyHistorySearchProvider.notifier).state = '';
+              ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
+            },
+            onReset: () {
+              ref.read(adminSurveyHistorySearchProvider.notifier).state = '';
+              ref.read(adminSurveyHistoryCategoryProvider.notifier).state = null;
+              ref.read(adminSurveyHistoryTemplateProvider.notifier).state = null;
+              ref.read(adminSurveyHistoryDateFilterProvider.notifier).state =
+                  AdminDateFilter.all;
+              ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
+            },
+            filters: [
+              FilterDropdown<String?>(
                 label: 'Kategori',
                 icon: Icons.category_outlined,
                 valueLabel: categoryLabel,
@@ -179,16 +163,14 @@ class _AdminSurveyHistoryPageState
                   ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
                 },
               ),
-              const SizedBox(width: 12),
-              _FilterDropdown<String?>(
+              FilterDropdown<String?>(
                 label: 'Template',
                 icon: Icons.layers_outlined,
                 valueLabel: templateLabel,
                 enabled: templates.isNotEmpty,
                 options: {
                   null: 'Semua',
-                  for (final template in templates)
-                    template.id: template.title,
+                  for (final template in templates) template.id: template.title,
                 },
                 onChanged: (value) {
                   ref.read(adminSurveyHistoryTemplateProvider.notifier).state =
@@ -196,36 +178,19 @@ class _AdminSurveyHistoryPageState
                   ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
                 },
               ),
-              const SizedBox(width: 12),
-              _FilterDropdown<_DateFilter>(
+              FilterDropdown<AdminDateFilter>(
                 label: 'Tanggal',
                 icon: Icons.calendar_today_outlined,
                 valueLabel: dateFilter.label,
                 enabled: true,
                 options: {
-                  for (final filter in _DateFilter.values) filter: filter.label,
+                  for (final filter in _surveyDateFilters) filter: filter.label,
                 },
                 onChanged: (value) {
                   ref.read(adminSurveyHistoryDateFilterProvider.notifier).state =
                       value;
                   ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
                 },
-              ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  ref.read(adminSurveyHistorySearchProvider.notifier).state = '';
-                  ref.read(adminSurveyHistoryCategoryProvider.notifier).state =
-                      null;
-                  ref.read(adminSurveyHistoryTemplateProvider.notifier).state =
-                      null;
-                  ref.read(adminSurveyHistoryDateFilterProvider.notifier).state =
-                      _DateFilter.all;
-                  ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
-                  _searchController.clear();
-                },
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Atur Ulang'),
               ),
             ],
           ),
@@ -348,39 +313,19 @@ class _AdminSurveyHistoryPageState
                     ),
                   ),
                 ),
-                if (responsePage != null && responsePage.totalPages > 1)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Halaman ${responsePage.page} dari ${responsePage.totalPages} • Total ${responsePage.total}',
-                          style: const TextStyle(color: AppTheme.textMuted),
-                        ),
-                        Row(
-                          children: [
-                            OutlinedButton(
-                              onPressed: responsePage.hasPrev
-                                  ? () => ref
-                                      .read(adminSurveyHistoryPageProvider.notifier)
-                                      .state = responsePage.page - 1
-                                  : null,
-                              child: const Text('Sebelumnya'),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: responsePage.hasNext
-                                  ? () => ref
-                                      .read(adminSurveyHistoryPageProvider.notifier)
-                                      .state = responsePage.page + 1
-                                  : null,
-                              child: const Text('Berikutnya'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                if (responsePage != null)
+                  PaginationControls(
+                    page: responsePage.page,
+                    totalPages: responsePage.totalPages,
+                    totalItems: responsePage.total,
+                    hasPrev: responsePage.hasPrev,
+                    hasNext: responsePage.hasNext,
+                    onPrev: () => ref
+                        .read(adminSurveyHistoryPageProvider.notifier)
+                        .state = responsePage.page - 1,
+                    onNext: () => ref
+                        .read(adminSurveyHistoryPageProvider.notifier)
+                        .state = responsePage.page + 1,
                   ),
               ],
             ),
@@ -389,105 +334,4 @@ class _AdminSurveyHistoryPageState
       ),
     );
   }
-}
-
-class _FilterDropdown<T> extends StatelessWidget {
-  const _FilterDropdown({
-    required this.label,
-    required this.icon,
-    required this.valueLabel,
-    required this.enabled,
-    required this.options,
-    required this.onChanged,
-  });
-
-  final String label;
-  final IconData icon;
-  final String valueLabel;
-  final bool enabled;
-  final Map<T, String> options;
-  final ValueChanged<T> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<T>(
-      onSelected: enabled ? onChanged : null,
-      itemBuilder: (context) => options.entries
-          .map(
-            (entry) => PopupMenuItem<T>(
-              value: entry.key,
-              child: Text(entry.value),
-            ),
-          )
-          .toList(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: enabled ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.4),
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '$label: $valueLabel',
-              style: TextStyle(
-                color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-enum _DateFilter { all, today, last7Days, last30Days, last6Months, last1Year }
-
-extension _DateFilterX on _DateFilter {
-  String get label {
-    switch (this) {
-      case _DateFilter.today:
-        return 'Hari ini';
-      case _DateFilter.last7Days:
-        return '7 hari';
-      case _DateFilter.last30Days:
-        return '30 hari';
-      case _DateFilter.last6Months:
-        return '6 bulan';
-      case _DateFilter.last1Year:
-        return '1 tahun';
-      case _DateFilter.all:
-        return 'Semua';
-    }
-  }
-}
-
-DateTime _monthsAgo(DateTime now, int months) {
-  var year = now.year;
-  var month = now.month - months;
-  while (month <= 0) {
-    month += 12;
-    year -= 1;
-  }
-  final lastDay = DateTime(year, month + 1, 0).day;
-  final day = now.day > lastDay ? lastDay : now.day;
-  return DateTime(
-    year,
-    month,
-    day,
-    now.hour,
-    now.minute,
-    now.second,
-    now.millisecond,
-    now.microsecond,
-  );
 }

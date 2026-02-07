@@ -9,6 +9,7 @@ import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
 import 'package:unila_helpdesk_frontend/core/utils/ticket_ui.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/star_icons.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 class FeedbackPage extends ConsumerWidget {
@@ -222,20 +223,8 @@ class _RatingRow extends StatelessWidget {
     if (score <= 0) {
       return const Text('Rating belum tersedia.');
     }
-    final clamped = scoreToFive(score).clamp(0, 5);
-    final fullStars = clamped.floor();
-    final hasHalf = (clamped - fullStars) >= 0.5;
-    final emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
-    final stars = <Widget>[];
-    for (var i = 0; i < fullStars; i++) {
-      stars.add(const Icon(Icons.star, color: AppTheme.accentYellow));
-    }
-    if (hasHalf) {
-      stars.add(const Icon(Icons.star_half, color: AppTheme.accentYellow));
-    }
-    for (var i = 0; i < emptyStars; i++) {
-      stars.add(const Icon(Icons.star_border, color: AppTheme.textMuted));
-    }
+    final clamped = scoreToFive(score).clamp(0, 5).toDouble();
+    final stars = buildStarIcons(clamped);
     return Row(
       children: [
         Text('Rating Anda: ${clamped.toStringAsFixed(1)}'),

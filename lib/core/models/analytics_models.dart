@@ -29,21 +29,15 @@ class CohortRow {
 }
 
 class ServiceTrend {
-  const ServiceTrend({
-    required this.label,
-    required this.percentage,
-    required this.note,
-  });
+  const ServiceTrend({required this.label, required this.percentage});
 
   final String label;
   final double percentage;
-  final String note;
 
   factory ServiceTrend.fromJson(Map<String, dynamic> json) {
     return ServiceTrend(
       label: json['label']?.toString() ?? '',
       percentage: double.tryParse(json['percentage']?.toString() ?? '') ?? 0,
-      note: json['note']?.toString() ?? '',
     );
   }
 }
@@ -120,14 +114,12 @@ class UsageCohortRow {
 
 class SurveySatisfactionRow {
   const SurveySatisfactionRow({
-    required this.questionId,
     required this.question,
     required this.type,
     required this.avgScore,
     required this.responses,
   });
 
-  final String questionId;
   final String question;
   final String type;
   final double avgScore;
@@ -135,7 +127,6 @@ class SurveySatisfactionRow {
 
   factory SurveySatisfactionRow.fromJson(Map<String, dynamic> json) {
     return SurveySatisfactionRow(
-      questionId: json['questionId']?.toString() ?? '',
       question: json['question']?.toString() ?? '',
       type: json['type']?.toString() ?? '',
       avgScore: double.tryParse(json['avgScore']?.toString() ?? '') ?? 0,
@@ -176,7 +167,8 @@ class SurveySatisfactionReport {
       categoryId: json['categoryId']?.toString() ?? '',
       category: json['category']?.toString() ?? '',
       period: json['period']?.toString() ?? '',
-      start: DateTime.tryParse(json['start']?.toString() ?? '') ?? DateTime.now(),
+      start:
+          DateTime.tryParse(json['start']?.toString() ?? '') ?? DateTime.now(),
       end: DateTime.tryParse(json['end']?.toString() ?? '') ?? DateTime.now(),
       rows: rows,
     );

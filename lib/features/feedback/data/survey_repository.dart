@@ -1,6 +1,7 @@
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
+import 'package:unila_helpdesk_frontend/core/network/query_params.dart';
 
 class SurveyRepository {
   SurveyRepository({ApiClient? client})
@@ -116,25 +117,17 @@ class SurveyRepository {
     int page = 1,
     int limit = 50,
   }) async {
-    final params = <String, String>{
-      'page': page.toString(),
-      'limit': limit.toString(),
-    };
-    if (query != null && query.trim().isNotEmpty) {
-      params['q'] = query.trim();
-    }
-    if (categoryId != null && categoryId.isNotEmpty) {
-      params['categoryId'] = categoryId;
-    }
-    if (templateId != null && templateId.isNotEmpty) {
-      params['templateId'] = templateId;
-    }
-    if (start != null) {
-      params['start'] = start.toUtc().toIso8601String();
-    }
-    if (end != null) {
-      params['end'] = end.toUtc().toIso8601String();
-    }
+    final params = buildPagedQueryParams(
+      page: page,
+      limit: limit,
+      query: query,
+      start: start,
+      end: end,
+      extra: {
+        'categoryId': categoryId,
+        'templateId': templateId,
+      },
+    );
     final response = await _client.get(ApiEndpoints.surveyResponsesAdmin, query: params);
     final data = response.data?['data'];
     if (response.isSuccess && data is Map<String, dynamic>) {

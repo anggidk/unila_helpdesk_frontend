@@ -106,7 +106,6 @@ class SurveyResponseItem {
   const SurveyResponseItem({
     required this.id,
     required this.ticketId,
-    required this.userId,
     required this.userName,
     required this.userEmail,
     required this.userEntity,
@@ -120,7 +119,6 @@ class SurveyResponseItem {
 
   final String id;
   final String ticketId;
-  final String userId;
   final String userName;
   final String userEmail;
   final String userEntity;
@@ -135,7 +133,6 @@ class SurveyResponseItem {
     return SurveyResponseItem(
       id: json['id']?.toString() ?? '',
       ticketId: json['ticketId']?.toString() ?? '',
-      userId: json['userId']?.toString() ?? '',
       userName: json['userName']?.toString() ?? '',
       userEmail: json['userEmail']?.toString() ?? '',
       userEntity: json['userEntity']?.toString() ?? '',

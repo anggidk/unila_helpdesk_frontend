@@ -37,10 +37,6 @@ class ApiClient {
     _authToken = token;
   }
 
-  Future<void> loadAuthToken() async {
-    _authToken = await TokenStorage().readToken();
-  }
-
   Uri buildUri(String path, [Map<String, String>? query]) {
     if (baseUrl.isEmpty) {
       throw StateError('API_BASE_URL belum di-set. Jalankan dengan --dart-define=API_BASE_URL=...');
@@ -107,19 +103,6 @@ class ApiClient {
   }) async {
     return _sendJson(
       () => _client.put(
-        buildUri(path),
-        headers: _headers(),
-        body: jsonEncode(body ?? {}),
-      ),
-    );
-  }
-
-  Future<ApiResponse<Map<String, dynamic>>> patch(
-    String path, {
-    Map<String, dynamic>? body,
-  }) async {
-    return _sendJson(
-      () => _client.patch(
         buildUri(path),
         headers: _headers(),
         body: jsonEncode(body ?? {}),

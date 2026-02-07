@@ -6,8 +6,7 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
-import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
-import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
+import 'package:unila_helpdesk_frontend/core/auth/logout_helper.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -115,12 +114,7 @@ class ProfilePage extends ConsumerWidget {
           const SizedBox(height: 20),
           OutlinedButton.icon(
             onPressed: () async {
-              await TokenStorage().clearToken();
-              sharedApiClient.setAuthToken(null);
-              ref.read(adminUserProvider.notifier).state = null;
-              ref.read(currentUserProvider.notifier).state = null;
-              ref.invalidate(ticketsProvider);
-              ref.invalidate(notificationsProvider);
+              await performLogout(ref);
               if (!context.mounted) return;
               context.goNamed(AppRouteNames.login);
             },

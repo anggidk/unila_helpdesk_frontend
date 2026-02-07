@@ -69,6 +69,16 @@ class FcmService {
     await _sendToken(token);
   }
 
+  static Future<void> unregisterCurrentToken() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token == null || token.isEmpty) return;
+      await NotificationRepository().unregisterFcmToken(token);
+    } catch (_) {
+      // Ignore unregister failure during logout.
+    }
+  }
+
   static Future<void> _requestPermissions() async {
     await FirebaseMessaging.instance.requestPermission(
       alert: true,

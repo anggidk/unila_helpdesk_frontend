@@ -1,10 +1,14 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/utils/file_picker_utils.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/attachment_tile.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/form_widgets.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/info_banner.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final guestTicketSelectedCategoryProvider = StateProvider.autoDispose<String?>(
@@ -117,11 +121,37 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
           response.error?.message ?? 'Gagal mengirim laporan tamu',
         );
       }
+      final payload = response.data?['data'];
+      final createdTicket = payload is Map<String, dynamic>
+          ? Ticket.fromJson(payload)
+          : null;
+      final createdTicketID = payload is Map<String, dynamic>
+          ? payload['id']?.toString() ?? ''
+          : '';
       if (!mounted) return;
+      if (createdTicket != null && createdTicket.id.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Laporan tamu berhasil dikirim. Nomor tiket: ${createdTicket.id}',
+            ),
+          ),
+        );
+        context.pushNamed(
+          AppRouteNames.ticketDetail,
+          extra: createdTicket,
+        );
+        return;
+      }
+
+      final fallbackTicketID = createdTicketID.isNotEmpty ? createdTicketID : '-';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Laporan tamu berhasil dikirim.')),
+        SnackBar(
+          content: Text(
+            'Laporan tamu berhasil dikirim. Nomor tiket: $fallbackTicketID',
+          ),
+        ),
       );
-      context.pop();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -139,23 +169,8 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
   }) async {
     if (isIdentity && _isUploadingIdentity) return;
     if (!isIdentity && _isUploadingSelfie) return;
-    final result = await FilePicker.platform.pickFiles(withData: true);
-    if (result == null || result.files.isEmpty) {
-      return;
-    }
-    final file = result.files.first;
-    if (file.bytes == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal membaca file.')),
-      );
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ukuran file maksimal 5MB.')),
-      );
+    final pickedFile = await pickAttachmentFile(context);
+    if (pickedFile == null) {
       return;
     }
     setState(() {
@@ -167,16 +182,16 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     });
     try {
       final url = await TicketRepository().uploadAttachment(
-        filename: file.name,
-        bytes: file.bytes!,
+        filename: pickedFile.name,
+        bytes: pickedFile.bytes,
       );
       setState(() {
         if (isIdentity) {
           _identityAttachment = url;
-          _identityName = file.name;
+          _identityName = pickedFile.name;
         } else {
           _selfieAttachment = url;
-          _selfieName = file.name;
+          _selfieName = pickedFile.name;
         }
         _attachmentsError = false;
       });
@@ -210,7 +225,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _InfoBanner(
+          const InfoBanner(
             text:
                 'Silakan isi formulir di bawah ini untuk melaporkan masalah tanpa login. Laporan Anda akan diproses oleh tim helpdesk kami.',
           ),
@@ -225,21 +240,13 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _RequiredLabel(text: 'Jenis Layanan'),
+                      const RequiredLabel(text: 'Jenis Layanan'),
                       const SizedBox(height: 8),
-                      if (categoriesAsync.isLoading)
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 12),
-                          child: LinearProgressIndicator(),
-                        ),
-                      if (categoriesAsync.hasError)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(
-                            'Gagal memuat kategori: ${categoriesAsync.error}',
-                            style: const TextStyle(color: AppTheme.textMuted),
-                          ),
-                        ),
+                      ...buildCategoryLoadIndicators(
+                        isLoading: categoriesAsync.isLoading,
+                        error:
+                            categoriesAsync.hasError ? categoriesAsync.error : null,
+                      ),
                       DropdownButtonFormField<String>(
                         initialValue: selectedCategory,
                         items: categories
@@ -269,31 +276,14 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      const _RequiredLabel(text: 'Prioritas'),
+                      const RequiredLabel(text: 'Prioritas'),
                       const SizedBox(height: 10),
-                      Row(
-                        children: TicketPriority.values.map((priority) {
-                          final isSelected = selectedPriority == priority;
-                          return Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                right: priority == TicketPriority.high ? 0 : 8,
-                              ),
-                              child: _PriorityChip(
-                                label: priority.label,
-                                selected: isSelected,
-                                onTap: () =>
-                                    ref
-                                            .read(
-                                              guestTicketPriorityProvider
-                                                  .notifier,
-                                            )
-                                            .state =
-                                        priority,
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                      PrioritySelector(
+                        selected: selectedPriority,
+                        onChanged: (priority) {
+                          ref.read(guestTicketPriorityProvider.notifier).state =
+                              priority;
+                        },
                       ),
                     ],
                   ),
@@ -304,7 +294,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _RequiredLabel(text: 'Nama Lengkap'),
+                      const RequiredLabel(text: 'Nama Lengkap'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _nameController,
@@ -319,7 +309,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      const _RequiredLabel(text: 'Status User'),
+                      const RequiredLabel(text: 'Status User'),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         initialValue: _statusUser,
@@ -351,7 +341,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      const _RequiredLabel(text: 'No. Identitas'),
+                      const RequiredLabel(text: 'No. Identitas'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _idController,
@@ -374,7 +364,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const _RequiredLabel(text: 'Email Aktif'),
+                      const RequiredLabel(text: 'Email Aktif'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _emailController,
@@ -401,7 +391,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const _RequiredLabel(text: 'No. Telepon'),
+                      const RequiredLabel(text: 'No. Telepon'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _phoneController,
@@ -426,7 +416,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _RequiredLabel(text: 'Deskripsi Masalah'),
+                      const RequiredLabel(text: 'Deskripsi Masalah'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _descriptionController,
@@ -450,9 +440,9 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const _RequiredLabel(text: 'Wajib diisi'),
+                      const RequiredLabel(text: 'Wajib diisi'),
                       const SizedBox(height: 8),
-                      _UploadTile(
+                      AttachmentTile(
                         title: 'Foto KTM / ID Card / SK Pengangkatan',
                         subtitle: _identityName ?? 'JPG, PNG, PDF (Max 5MB)',
                         icon: Icons.badge_outlined,
@@ -461,7 +451,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                         onTap: () => _pickGuestAttachment(isIdentity: true),
                       ),
                       const SizedBox(height: 12),
-                      _UploadTile(
+                      AttachmentTile(
                         title: 'Swafoto (Selfie) dengan KTM',
                         subtitle: _selfieName ?? 'JPG, PNG, PDF (Max 5MB)',
                         icon: Icons.camera_alt_outlined,
@@ -508,37 +498,6 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
   }
 }
 
-class _InfoBanner extends StatelessWidget {
-  const _InfoBanner({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.accentBlue.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.accentBlue.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.info, color: AppTheme.accentBlue),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: AppTheme.accentBlue),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SectionCard extends StatelessWidget {
   const _SectionCard({required this.title, required this.child});
 
@@ -569,176 +528,6 @@ class _SectionCard extends StatelessWidget {
           const SizedBox(height: 12),
           child,
         ],
-      ),
-    );
-  }
-}
-
-class _RequiredLabel extends StatelessWidget {
-  const _RequiredLabel({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return RichText(
-      text: TextSpan(
-        style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-        children: [
-          TextSpan(text: text),
-          const TextSpan(
-            text: ' *',
-            style: TextStyle(color: AppTheme.danger),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PriorityChip extends StatelessWidget {
-  const _PriorityChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppTheme.navy.withValues(alpha: 0.08)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? AppTheme.navy : AppTheme.outline,
-            width: 1.2,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected ? AppTheme.navy : AppTheme.textMuted,
-                  width: 1.6,
-                ),
-              ),
-              child: selected
-                  ? Center(
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.navy,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? AppTheme.navy : AppTheme.textMuted,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _UploadTile extends StatelessWidget {
-  const _UploadTile({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.isUploaded,
-    required this.isUploading,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool isUploaded;
-  final bool isUploading;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: isUploading ? null : onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.surface.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isUploaded ? AppTheme.success : AppTheme.outline,
-            style: BorderStyle.solid,
-            width: 1.2,
-          ),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(icon, color: AppTheme.navy),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isUploading)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              Icon(
-                isUploaded ? Icons.check_circle : Icons.upload_file,
-                color: isUploaded ? AppTheme.success : AppTheme.textMuted,
-              ),
-          ],
-        ),
       ),
     );
   }

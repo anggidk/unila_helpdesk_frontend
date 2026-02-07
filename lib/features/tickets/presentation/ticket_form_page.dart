@@ -1,10 +1,11 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
-import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/utils/file_picker_utils.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/attachment_tile.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/form_widgets.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final ticketFormSelectedCategoryProvider = StateProvider.autoDispose<String?>(
@@ -119,33 +120,18 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
 
   Future<void> _pickAttachment() async {
     if (_isUploading) return;
-    final result = await FilePicker.platform.pickFiles(withData: true);
-    if (result == null || result.files.isEmpty) {
-      return;
-    }
-    final file = result.files.first;
-    if (file.bytes == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal membaca file.')),
-      );
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ukuran file maksimal 5MB.')),
-      );
+    final pickedFile = await pickAttachmentFile(context);
+    if (pickedFile == null) {
       return;
     }
     setState(() => _isUploading = true);
     try {
       final url = await TicketRepository().uploadAttachment(
-        filename: file.name,
-        bytes: file.bytes!,
+        filename: pickedFile.name,
+        bytes: pickedFile.bytes,
       );
       setState(() {
-        _attachments.add(_AttachmentItem(name: file.name, url: url));
+        _attachments.add(_AttachmentItem(name: pickedFile.name, url: url));
       });
     } catch (error) {
       if (!mounted) return;
@@ -181,21 +167,12 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _RequiredLabel(text: 'Kategori Layanan'),
+                const RequiredLabel(text: 'Kategori Layanan'),
                 const SizedBox(height: 8),
-                if (categoriesAsync.isLoading)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: LinearProgressIndicator(),
-                  ),
-                if (categoriesAsync.hasError)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      'Gagal memuat kategori: ${categoriesAsync.error}',
-                      style: const TextStyle(color: AppTheme.textMuted),
-                    ),
-                  ),
+                ...buildCategoryLoadIndicators(
+                  isLoading: categoriesAsync.isLoading,
+                  error: categoriesAsync.hasError ? categoriesAsync.error : null,
+                ),
                 DropdownButtonFormField<String>(
                   initialValue: selectedCategory,
                   items: categories
@@ -222,7 +199,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                const _RequiredLabel(text: 'Judul Masalah'),
+                const RequiredLabel(text: 'Judul Masalah'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _titleController,
@@ -237,7 +214,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                const _RequiredLabel(text: 'Deskripsi'),
+                const RequiredLabel(text: 'Deskripsi'),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _descriptionController,
@@ -253,28 +230,14 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                const _RequiredLabel(text: 'Prioritas'),
+                const RequiredLabel(text: 'Prioritas'),
                 const SizedBox(height: 10),
-                Row(
-                  children: TicketPriority.values.map((priority) {
-                    final isSelected = selectedPriority == priority;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          right: priority == TicketPriority.high ? 0 : 8,
-                        ),
-                        child: _PriorityChip(
-                          label: priority.label,
-                          selected: isSelected,
-                          onTap: () =>
-                              ref
-                                      .read(ticketFormPriorityProvider.notifier)
-                                      .state =
-                                  priority,
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                PrioritySelector(
+                  selected: selectedPriority,
+                  onChanged: (priority) {
+                    ref.read(ticketFormPriorityProvider.notifier).state =
+                        priority;
+                  },
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -300,7 +263,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                         .toList(),
                   ),
                 const SizedBox(height: 8),
-                _AttachmentTile(
+                AttachmentTile(
                   title: 'Tambah Lampiran',
                   subtitle: 'Maks 5MB (JPG, PNG, PDF)',
                   icon: Icons.attach_file,
@@ -328,167 +291,6 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RequiredLabel extends StatelessWidget {
-  const _RequiredLabel({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return RichText(
-      text: TextSpan(
-        style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-        children: [
-          TextSpan(text: text),
-          const TextSpan(
-            text: ' *',
-            style: TextStyle(color: AppTheme.danger),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PriorityChip extends StatelessWidget {
-  const _PriorityChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppTheme.navy.withValues(alpha: 0.08)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? AppTheme.navy : AppTheme.outline,
-            width: 1.2,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected ? AppTheme.navy : AppTheme.textMuted,
-                  width: 1.6,
-                ),
-              ),
-              child: selected
-                  ? Center(
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.navy,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? AppTheme.navy : AppTheme.textMuted,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AttachmentTile extends StatelessWidget {
-  const _AttachmentTile({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.onTap,
-    required this.isUploading,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool isUploading;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: isUploading ? null : onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.surface.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.outline, style: BorderStyle.solid),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(icon, color: AppTheme.navy),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isUploading)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              const Icon(Icons.upload_file, color: AppTheme.textMuted),
-          ],
-        ),
       ),
     );
   }

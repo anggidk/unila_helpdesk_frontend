@@ -34,17 +34,6 @@ class UserProfile {
       'entity': entity,
     };
   }
-
-  String get roleLabel {
-    switch (role) {
-      case UserRole.registered:
-        return 'Terdaftar';
-      case UserRole.guest:
-        return 'Guest';
-      case UserRole.admin:
-        return 'Admin';
-    }
-  }
 }
 
 UserRole _roleFromString(String value) {

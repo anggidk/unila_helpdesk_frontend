@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/utils/date_filters.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/admin_filter_toolbar.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/filter_dropdown.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/pagination_controls.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final adminTicketSearchProvider = StateProvider.autoDispose<String>((ref) => '');
@@ -12,8 +16,14 @@ final adminTicketStatusFilterProvider =
 final adminTicketCategoryFilterProvider =
     StateProvider.autoDispose<String?>((ref) => null);
 final adminTicketDateFilterProvider =
-    StateProvider.autoDispose<_DateFilter>((ref) => _DateFilter.all);
+    StateProvider.autoDispose<AdminDateFilter>((ref) => AdminDateFilter.all);
 final adminTicketPageProvider = StateProvider.autoDispose<int>((ref) => 1);
+const List<AdminDateFilter> _ticketDateFilters = [
+  AdminDateFilter.all,
+  AdminDateFilter.today,
+  AdminDateFilter.last7Days,
+  AdminDateFilter.last30Days,
+];
 final adminTicketsProvider =
     FutureProvider.autoDispose<TicketPage>((ref) async {
   final query = ref.watch(adminTicketSearchProvider);
@@ -24,21 +34,10 @@ final adminTicketsProvider =
   final now = DateTime.now();
   DateTime? start;
   DateTime? end;
-  switch (dateFilter) {
-    case _DateFilter.today:
-      start = DateTime(now.year, now.month, now.day);
-      end = start.add(const Duration(days: 1));
-      break;
-    case _DateFilter.last7Days:
-      start = now.subtract(const Duration(days: 7));
-      end = now;
-      break;
-    case _DateFilter.last30Days:
-      start = now.subtract(const Duration(days: 30));
-      end = now;
-      break;
-    case _DateFilter.all:
-      break;
+  final range = adminDateRange(dateFilter, now);
+  if (range != null) {
+    start = range.start;
+    end = range.end;
   }
   return TicketRepository().fetchTicketsPaged(
     query: query,
@@ -111,36 +110,28 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) {
-                    ref.read(adminTicketSearchProvider.notifier).state = value;
-                    ref.read(adminTicketPageProvider.notifier).state = 1;
-                  },
-                  decoration: const InputDecoration(
-                    hintText: 'Cari berdasarkan ID tiket atau judul...',
-                    prefixIcon: Icon(Icons.search),
-                    suffixIcon: null,
-                  ).copyWith(
-                    suffixIcon: searchValue.isEmpty
-                        ? null
-                        : IconButton(
-                            onPressed: () {
-                              ref.read(adminTicketSearchProvider.notifier).state = '';
-                              ref.read(adminTicketPageProvider.notifier).state = 1;
-                              _searchController.clear();
-                            },
-                            icon: const Icon(Icons.close),
-                            tooltip: 'Hapus',
-                          ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              _FilterDropdown<TicketStatus?>(
+          AdminFilterToolbar(
+            controller: _searchController,
+            searchHintText: 'Cari berdasarkan ID tiket atau judul...',
+            searchValue: searchValue,
+            onSearchChanged: (value) {
+              ref.read(adminTicketSearchProvider.notifier).state = value;
+              ref.read(adminTicketPageProvider.notifier).state = 1;
+            },
+            onClearSearch: () {
+              ref.read(adminTicketSearchProvider.notifier).state = '';
+              ref.read(adminTicketPageProvider.notifier).state = 1;
+            },
+            onReset: () {
+              ref.read(adminTicketSearchProvider.notifier).state = '';
+              ref.read(adminTicketStatusFilterProvider.notifier).state = null;
+              ref.read(adminTicketCategoryFilterProvider.notifier).state = null;
+              ref.read(adminTicketDateFilterProvider.notifier).state =
+                  AdminDateFilter.all;
+              ref.read(adminTicketPageProvider.notifier).state = 1;
+            },
+            filters: [
+              FilterDropdown<TicketStatus?>(
                 label: 'Status',
                 icon: Icons.filter_list,
                 valueLabel: selectedStatus?.label ?? 'Semua',
@@ -154,8 +145,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                   ref.read(adminTicketPageProvider.notifier).state = 1;
                 },
               ),
-              const SizedBox(width: 12),
-              _FilterDropdown<String?>(
+              FilterDropdown<String?>(
                 label: 'Kategori',
                 icon: Icons.category_outlined,
                 valueLabel: categoryLabel,
@@ -169,33 +159,18 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                   ref.read(adminTicketPageProvider.notifier).state = 1;
                 },
               ),
-              const SizedBox(width: 12),
-              _FilterDropdown<_DateFilter>(
+              FilterDropdown<AdminDateFilter>(
                 label: 'Tanggal',
                 icon: Icons.calendar_today_outlined,
                 valueLabel: dateFilter.label,
                 enabled: true,
                 options: {
-                  for (final filter in _DateFilter.values) filter: filter.label,
+                  for (final filter in _ticketDateFilters) filter: filter.label,
                 },
                 onChanged: (value) {
                   ref.read(adminTicketDateFilterProvider.notifier).state = value;
                   ref.read(adminTicketPageProvider.notifier).state = 1;
                 },
-              ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  ref.read(adminTicketSearchProvider.notifier).state = '';
-                  ref.read(adminTicketStatusFilterProvider.notifier).state = null;
-                  ref.read(adminTicketCategoryFilterProvider.notifier).state = null;
-                  ref.read(adminTicketDateFilterProvider.notifier).state =
-                      _DateFilter.all;
-                  ref.read(adminTicketPageProvider.notifier).state = 1;
-                  _searchController.clear();
-                },
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Atur Ulang'),
               ),
             ],
           ),
@@ -312,103 +287,24 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                     ),
                   ),
                 ),
-                if (ticketPage != null && ticketPage.totalPages > 1)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Halaman ${ticketPage.page} dari ${ticketPage.totalPages} • Total ${ticketPage.total}',
-                          style: const TextStyle(color: AppTheme.textMuted),
-                        ),
-                        Row(
-                          children: [
-                            OutlinedButton(
-                              onPressed: ticketPage.hasPrev
-                                  ? () => ref
-                                      .read(adminTicketPageProvider.notifier)
-                                      .state = ticketPage.page - 1
-                                  : null,
-                              child: const Text('Sebelumnya'),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: ticketPage.hasNext
-                                  ? () => ref
-                                      .read(adminTicketPageProvider.notifier)
-                                      .state = ticketPage.page + 1
-                                  : null,
-                              child: const Text('Berikutnya'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                if (ticketPage != null)
+                  PaginationControls(
+                    page: ticketPage.page,
+                    totalPages: ticketPage.totalPages,
+                    totalItems: ticketPage.total,
+                    hasPrev: ticketPage.hasPrev,
+                    hasNext: ticketPage.hasNext,
+                    onPrev: () => ref
+                        .read(adminTicketPageProvider.notifier)
+                        .state = ticketPage.page - 1,
+                    onNext: () => ref
+                        .read(adminTicketPageProvider.notifier)
+                        .state = ticketPage.page + 1,
                   ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterDropdown<T> extends StatelessWidget {
-  const _FilterDropdown({
-    required this.label,
-    required this.icon,
-    required this.valueLabel,
-    required this.enabled,
-    required this.options,
-    required this.onChanged,
-  });
-
-  final String label;
-  final IconData icon;
-  final String valueLabel;
-  final bool enabled;
-  final Map<T, String> options;
-  final ValueChanged<T> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<T>(
-      onSelected: enabled ? onChanged : null,
-      itemBuilder: (context) => options.entries
-          .map(
-            (entry) => PopupMenuItem<T>(
-              value: entry.key,
-              child: Text(entry.value),
-            ),
-          )
-          .toList(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: enabled ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.4),
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '$label: $valueLabel',
-              style: TextStyle(
-                color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -439,22 +335,5 @@ class _StatusChip extends StatelessWidget {
         style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
     );
-  }
-}
-
-enum _DateFilter { all, today, last7Days, last30Days }
-
-extension _DateFilterX on _DateFilter {
-  String get label {
-    switch (this) {
-      case _DateFilter.today:
-        return 'Hari ini';
-      case _DateFilter.last7Days:
-        return '7 hari';
-      case _DateFilter.last30Days:
-        return '30 hari';
-      case _DateFilter.all:
-        return 'Semua';
-    }
   }
 }

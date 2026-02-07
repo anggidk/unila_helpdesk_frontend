@@ -6,7 +6,11 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/csv_exporter.dart';
+import 'package:unila_helpdesk_frontend/core/utils/period_utils.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/charts/line_chart.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/charts/usage_series.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/period_dropdown.dart';
 import 'package:unila_helpdesk_frontend/features/admin/data/report_repository.dart';
 
 class AdminReportsPage extends ConsumerStatefulWidget {
@@ -18,19 +22,6 @@ class AdminReportsPage extends ConsumerStatefulWidget {
 
 class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
   String? _lastCategoryId;
-
-  int _periodCount(String period) {
-    switch (period) {
-      case 'daily':
-        return 7;
-      case 'weekly':
-        return 4;
-      case 'yearly':
-        return 5;
-      default:
-        return 6;
-    }
-  }
 
   Future<void> _exportSurveyCsv({
     required BuildContext context,
@@ -50,7 +41,7 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
       );
       return;
     }
-    final periods = _periodCount(period);
+    final periods = periodsFor(period);
     try {
       final csv = await ReportRepository().exportSurveySatisfactionCsv(
         categoryId: categoryId,
@@ -170,7 +161,7 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
                 },
               ),
               const SizedBox(width: 12),
-              _PeriodDropdown(
+              PeriodDropdown(
                 value: period,
                 onChanged: (value) {
                   ref.read(reportsPeriodProvider.notifier).state = value;
@@ -238,7 +229,7 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               const SizedBox(width: 12),
-              _PeriodDropdown(
+              PeriodDropdown(
                 value: chartPeriod,
                 onChanged: (value) {
                   ref.read(reportsChartPeriodProvider.notifier).state = value;
@@ -259,20 +250,9 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
                       if (rows.isEmpty) {
                         return const Text('Belum ada data.', style: TextStyle(color: AppTheme.textMuted));
                       }
-                      return _LineChart(
+                      return LineChart(
                         labels: rows.map((row) => row.label).toList(),
-                        series: [
-                          _LineSeries(
-                            label: 'Tiket',
-                            color: AppTheme.navy,
-                            values: rows.map((row) => row.tickets).toList(),
-                          ),
-                          _LineSeries(
-                            label: 'Survei',
-                            color: AppTheme.accentYellow,
-                            values: rows.map((row) => row.surveys).toList(),
-                          ),
-                        ],
+                        series: buildUsageLineSeries(rows),
                       );
                     },
                     loading: () => const Center(child: CircularProgressIndicator()),
@@ -354,43 +334,6 @@ class _CardPlaceholder extends StatelessWidget {
   }
 }
 
-class _PeriodDropdown extends StatelessWidget {
-  const _PeriodDropdown({required this.value, required this.onChanged});
-
-  final String value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      onSelected: onChanged,
-      itemBuilder: (context) => const [
-        PopupMenuItem(value: 'daily', child: Text('Harian')),
-        PopupMenuItem(value: 'weekly', child: Text('Mingguan')),
-        PopupMenuItem(value: 'monthly', child: Text('Bulanan')),
-        PopupMenuItem(value: 'yearly', child: Text('Tahunan')),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppTheme.outline),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.expand_more, size: 18),
-            const SizedBox(width: 6),
-            Text(
-              'Periode: ${_periodLabel(value)}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _SelectDropdown extends StatelessWidget {
   const _SelectDropdown({
     required this.label,
@@ -443,209 +386,6 @@ class _SelectDropdown extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-String _periodLabel(String period) {
-  switch (period) {
-    case 'daily':
-      return 'Harian';
-    case 'weekly':
-      return 'Mingguan';
-    case 'yearly':
-      return 'Tahunan';
-    default:
-      return 'Bulanan';
-  }
-}
-
-class _LineSeries {
-  const _LineSeries({
-    required this.label,
-    required this.color,
-    required this.values,
-  });
-
-  final String label;
-  final Color color;
-  final List<int> values;
-}
-
-class _LineChart extends StatelessWidget {
-  const _LineChart({
-    required this.labels,
-    required this.series,
-  });
-
-  final List<String> labels;
-  final List<_LineSeries> series;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _ChartLegend(series: series),
-        const SizedBox(height: 8),
-        Expanded(
-          child: CustomPaint(
-            painter: _LineChartPainter(series: series),
-            child: const SizedBox.expand(),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: labels
-              .map(
-                (label) => Expanded(
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-      ],
-    );
-  }
-}
-
-class _LineChartPainter extends CustomPainter {
-  _LineChartPainter({required this.series});
-
-  final List<_LineSeries> series;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final maxValue = _maxValue(series);
-    if (maxValue <= 0) {
-      return;
-    }
-    final axisStep = _axisStepFor(maxValue);
-    final axisMax = axisStep * 5;
-    const axisPadding = 36.0;
-    final chartRect = Rect.fromLTWH(
-      axisPadding,
-      4,
-      size.width - axisPadding,
-      size.height - 8,
-    );
-    final gridPaint = Paint()
-      ..color = AppTheme.outline
-      ..strokeWidth = 1;
-    final labelStyle = const TextStyle(fontSize: 10, color: AppTheme.textMuted);
-    for (var i = 0; i <= 5; i++) {
-      final ratio = i / 5;
-      final dy = chartRect.bottom - (chartRect.height * ratio);
-      canvas.drawLine(
-        Offset(chartRect.left, dy),
-        Offset(chartRect.right, dy),
-        gridPaint,
-      );
-      final value = axisStep * i;
-      final textPainter = TextPainter(
-        text: TextSpan(text: value.toString(), style: labelStyle),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      textPainter.paint(
-        canvas,
-        Offset(chartRect.left - 6 - textPainter.width, dy - textPainter.height / 2),
-      );
-    }
-
-    for (final line in series) {
-      final linePaint = Paint()
-        ..color = line.color
-        ..strokeWidth = 2
-        ..style = PaintingStyle.stroke;
-      final points = _pointsForLine(line, chartRect, axisMax);
-      if (points.isEmpty) continue;
-      final path = Path()..moveTo(points.first.dx, points.first.dy);
-      for (var i = 1; i < points.length; i++) {
-        path.lineTo(points[i].dx, points[i].dy);
-      }
-      canvas.drawPath(path, linePaint);
-
-      final pointPaint = Paint()..color = line.color;
-      for (final point in points) {
-        canvas.drawCircle(point, 3, pointPaint);
-      }
-    }
-  }
-
-  List<Offset> _pointsForLine(_LineSeries line, Rect rect, int maxValue) {
-    final count = line.values.length;
-    if (count == 0) return [];
-    final points = <Offset>[];
-    for (var i = 0; i < count; i++) {
-      final ratioX = count == 1 ? 0.5 : i / (count - 1);
-      final value = line.values[i];
-      final ratioY = value / maxValue;
-      final x = rect.left + rect.width * ratioX;
-      final y = rect.bottom - rect.height * ratioY;
-      points.add(Offset(x, y));
-    }
-    return points;
-  }
-
-  int _maxValue(List<_LineSeries> series) {
-    var maxValue = 0;
-    for (final line in series) {
-      for (final value in line.values) {
-        if (value > maxValue) {
-          maxValue = value;
-        }
-      }
-    }
-    return maxValue == 0 ? 1 : maxValue;
-  }
-
-  int _axisStepFor(int maxValue) {
-    var step = 10;
-    while (maxValue > step * 5) {
-      step *= 2;
-    }
-    return step;
-  }
-
-  @override
-  bool shouldRepaint(covariant _LineChartPainter oldDelegate) {
-    return oldDelegate.series != series;
-  }
-}
-
-class _ChartLegend extends StatelessWidget {
-  const _ChartLegend({required this.series});
-
-  final List<_LineSeries> series;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: series
-          .map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: item.color,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(item.label, style: const TextStyle(color: AppTheme.textMuted)),
-                ],
-              ),
-            ),
-          )
-          .toList(),
     );
   }
 }

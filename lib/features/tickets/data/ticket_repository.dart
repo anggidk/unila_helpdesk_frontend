@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
+import 'package:unila_helpdesk_frontend/core/network/query_params.dart';
 import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 
 class TicketRepository {
@@ -37,25 +38,17 @@ class TicketRepository {
     int page = 1,
     int limit = 50,
   }) async {
-    final params = <String, String>{
-      'page': page.toString(),
-      'limit': limit.toString(),
-    };
-    if (query != null && query.trim().isNotEmpty) {
-      params['q'] = query.trim();
-    }
-    if (status != null && status.isNotEmpty) {
-      params['status'] = status;
-    }
-    if (categoryId != null && categoryId.isNotEmpty) {
-      params['categoryId'] = categoryId;
-    }
-    if (start != null) {
-      params['start'] = start.toUtc().toIso8601String();
-    }
-    if (end != null) {
-      params['end'] = end.toUtc().toIso8601String();
-    }
+    final params = buildPagedQueryParams(
+      page: page,
+      limit: limit,
+      query: query,
+      start: start,
+      end: end,
+      extra: {
+        'status': status,
+        'categoryId': categoryId,
+      },
+    );
     final response = await _client.get(ApiEndpoints.ticketsPaged, query: params);
     final data = response.data?['data'];
     if (response.isSuccess && data is Map<String, dynamic>) {
@@ -96,16 +89,6 @@ class TicketRepository {
 
   Future<ApiResponse<Map<String, dynamic>>> deleteTicket(String id) {
     return _client.post('${ApiEndpoints.ticketById(id)}/delete');
-  }
-
-  Future<ApiResponse<Map<String, dynamic>>> addComment({
-    required String id,
-    required String message,
-  }) {
-    return _client.post(
-      '${ApiEndpoints.ticketById(id)}/comments',
-      body: {'message': message},
-    );
   }
 
   Future<String> uploadAttachment({

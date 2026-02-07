@@ -7,13 +7,9 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/features/auth/data/auth_repository.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
+import 'package:unila_helpdesk_frontend/core/auth/logout_helper.dart';
 import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
-import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/notifications/fcm_service.dart';
-
-final loginEntityProvider = StateProvider.autoDispose<String>(
-  (ref) => 'Mahasiswa',
-);
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -48,10 +44,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final password = _passwordController.text.trim();
 
     try {
-      await TokenStorage().clearToken();
-      sharedApiClient.setAuthToken(null);
-      ref.read(adminUserProvider.notifier).state = null;
-      ref.read(currentUserProvider.notifier).state = null;
+      await performLogout(ref);
       final auth = AuthRepository();
       final session = await auth.signInWithPassword(
         username: username,
@@ -66,11 +59,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       final user = session.user;
       await TokenStorage().saveUser(user);
       if (user.role == UserRole.admin && !kIsWeb) {
-        await TokenStorage().clearToken();
-        await TokenStorage().saveRefreshToken('');
-        sharedApiClient.setAuthToken(null);
-        ref.read(adminUserProvider.notifier).state = null;
-        ref.read(currentUserProvider.notifier).state = null;
+        await performLogout(ref);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Admin hanya bisa login via web.')),

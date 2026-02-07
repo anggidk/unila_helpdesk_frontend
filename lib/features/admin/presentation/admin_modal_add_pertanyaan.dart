@@ -262,8 +262,6 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                         ? null
                         : () {
                             final payload = AddQuestionPayload(
-                              categoryId: _category.id,
-                              isRequired: _isRequired,
                               question: SurveyQuestion(
                                 id: widget.initialQuestion?.id ??
                                     DateTime.now()

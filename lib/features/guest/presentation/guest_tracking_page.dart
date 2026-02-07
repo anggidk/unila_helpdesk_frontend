@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/info_banner.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final guestTrackingFoundTicketProvider = StateProvider.autoDispose<Ticket?>(
@@ -65,7 +66,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const _InfoBanner(
+          const InfoBanner(
             text: 'Masukkan nomor tiket untuk melacak status laporan.',
           ),
           const SizedBox(height: 16),
@@ -148,39 +149,6 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
                 textAlign: TextAlign.center,
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoBanner extends StatelessWidget {
-  const _InfoBanner({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.accentBlue.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.accentBlue.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.info, color: AppTheme.accentBlue),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: AppTheme.accentBlue),
-            ),
-          ),
         ],
       ),
     );
