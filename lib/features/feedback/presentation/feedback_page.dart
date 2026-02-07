@@ -220,10 +220,7 @@ class _RatingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (score <= 0) {
-      return const Text('Rating belum tersedia.');
-    }
-    final clamped = scoreToFive(score).clamp(0, 5).toDouble();
+    final clamped = scoreToFive(score).clamp(1, 5).toDouble();
     final stars = buildStarIcons(clamped);
     return Row(
       children: [
