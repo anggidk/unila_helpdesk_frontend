@@ -200,7 +200,7 @@ class _FeedbackList extends ConsumerWidget {
                     label: const Text('ISI UMPAN BALIK'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.accentYellow,
-                      foregroundColor: AppTheme.navy,
+                      foregroundColor: AppTheme.unilaBlack,
                     ),
                   ),
                 ),

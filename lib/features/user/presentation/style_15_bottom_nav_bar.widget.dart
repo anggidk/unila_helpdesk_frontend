@@ -64,11 +64,39 @@ class Style15BottomNavBar extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Expanded(child: _NavItem(index: 0, item: items[0], selected: currentIndex == 0, onTap: onTap)),
-                  Expanded(child: _NavItem(index: 1, item: items[1], selected: currentIndex == 1, onTap: onTap)),
+                  Expanded(
+                    child: _NavItem(
+                      index: 0,
+                      item: items[0],
+                      selected: currentIndex == 0,
+                      onTap: onTap,
+                    ),
+                  ),
+                  Expanded(
+                    child: _NavItem(
+                      index: 1,
+                      item: items[1],
+                      selected: currentIndex == 1,
+                      onTap: onTap,
+                    ),
+                  ),
                   SizedBox(width: fabSize),
-                  Expanded(child: _NavItem(index: 2, item: items[2], selected: currentIndex == 2, onTap: onTap)),
-                  Expanded(child: _NavItem(index: 3, item: items[3], selected: currentIndex == 3, onTap: onTap)),
+                  Expanded(
+                    child: _NavItem(
+                      index: 2,
+                      item: items[2],
+                      selected: currentIndex == 2,
+                      onTap: onTap,
+                    ),
+                  ),
+                  Expanded(
+                    child: _NavItem(
+                      index: 3,
+                      item: items[3],
+                      selected: currentIndex == 3,
+                      onTap: onTap,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -93,7 +121,7 @@ class Style15BottomNavBar extends StatelessWidget {
                 ),
                 child: Icon(
                   middleItem.icon,
-                  color: AppTheme.navy,
+                  color: AppTheme.unilaBlack,
                   size: 28,
                 ),
               ),
@@ -120,11 +148,11 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppTheme.navy : AppTheme.textMuted;
+    final color = selected ? AppTheme.unilaBlack : AppTheme.textMuted;
     final textStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: color,
-          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-        );
+      color: color,
+      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+    );
 
     return InkWell(
       onTap: () => onTap(index),
