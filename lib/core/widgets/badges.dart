@@ -12,13 +12,10 @@ class StatusBadge extends StatelessWidget {
     Color color;
     switch (status) {
       case TicketStatus.waiting:
-        color = AppTheme.warning;
-        break;
-      case TicketStatus.processing:
-        color = AppTheme.accentBlue;
+        color = AppTheme.danger;
         break;
       case TicketStatus.inProgress:
-        color = AppTheme.accentYellow;
+        color = AppTheme.warning;
         break;
       case TicketStatus.resolved:
         color = AppTheme.success;

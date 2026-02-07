@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
@@ -118,10 +119,14 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
         _ticket.categoryId,
       );
       if (!mounted) return;
-      context.pushNamed(
+      final submitted = await context.pushNamed<bool>(
         AppRouteNames.survey,
         extra: SurveyPayload(ticket: _ticket, template: template),
       );
+      if (submitted == true) {
+        ref.invalidate(ticketsProvider);
+        await _loadDetail();
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(

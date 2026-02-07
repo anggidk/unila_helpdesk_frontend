@@ -1,12 +1,10 @@
-enum TicketStatus { waiting, processing, inProgress, resolved }
+enum TicketStatus { waiting, inProgress, resolved }
 
 extension TicketStatusX on TicketStatus {
   String get label {
     switch (this) {
       case TicketStatus.waiting:
         return 'Menunggu';
-      case TicketStatus.processing:
-        return 'Diproses';
       case TicketStatus.inProgress:
         return 'Progres';
       case TicketStatus.resolved:
@@ -207,7 +205,6 @@ class TicketPage {
 TicketStatus _statusFromString(String value) {
   switch (value) {
     case 'processing':
-      return TicketStatus.processing;
     case 'inProgress':
       return TicketStatus.inProgress;
     case 'resolved':

@@ -143,7 +143,7 @@ class SurveyPage extends ConsumerWidget {
                             content: Text('Survei berhasil dikirim.'),
                           ),
                         );
-                        Navigator.of(context).pop();
+                        Navigator.of(context).pop(true);
                       } catch (error) {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(

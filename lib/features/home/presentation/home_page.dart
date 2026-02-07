@@ -99,21 +99,21 @@ class _HomeContent extends StatelessWidget {
         Row(
           children: [
             _StatCard(
-              label: 'Aktif',
+              label: 'Menunggu',
+              value: '${summary.waitingCount}',
+              color: AppTheme.danger,
+            ),
+            const SizedBox(width: 12),
+            _StatCard(
+              label: 'Diproses',
               value: '${summary.activeCount}',
-              color: AppTheme.accentBlue,
+              color: AppTheme.warning,
             ),
             const SizedBox(width: 12),
             _StatCard(
               label: 'Selesai',
               value: '${summary.resolvedCount}',
               color: AppTheme.success,
-            ),
-            const SizedBox(width: 12),
-            _StatCard(
-              label: 'Menunggu',
-              value: '${summary.waitingCount}',
-              color: AppTheme.warning,
             ),
           ],
         ),
@@ -141,8 +141,7 @@ class _HomeContent extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             TextButton(
-              onPressed: () =>
-                  context.pushNamed(AppRouteNames.tickets),
+              onPressed: () => context.pushNamed(AppRouteNames.tickets),
               child: const Text('Lihat Semua'),
             ),
           ],
