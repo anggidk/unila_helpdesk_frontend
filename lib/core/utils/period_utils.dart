@@ -1,5 +1,7 @@
 import 'date_filters.dart';
 
+const Duration _wibOffset = Duration(hours: 7);
+
 int periodsFor(String period) {
   switch (period) {
     case 'daily':
@@ -47,9 +49,14 @@ int reportPeriodsFor(String period) {
 }
 
 DateRange reportWindowRangeFor(String period, DateTime now) {
-  final current = now.toUtc();
+  final currentUtc = now.toUtc();
+  final currentWib = currentUtc.add(_wibOffset);
   final normalized = period.trim().toLowerCase();
-  final dayStart = DateTime.utc(current.year, current.month, current.day);
+  final dayStart = DateTime.utc(
+    currentWib.year,
+    currentWib.month,
+    currentWib.day,
+  ).subtract(_wibOffset);
   final dayEnd = dayStart.add(const Duration(days: 1));
 
   switch (normalized) {
@@ -61,12 +68,12 @@ DateRange reportWindowRangeFor(String period, DateTime now) {
         end: dayEnd,
       );
     case 'yearly':
-      final yearStart = DateTime.utc(current.year, 1, 1);
-      final yearEnd = DateTime.utc(current.year + 1, 1, 1);
+      final yearStart = DateTime.utc(currentWib.year, 1, 1).subtract(_wibOffset);
+      final yearEnd = DateTime.utc(currentWib.year + 1, 1, 1).subtract(_wibOffset);
       return DateRange(start: yearStart, end: yearEnd);
     default:
-      final monthStart = DateTime.utc(current.year, current.month, 1);
-      final monthEnd = DateTime.utc(current.year, current.month + 1, 1);
+      final monthStart = DateTime.utc(currentWib.year, currentWib.month, 1).subtract(_wibOffset);
+      final monthEnd = DateTime.utc(currentWib.year, currentWib.month + 1, 1).subtract(_wibOffset);
       return DateRange(start: monthStart, end: monthEnd);
   }
 }
