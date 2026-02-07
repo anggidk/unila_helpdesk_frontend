@@ -41,7 +41,7 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
       );
       return;
     }
-    final periods = periodsFor(period);
+    final periods = reportPeriodsFor(period);
     try {
       final csv = await ReportRepository().exportSurveySatisfactionCsv(
         categoryId: categoryId,

@@ -71,7 +71,7 @@ final reportsChartUsageProvider = FutureProvider.autoDispose<List<UsageCohortRow
 final reportsChartServiceTrendsProvider =
     FutureProvider.autoDispose<List<ServiceTrend>>((ref) async {
   final period = ref.watch(reportsChartPeriodProvider);
-  final range = periodRangeFor(period, DateTime.now().toUtc());
+  final range = reportWindowRangeFor(period, DateTime.now().toUtc());
   return ReportRepository().fetchServiceTrends(
     start: range.start,
     end: range.end,
@@ -106,7 +106,7 @@ final surveySatisfactionProvider =
     categoryId: categoryId,
     templateId: templateId,
     period: period,
-    periods: periodsFor(period),
+    periods: reportPeriodsFor(period),
   );
 });
 final serviceTrendsProvider = FutureProvider<List<ServiceTrend>>((ref) async {

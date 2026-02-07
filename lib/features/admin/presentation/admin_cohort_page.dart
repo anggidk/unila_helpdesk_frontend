@@ -296,7 +296,7 @@ Map<String, Map<String, int>> _buildEntityServiceMatrix(
   final matrix = <String, Map<String, int>>{};
   for (final row in rows) {
     matrix.putIfAbsent(row.entity, () => <String, int>{});
-    matrix[row.entity]![row.category] = row.tickets;
+    matrix[row.entity]![row.category] = row.surveys;
   }
   return matrix;
 }
@@ -543,7 +543,7 @@ class _EntityServiceSection extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Heatmap penggunaan tiket per entitas & layanan.',
+            'Heatmap pengisian kuesioner per entitas & layanan.',
             style: TextStyle(color: AppTheme.textMuted),
           ),
           const SizedBox(height: 12),

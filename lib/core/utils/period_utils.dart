@@ -42,6 +42,35 @@ DateRange periodRangeFor(String period, DateTime now) {
   }
 }
 
+int reportPeriodsFor(String period) {
+  return 1;
+}
+
+DateRange reportWindowRangeFor(String period, DateTime now) {
+  final current = now.toUtc();
+  final normalized = period.trim().toLowerCase();
+  final dayStart = DateTime.utc(current.year, current.month, current.day);
+  final dayEnd = dayStart.add(const Duration(days: 1));
+
+  switch (normalized) {
+    case 'daily':
+      return DateRange(start: dayStart, end: dayEnd);
+    case 'weekly':
+      return DateRange(
+        start: dayStart.subtract(const Duration(days: 6)),
+        end: dayEnd,
+      );
+    case 'yearly':
+      final yearStart = DateTime.utc(current.year, 1, 1);
+      final yearEnd = DateTime.utc(current.year + 1, 1, 1);
+      return DateRange(start: yearStart, end: yearEnd);
+    default:
+      final monthStart = DateTime.utc(current.year, current.month, 1);
+      final monthEnd = DateTime.utc(current.year, current.month + 1, 1);
+      return DateRange(start: monthStart, end: monthEnd);
+  }
+}
+
 String periodLabel(String period) {
   switch (period) {
     case 'daily':
