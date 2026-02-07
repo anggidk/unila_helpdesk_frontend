@@ -128,7 +128,7 @@ class _HomeContent extends StatelessWidget {
             label: const Text('BUAT TIKET BARU'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.accentYellow,
-              foregroundColor: AppTheme.navy,
+              foregroundColor: AppTheme.unilaBlack,
             ),
           ),
         ),

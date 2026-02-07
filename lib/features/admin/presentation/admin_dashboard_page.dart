@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
+import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/charts/line_chart.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/charts/usage_series.dart';
@@ -13,7 +14,13 @@ class AdminDashboardPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final serviceTrendsAsync = ref.watch(serviceTrendsProvider);
+    final categoriesAsync = ref.watch(serviceCategoriesProvider);
     final serviceTrends = serviceTrendsAsync.value ?? [];
+    final categories = categoriesAsync.value ?? [];
+    final mergedTrends = _mergeServiceTrends(
+      trends: serviceTrends,
+      categories: categories,
+    );
     final summaryAsync = ref.watch(dashboardSummaryProvider);
     final usageAsync = ref.watch(dashboardUsageProvider);
     final satisfactionAsync = ref.watch(dashboardSatisfactionProvider);
@@ -85,10 +92,15 @@ class AdminDashboardPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Tiket per Kategori', style: TextStyle(fontWeight: FontWeight.w700)),
+                        const Text(
+                          'Tiket per Kategori',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                         const SizedBox(height: 12),
                         if (serviceTrendsAsync.isLoading)
-                          const Expanded(child: Center(child: CircularProgressIndicator()))
+                          const Expanded(
+                            child: Center(child: CircularProgressIndicator()),
+                          )
                         else if (serviceTrendsAsync.hasError)
                           Expanded(
                             child: Text(
@@ -96,9 +108,12 @@ class AdminDashboardPage extends ConsumerWidget {
                               style: const TextStyle(color: AppTheme.textMuted),
                             ),
                           )
-                        else if (serviceTrends.isEmpty)
+                        else if (mergedTrends.isEmpty)
                           const Expanded(
-                            child: Text('Belum ada data kategori.', style: TextStyle(color: AppTheme.textMuted)),
+                            child: Text(
+                              'Belum ada data kategori.',
+                              style: TextStyle(color: AppTheme.textMuted),
+                            ),
                           )
                         else
                           Expanded(
@@ -107,15 +122,16 @@ class AdminDashboardPage extends ConsumerWidget {
                                 SizedBox(
                                   height: 180,
                                   child: _PieChart(
-                                    sections: _trendSections(serviceTrends),
-                                    centerText: '${_formatCount(summary?.totalTickets)}\nTOTAL',
+                                    sections: _trendSections(mergedTrends),
+                                    centerText:
+                                        '${_formatCount(summary?.totalTickets)}\nTOTAL',
                                   ),
                                 ),
                                 const SizedBox(height: 12),
                                 Expanded(
                                   child: SingleChildScrollView(
                                     child: Column(
-                                      children: _trendLegend(serviceTrends),
+                                      children: _trendLegend(mergedTrends),
                                     ),
                                   ),
                                 ),
@@ -137,9 +153,15 @@ class AdminDashboardPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Tren Bulanan', style: TextStyle(fontWeight: FontWeight.w700)),
+                        const Text(
+                          'Tren Bulanan',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                         const SizedBox(height: 8),
-                        const Text('Volume tiket masuk tahun ini', style: TextStyle(color: AppTheme.textMuted)),
+                        const Text(
+                          'Volume tiket masuk tahun ini',
+                          style: TextStyle(color: AppTheme.textMuted),
+                        ),
                         const SizedBox(height: 12),
                         Expanded(
                           child: Container(
@@ -153,7 +175,12 @@ class AdminDashboardPage extends ConsumerWidget {
                               data: (rows) {
                                 if (rows.isEmpty) {
                                   return const Center(
-                                    child: Text('Belum ada data.', style: TextStyle(color: AppTheme.textMuted)),
+                                    child: Text(
+                                      'Belum ada data.',
+                                      style: TextStyle(
+                                        color: AppTheme.textMuted,
+                                      ),
+                                    ),
                                   );
                                 }
                                 return LineChart(
@@ -161,11 +188,15 @@ class AdminDashboardPage extends ConsumerWidget {
                                   series: buildUsageLineSeries(rows),
                                 );
                               },
-                              loading: () => const Center(child: CircularProgressIndicator()),
+                              loading: () => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
                               error: (error, _) => Center(
                                 child: Text(
                                   'Gagal memuat tren: $error',
-                                  style: const TextStyle(color: AppTheme.textMuted),
+                                  style: const TextStyle(
+                                    color: AppTheme.textMuted,
+                                  ),
                                   textAlign: TextAlign.center,
                                 ),
                               ),
@@ -186,7 +217,10 @@ class AdminDashboardPage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Kepuasan per Layanan (Hasil Survei)', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text(
+                  'Kepuasan per Layanan (Hasil Survei)',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 12),
                 satisfactionAsync.when(
                   data: (rows) {
@@ -197,10 +231,13 @@ class AdminDashboardPage extends ConsumerWidget {
                       );
                     }
                     return Column(
-                      children: rows.map((row) => _SatisfactionBarRow(row: row)).toList(),
+                      children: rows
+                          .map((row) => _SatisfactionBarRow(row: row))
+                          .toList(),
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (error, _) => Text(
                     'Gagal memuat kepuasan: $error',
                     style: const TextStyle(color: AppTheme.textMuted),
@@ -223,7 +260,7 @@ class AdminDashboardPage extends ConsumerWidget {
   }
 }
 
-const double _dashboardCardHeight = 420;
+const double _dashboardCardHeight = 450;
 
 class _StatCard extends StatelessWidget {
   const _StatCard({
@@ -267,7 +304,10 @@ class _StatCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(
+                    value,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ],
               ),
             ),
@@ -350,20 +390,14 @@ class _SatisfactionBarRow extends StatelessWidget {
 }
 
 class _PieSection {
-  const _PieSection({
-    required this.value,
-    required this.color,
-  });
+  const _PieSection({required this.value, required this.color});
 
   final double value;
   final Color color;
 }
 
 class _PieChart extends StatelessWidget {
-  const _PieChart({
-    required this.sections,
-    required this.centerText,
-  });
+  const _PieChart({required this.sections, required this.centerText});
 
   final List<_PieSection> sections;
   final String centerText;
@@ -414,13 +448,22 @@ class _PieChartPainter extends CustomPainter {
     }
     var startAngle = -90.0;
     final radius = size.width / 2;
-    final rect = Rect.fromCircle(center: size.center(Offset.zero), radius: radius);
+    final rect = Rect.fromCircle(
+      center: size.center(Offset.zero),
+      radius: radius,
+    );
     for (final section in sections) {
       final sweep = (section.value / total) * 360;
       final paint = Paint()
         ..color = section.color
         ..style = PaintingStyle.fill;
-      canvas.drawArc(rect, _degToRad(startAngle), _degToRad(sweep), true, paint);
+      canvas.drawArc(
+        rect,
+        _degToRad(startAngle),
+        _degToRad(sweep),
+        true,
+        paint,
+      );
       startAngle += sweep;
     }
   }
@@ -462,19 +505,58 @@ List<_PieSection> _trendSections(List<ServiceTrend> rows) {
   });
 }
 
+List<ServiceTrend> _mergeServiceTrends({
+  required List<ServiceTrend> trends,
+  required List<ServiceCategory> categories,
+}) {
+  final percentageByLabel = <String, double>{};
+  for (final trend in trends) {
+    percentageByLabel[trend.label] =
+        (percentageByLabel[trend.label] ?? 0) + trend.percentage;
+  }
+
+  final orderedLabels = <String>[];
+  for (final category in categories) {
+    if (category.name.isEmpty || orderedLabels.contains(category.name)) {
+      continue;
+    }
+    orderedLabels.add(category.name);
+  }
+
+  if (orderedLabels.isEmpty) {
+    return percentageByLabel.entries
+        .map((entry) => ServiceTrend(label: entry.key, percentage: entry.value))
+        .toList(growable: false);
+  }
+
+  final merged = <ServiceTrend>[];
+  for (final label in orderedLabels) {
+    merged.add(
+      ServiceTrend(
+        label: label,
+        percentage: percentageByLabel.remove(label) ?? 0,
+      ),
+    );
+  }
+  for (final entry in percentageByLabel.entries) {
+    merged.add(ServiceTrend(label: entry.key, percentage: entry.value));
+  }
+  return merged;
+}
+
 List<Color> _palette(int count) {
   const base = [
-    AppTheme.navy,
-    AppTheme.accentBlue,
-    AppTheme.accentYellow,
+    AppTheme.unilaBlack,
+    AppTheme.unilaBlue,
+    AppTheme.unilaGold,
     AppTheme.success,
     AppTheme.warning,
     AppTheme.danger,
     AppTheme.textMuted,
+    AppTheme.birutua,
   ];
   if (count <= base.length) {
     return base.take(count).toList();
   }
   return List.generate(count, (index) => base[index % base.length]);
 }
-

@@ -11,15 +11,16 @@ class AppTheme {
   // Backward-compatible aliases used across existing widgets.
   static const Color navy = unilaBlue;
   static const Color deepBlue = unilaBlack;
-  static const Color accentYellow = unilaGold;
+  static const Color accentYellow = Color(0xFFFFD700);
   static const Color accentBlue = unilaBlue;
+  static const Color birutua = Color(0xFF00008B);
   static const Color surface = Color(0xFFF6F8FB);
   static const Color card = Color(0xFFFFFFFF);
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textMuted = Color(0xFF64748B);
   static const Color outline = Color(0xFFE2E8F0);
   static const Color success = unilaGreen;
-  static const Color warning = unilaGold;
+  static const Color warning = Color(0xFFFFA500);
   static const Color danger = unilaRed;
 
   static ThemeData lightTheme = ThemeData(
@@ -71,7 +72,10 @@ class AppTheme {
       backgroundColor: Colors.white,
       selectedColor: accentBlue.withValues(alpha: 0.15),
       secondarySelectedColor: accentBlue.withValues(alpha: 0.15),
-      labelStyle: const TextStyle(color: textPrimary, fontWeight: FontWeight.w600),
+      labelStyle: const TextStyle(
+        color: textPrimary,
+        fontWeight: FontWeight.w600,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
         side: const BorderSide(color: outline),
@@ -82,9 +86,7 @@ class AppTheme {
         backgroundColor: navy,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
     ),
@@ -93,12 +95,9 @@ class AppTheme {
         foregroundColor: navy,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         side: const BorderSide(color: outline),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
     ),
   );
 }
-

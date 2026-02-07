@@ -75,7 +75,11 @@ class _BootPageState extends ConsumerState<BootPage> {
                   return const CircleAvatar(
                     radius: 48,
                     backgroundColor: AppTheme.surface,
-                    child: Icon(Icons.school, size: 48, color: AppTheme.navy),
+                    child: Icon(
+                      Icons.school,
+                      size: 48,
+                      color: AppTheme.unilaBlack,
+                    ),
                   );
                 },
               ),
