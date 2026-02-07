@@ -2,24 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const Color navy = Color(0xFF0B2E4E);
-  static const Color deepBlue = Color(0xFF06243B);
-  static const Color accentYellow = Color(0xFFFFD166);
-  static const Color accentBlue = Color(0xFF2D6CDF);
-  static const Color surface = Color(0xFFF4F7FB);
+  static const Color unilaBlue = Color(0xFF1E90FF);
+  static const Color unilaGold = Color(0xFFFFD700);
+  static const Color unilaRed = Color(0xFFFF0000);
+  static const Color unilaGreen = Color(0xFF008000);
+  static const Color unilaBlack = Color(0xFF000000);
+
+  // Backward-compatible aliases used across existing widgets.
+  static const Color navy = unilaBlue;
+  static const Color deepBlue = unilaBlack;
+  static const Color accentYellow = unilaGold;
+  static const Color accentBlue = unilaBlue;
+  static const Color surface = Color(0xFFF6F8FB);
   static const Color card = Color(0xFFFFFFFF);
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textMuted = Color(0xFF64748B);
   static const Color outline = Color(0xFFE2E8F0);
-  static const Color success = Color(0xFF23A559);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color danger = Color(0xFFE45757);
+  static const Color success = unilaGreen;
+  static const Color warning = unilaGold;
+  static const Color danger = unilaRed;
 
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     colorScheme: const ColorScheme.light(
-      primary: navy,
-      secondary: accentYellow,
+      primary: unilaBlue,
+      secondary: unilaGold,
       surface: surface,
       error: danger,
     ),
