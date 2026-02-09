@@ -66,7 +66,8 @@ class TicketUpdate {
     return TicketUpdate(
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
+      timestamp:
+          DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
           DateTime.now(),
     );
   }
@@ -84,21 +85,12 @@ class TicketComment {
   final String message;
   final DateTime timestamp;
   final bool isStaff;
-
-  factory TicketComment.fromJson(Map<String, dynamic> json) {
-    return TicketComment(
-      author: json['author']?.toString() ?? '',
-      message: json['message']?.toString() ?? '',
-      timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
-          DateTime.now(),
-      isStaff: json['isStaff'] == true,
-    );
-  }
 }
 
 class Ticket {
   const Ticket({
     required this.id,
+    this.ticketNumber = '',
     required this.title,
     required this.description,
     required this.category,
@@ -117,6 +109,7 @@ class Ticket {
   });
 
   final String id;
+  final String ticketNumber;
   final String title;
   final String description;
   final String category;
@@ -134,32 +127,43 @@ class Ticket {
   final double surveyScore;
 
   bool get isResolved => status == TicketStatus.resolved;
+  String get displayNumber => ticketNumber.isEmpty ? id : ticketNumber;
 
   factory Ticket.fromJson(Map<String, dynamic> json) {
     final history = (json['history'] as List<dynamic>? ?? [])
         .whereType<Map<String, dynamic>>()
         .map(TicketUpdate.fromJson)
         .toList();
-    final comments = (json['comments'] as List<dynamic>? ?? [])
-        .whereType<Map<String, dynamic>>()
-        .map(TicketComment.fromJson)
-        .toList();
     final attachments = (json['attachments'] as List<dynamic>? ?? [])
         .map((value) => value.toString())
         .toList();
+    final createdAt =
+        DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+        DateTime.now();
+    final assignee = json['assigneeId']?.toString();
+    final staffNotes = json['staffNotes']?.toString().trim() ?? '';
+    final comments = <TicketComment>[
+      if (staffNotes.isNotEmpty)
+        TicketComment(
+          author: (assignee == null || assignee.isEmpty) ? 'Staff' : assignee,
+          message: staffNotes,
+          timestamp: history.isNotEmpty ? history.first.timestamp : createdAt,
+          isStaff: true,
+        ),
+    ];
     return Ticket(
       id: json['id']?.toString() ?? '',
+      ticketNumber: json['ticketNumber']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       category: json['category']?.toString() ?? '',
       categoryId: json['categoryId']?.toString() ?? '',
       status: _statusFromString(json['status']?.toString() ?? ''),
       priority: _priorityFromString(json['priority']?.toString() ?? ''),
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
-          DateTime.now(),
-      reporter: json['reporter']?.toString() ?? '',
+      createdAt: createdAt,
+      reporter: json['reporterName']?.toString() ?? '',
       isGuest: json['isGuest'] == true,
-      assignee: json['assignee']?.toString(),
+      assignee: assignee,
       attachments: attachments,
       history: history,
       comments: comments,
@@ -204,7 +208,6 @@ class TicketPage {
 
 TicketStatus _statusFromString(String value) {
   switch (value) {
-    case 'processing':
     case 'inProgress':
       return TicketStatus.inProgress;
     case 'resolved':

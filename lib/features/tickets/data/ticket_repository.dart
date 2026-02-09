@@ -8,8 +8,7 @@ import 'package:unila_helpdesk_frontend/core/network/query_params.dart';
 import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 
 class TicketRepository {
-  TicketRepository({ApiClient? client})
-      : _client = client ?? sharedApiClient;
+  TicketRepository({ApiClient? client}) : _client = client ?? sharedApiClient;
 
   final ApiClient _client;
 
@@ -44,17 +43,23 @@ class TicketRepository {
       query: query,
       start: start,
       end: end,
-      extra: {
-        'status': status,
-        'categoryId': categoryId,
-      },
+      extra: {'status': status, 'categoryId': categoryId},
     );
-    final response = await _client.get(ApiEndpoints.ticketsPaged, query: params);
+    final response = await _client.get(
+      ApiEndpoints.ticketsPaged,
+      query: params,
+    );
     final data = response.data?['data'];
     if (response.isSuccess && data is Map<String, dynamic>) {
       return TicketPage.fromJson(data);
     }
-    return const TicketPage(items: [], page: 1, limit: 50, total: 0, totalPages: 1);
+    return const TicketPage(
+      items: [],
+      page: 1,
+      limit: 50,
+      total: 0,
+      totalPages: 1,
+    );
   }
 
   Future<Ticket> fetchTicketById(String id) async {
@@ -73,11 +78,18 @@ class TicketRepository {
   Future<ApiResponse<Map<String, dynamic>>> createGuestTicket({
     required TicketDraft draft,
     required String reporterName,
+    required String email,
+    required String phone,
   }) {
-    return _client.post(ApiEndpoints.guestTickets, body: {
-      ...draft.toJson(),
-      'reporter_name': reporterName,
-    });
+    return _client.post(
+      ApiEndpoints.guestTickets,
+      body: {
+        ...draft.toJson(),
+        'reporter_name': reporterName,
+        'email': email,
+        'phone': phone,
+      },
+    );
   }
 
   Future<ApiResponse<Map<String, dynamic>>> updateTicket({
@@ -106,11 +118,7 @@ class TicketRepository {
     }
     request.headers.addAll(headers);
     request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        bytes,
-        filename: filename,
-      ),
+      http.MultipartFile.fromBytes('file', bytes, filename: filename),
     );
     final streamed = await request.send();
     final body = await streamed.stream.bytesToString();
