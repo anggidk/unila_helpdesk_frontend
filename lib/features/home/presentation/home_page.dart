@@ -235,7 +235,7 @@ class _TicketPreview extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    ticket.id,
+                    ticket.displayNumber,
                     style: const TextStyle(color: AppTheme.textMuted),
                   ),
                 ],

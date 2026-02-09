@@ -196,7 +196,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      ticket.id,
+                      ticket.displayNumber,
                       style: const TextStyle(color: AppTheme.textMuted),
                     ),
                     StatusBadge(status: ticket.status),
@@ -304,6 +304,14 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
+          if (ticket.comments.where((comment) => comment.isStaff).isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Belum ada catatan staff.',
+                style: TextStyle(color: AppTheme.textMuted),
+              ),
+            ),
           ...ticket.comments
               .where((comment) => comment.isStaff)
               .map((comment) => _CommentBubble(comment: comment)),
@@ -340,22 +348,19 @@ class _CommentBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = comment.isStaff ? AppTheme.surface : AppTheme.navy;
-    final textColor = comment.isStaff ? AppTheme.textPrimary : Colors.white;
+    const background = AppTheme.surface;
+    const textColor = AppTheme.textPrimary;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: comment.isStaff
-            ? MainAxisAlignment.start
-            : MainAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          if (comment.isStaff)
-            const CircleAvatar(
-              backgroundColor: AppTheme.surface,
-              child: Icon(Icons.person, color: AppTheme.navy),
-            ),
-          if (comment.isStaff) const SizedBox(width: 10),
+          const CircleAvatar(
+            backgroundColor: AppTheme.surface,
+            child: Icon(Icons.person, color: AppTheme.navy),
+          ),
+          const SizedBox(width: 10),
           Flexible(
             child: Container(
               padding: const EdgeInsets.all(12),
@@ -387,12 +392,6 @@ class _CommentBubble extends StatelessWidget {
               ),
             ),
           ),
-          if (!comment.isStaff) const SizedBox(width: 10),
-          if (!comment.isStaff)
-            const CircleAvatar(
-              backgroundColor: AppTheme.surface,
-              child: Icon(Icons.person_outline, color: AppTheme.navy),
-            ),
         ],
       ),
     );

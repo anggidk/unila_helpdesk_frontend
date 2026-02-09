@@ -64,7 +64,7 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
 
       if (searchQuery.isNotEmpty) {
         final query = searchQuery.toLowerCase();
-        return ticket.id.toLowerCase().contains(query) ||
+        return ticket.displayNumber.toLowerCase().contains(query) ||
             ticket.title.toLowerCase().contains(query);
       }
       return true;
@@ -85,7 +85,7 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
             onChanged: (value) =>
                 ref.read(ticketListSearchQueryProvider.notifier).state = value,
             decoration: InputDecoration(
-              hintText: 'Cari ID atau kata kunci',
+              hintText: 'Cari nomor tiket atau kata kunci',
               prefixIcon: Icon(Icons.search),
               suffixIcon: searchQuery.isEmpty
                   ? null

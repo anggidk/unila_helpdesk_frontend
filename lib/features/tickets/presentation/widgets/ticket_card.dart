@@ -56,7 +56,10 @@ class TicketCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(ticket.id, style: const TextStyle(color: AppTheme.textMuted)),
+                  Text(
+                    ticket.displayNumber,
+                    style: const TextStyle(color: AppTheme.textMuted),
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
