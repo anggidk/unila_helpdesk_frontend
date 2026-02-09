@@ -59,6 +59,10 @@ class AdminSurveyPage extends ConsumerWidget {
     final extraTemplates = ref.watch(adminSurveyTemplatesProvider);
     final allTemplates = _mergeTemplates(baseTemplates, extraTemplates);
     final activeCategory = selectedCategory ?? (categories.isNotEmpty ? categories.first : null);
+    final assignedTemplateId = activeCategory?.surveyTemplateId ?? '';
+    final categoryTemplates = assignedTemplateId.isNotEmpty
+        ? allTemplates.where((template) => template.id == assignedTemplateId).toList()
+        : <SurveyTemplate>[];
     if (selectedCategory == null && activeCategory != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(adminSurveySelectedCategoryProvider.notifier).state = activeCategory;
@@ -80,36 +84,21 @@ class AdminSurveyPage extends ConsumerWidget {
     final lastCategoryId = ref.watch(adminSurveyLastCategoryIdProvider);
     if (activeCategory != null && activeCategory.id != lastCategoryId) {
       final preferredTemplateId = activeCategory.surveyTemplateId ?? '';
-      final nextTemplateId = preferredTemplateId.isNotEmpty &&
-              allTemplates.any((t) => t.id == preferredTemplateId)
-          ? preferredTemplateId
-          : (allTemplates.isNotEmpty ? allTemplates.first.id : '');
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(adminSurveyLastCategoryIdProvider.notifier).state = activeCategory.id;
-        ref.read(adminSurveySelectedTemplateIdProvider.notifier).state =
-            nextTemplateId;
+        if (preferredTemplateId.isNotEmpty) {
+          ref.read(adminSurveySelectedTemplateIdProvider.notifier).state =
+              preferredTemplateId;
+        }
       });
     }
 
     final selectedTemplateId = ref.watch(adminSurveySelectedTemplateIdProvider);
     SurveyTemplate? template;
-    if (activeCategory != null &&
-        selectedTemplateId.isNotEmpty &&
-        !allTemplates.any((t) => t.id == selectedTemplateId)) {
-      final preferredTemplateId = activeCategory.surveyTemplateId ?? '';
-      final nextTemplateId = preferredTemplateId.isNotEmpty &&
-              allTemplates.any((t) => t.id == preferredTemplateId)
-          ? preferredTemplateId
-          : (allTemplates.isNotEmpty ? allTemplates.first.id : '');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(adminSurveySelectedTemplateIdProvider.notifier).state =
-            nextTemplateId;
-      });
-    }
-    if (allTemplates.isNotEmpty) {
-      template = allTemplates.firstWhere(
+    if (categoryTemplates.isNotEmpty) {
+      template = categoryTemplates.firstWhere(
         (t) => t.id == selectedTemplateId,
-        orElse: () => allTemplates.first,
+        orElse: () => categoryTemplates.first,
       );
     }
     final questions = activeCategory == null
@@ -227,14 +216,22 @@ class AdminSurveyPage extends ConsumerWidget {
                                   questions: template.questions,
                                 );
                                 await CategoryRepository().updateTemplate(
-                                  categoryId: activeCategory.id,
+                                  categoryId: saved.categoryId,
                                   templateId: saved.id,
                                 );
+                                ServiceCategory? selectedAfterCreate;
+                                for (final item in categories) {
+                                  if (item.id == saved.categoryId) {
+                                    selectedAfterCreate = item;
+                                    break;
+                                  }
+                                }
+                                final nextCategory = selectedAfterCreate ?? activeCategory;
                                 ref.read(adminSurveySelectedCategoryProvider.notifier).state =
                                     ServiceCategory(
-                                      id: activeCategory.id,
-                                      name: activeCategory.name,
-                                      guestAllowed: activeCategory.guestAllowed,
+                                      id: nextCategory.id,
+                                      name: nextCategory.name,
+                                      guestAllowed: nextCategory.guestAllowed,
                                       surveyTemplateId: saved.id,
                                     );
                                 ref.read(adminSurveyTemplatesProvider.notifier).addTemplate(saved);
@@ -290,9 +287,29 @@ class AdminSurveyPage extends ConsumerWidget {
                             categoryId: edited.categoryId,
                             questions: edited.questions,
                           );
+                          await CategoryRepository().updateTemplate(
+                            categoryId: saved.categoryId,
+                            templateId: saved.id,
+                          );
                           ref.read(adminSurveyTemplatesProvider.notifier).updateTemplate(saved);
                           ref.read(adminSurveySelectedTemplateIdProvider.notifier).state = saved.id;
+                          ServiceCategory? selectedAfterEdit;
+                          for (final item in categories) {
+                            if (item.id == saved.categoryId) {
+                              selectedAfterEdit = item;
+                              break;
+                            }
+                          }
+                          final nextCategory = selectedAfterEdit ?? activeCategory;
+                          ref.read(adminSurveySelectedCategoryProvider.notifier).state =
+                              ServiceCategory(
+                                id: nextCategory.id,
+                                name: nextCategory.name,
+                                guestAllowed: nextCategory.guestAllowed,
+                                surveyTemplateId: saved.id,
+                              );
                           ref.invalidate(surveyTemplatesProvider);
+                          ref.invalidate(serviceCategoriesProvider);
                         } catch (error) {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -564,7 +581,7 @@ class AdminSurveyPage extends ConsumerWidget {
                     const Padding(
                       padding: EdgeInsets.only(bottom: 12),
                       child: Text(
-                        'Template untuk kategori ini belum tersedia.',
+                        'Template survei belum tersedia.',
                         style: TextStyle(color: AppTheme.textMuted),
                       ),
                     ),
@@ -625,10 +642,30 @@ class AdminSurveyPage extends ConsumerWidget {
                                                 categoryId: edited.categoryId,
                                                 questions: edited.questions,
                                               );
+                                              await CategoryRepository().updateTemplate(
+                                                categoryId: saved.categoryId,
+                                                templateId: saved.id,
+                                              );
                                               dialogRef.read(adminSurveyTemplatesProvider.notifier).updateTemplate(saved);
                                               dialogRef.read(adminSurveySelectedTemplateIdProvider.notifier).state =
                                                   saved.id;
+                                              ServiceCategory? selectedAfterEdit;
+                                              for (final item in categories) {
+                                                if (item.id == saved.categoryId) {
+                                                  selectedAfterEdit = item;
+                                                  break;
+                                                }
+                                              }
+                                              selectedAfterEdit ??= targetCategory;
+                                              dialogRef.read(adminSurveySelectedCategoryProvider.notifier).state =
+                                                  ServiceCategory(
+                                                    id: selectedAfterEdit.id,
+                                                    name: selectedAfterEdit.name,
+                                                    guestAllowed: selectedAfterEdit.guestAllowed,
+                                                    surveyTemplateId: saved.id,
+                                                  );
                                               dialogRef.invalidate(surveyTemplatesProvider);
+                                              dialogRef.invalidate(serviceCategoriesProvider);
                                             } catch (error) {
                                               if (!context.mounted) return;
                                               ScaffoldMessenger.of(context).showSnackBar(
@@ -731,14 +768,22 @@ class AdminSurveyPage extends ConsumerWidget {
                             questions: template.questions,
                           );
                           await CategoryRepository().updateTemplate(
-                            categoryId: selectedCategory.id,
+                            categoryId: saved.categoryId,
                             templateId: saved.id,
                           );
+                          ServiceCategory? selectedAfterCreate;
+                          for (final item in categories) {
+                            if (item.id == saved.categoryId) {
+                              selectedAfterCreate = item;
+                              break;
+                            }
+                          }
+                          selectedAfterCreate ??= selectedCategory;
                           dialogRef.read(adminSurveySelectedCategoryProvider.notifier).state =
                               ServiceCategory(
-                                id: selectedCategory.id,
-                                name: selectedCategory.name,
-                                guestAllowed: selectedCategory.guestAllowed,
+                                id: selectedAfterCreate.id,
+                                name: selectedAfterCreate.name,
+                                guestAllowed: selectedAfterCreate.guestAllowed,
                                 surveyTemplateId: saved.id,
                               );
                           dialogRef.read(adminSurveyTemplatesProvider.notifier).addTemplate(saved);

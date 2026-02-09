@@ -88,8 +88,8 @@ class _AdminSurveyHistoryPageState
     final categories = (categoriesAsync.value ?? [])
         .where((category) => !category.guestAllowed)
         .toList();
-    final templates = templatesAsync.value ?? [];
     final selectedCategoryId = ref.watch(adminSurveyHistoryCategoryProvider);
+    final templates = templatesAsync.value ?? [];
     final selectedTemplateId = ref.watch(adminSurveyHistoryTemplateProvider);
     final dateFilter = ref.watch(adminSurveyHistoryDateFilterProvider);
     final pageIndex = ref.watch(adminSurveyHistoryPageProvider);

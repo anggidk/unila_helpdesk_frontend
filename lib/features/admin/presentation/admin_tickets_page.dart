@@ -112,7 +112,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
         children: [
           AdminFilterToolbar(
             controller: _searchController,
-            searchHintText: 'Cari berdasarkan ID tiket atau judul...',
+            searchHintText: 'Cari berdasarkan nomor tiket atau judul...',
             searchValue: searchValue,
             onSearchChanged: (value) {
               ref.read(adminTicketSearchProvider.notifier).state = value;
@@ -216,7 +216,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                         columns: const [
                           DataColumn(
                             label: Text(
-                              'ID Tiket',
+                              'Nomor Tiket',
                               style: TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
@@ -254,7 +254,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                         rows: tickets.map((ticket) {
                           return DataRow(
                             cells: [
-                              DataCell(Text(ticket.id)),
+                              DataCell(Text(ticket.displayNumber)),
                               DataCell(
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
