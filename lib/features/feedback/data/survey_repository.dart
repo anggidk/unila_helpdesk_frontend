@@ -57,6 +57,7 @@ class SurveyRepository {
       'questions': questions
           .map(
             (question) => {
+              'id': question.id,
               'text': question.text,
               'type': question.type.name,
               'options': question.options,
@@ -87,6 +88,7 @@ class SurveyRepository {
       'questions': questions
           .map(
             (question) => {
+              'id': question.id,
               'text': question.text,
               'type': question.type.name,
               'options': question.options,
