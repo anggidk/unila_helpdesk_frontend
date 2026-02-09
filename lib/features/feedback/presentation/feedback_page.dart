@@ -120,7 +120,7 @@ class _FeedbackList extends ConsumerWidget {
                           style: TextStyle(color: AppTheme.textMuted),
                         ),
                         Text(
-                          '${ticket.id} - ${ticket.title}',
+                          '${ticket.displayNumber} - ${ticket.title}',
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 4),
