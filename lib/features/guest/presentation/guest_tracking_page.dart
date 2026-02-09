@@ -37,7 +37,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
     try {
       final tickets = await TicketRepository().fetchTickets(query: query);
       for (final item in tickets) {
-        if (item.id.toLowerCase() == query) {
+        if (item.displayNumber.toLowerCase() == query) {
           ticket = item;
           break;
         }
@@ -89,7 +89,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
                     style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 Text(
-                  'Masukkan ID tiket dari email konfirmasi.',
+                  'Masukkan nomor tiket dari email konfirmasi.',
                   style: textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
                   textAlign: TextAlign.center,
                 ),
@@ -100,8 +100,8 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
                   child: TextFormField(
                     controller: _controller,
                     decoration: const InputDecoration(
-                      labelText: 'ID Tiket',
-                      hintText: 'contoh: UNILA-2026-001',
+                      labelText: 'Nomor Tiket',
+                      hintText: 'contoh: TK-2026-001',
                       prefixIcon: Icon(Icons.tag),
                     ),
                     validator: (value) {
@@ -144,7 +144,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Text(
-                'Tiket tidak ditemukan, pastikan ID benar.',
+                'Tiket tidak ditemukan, pastikan nomor tiket benar.',
                 style: textTheme.bodySmall?.copyWith(color: AppTheme.danger),
                 textAlign: TextAlign.center,
               ),
@@ -184,7 +184,10 @@ class _FoundTicketTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(ticket.id, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(
+                    ticket.displayNumber,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(height: 4),
                   Text(ticket.title, style: const TextStyle(color: AppTheme.textMuted)),
                 ],

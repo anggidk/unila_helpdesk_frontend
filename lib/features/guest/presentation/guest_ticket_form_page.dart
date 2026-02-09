@@ -115,6 +115,8 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       final response = await TicketRepository().createGuestTicket(
         draft: draft,
         reporterName: name,
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
       );
       if (!response.isSuccess) {
         throw Exception(
@@ -126,25 +128,26 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
           ? Ticket.fromJson(payload)
           : null;
       final createdTicketID = payload is Map<String, dynamic>
-          ? payload['id']?.toString() ?? ''
+          ? (payload['ticketNumber']?.toString() ??
+                payload['id']?.toString() ??
+                '')
           : '';
       if (!mounted) return;
       if (createdTicket != null && createdTicket.id.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Laporan tamu berhasil dikirim. Nomor tiket: ${createdTicket.id}',
+              'Laporan tamu berhasil dikirim. Nomor tiket: ${createdTicket.displayNumber}',
             ),
           ),
         );
-        context.pushNamed(
-          AppRouteNames.ticketDetail,
-          extra: createdTicket,
-        );
+        context.pushNamed(AppRouteNames.ticketDetail, extra: createdTicket);
         return;
       }
 
-      final fallbackTicketID = createdTicketID.isNotEmpty ? createdTicketID : '-';
+      final fallbackTicketID = createdTicketID.isNotEmpty
+          ? createdTicketID
+          : '-';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -164,9 +167,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     }
   }
 
-  Future<void> _pickGuestAttachment({
-    required bool isIdentity,
-  }) async {
+  Future<void> _pickGuestAttachment({required bool isIdentity}) async {
     if (isIdentity && _isUploadingIdentity) return;
     if (!isIdentity && _isUploadingSelfie) return;
     final pickedFile = await pickAttachmentFile(context);
@@ -197,9 +198,9 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       });
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -244,8 +245,9 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                       const SizedBox(height: 8),
                       ...buildCategoryLoadIndicators(
                         isLoading: categoriesAsync.isLoading,
-                        error:
-                            categoriesAsync.hasError ? categoriesAsync.error : null,
+                        error: categoriesAsync.hasError
+                            ? categoriesAsync.error
+                            : null,
                       ),
                       DropdownButtonFormField<String>(
                         initialValue: selectedCategory,
