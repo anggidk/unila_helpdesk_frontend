@@ -26,6 +26,7 @@ class ApiEndpoints {
   static const String fcmUnregister = '/notifications/fcm/unregister';
 
   static const String reports = '/reports';
+  static const String reportsCategories = '/reports/categories';
   static const String reportsSummary = '/reports/summary';
   static const String reportsSatisfactionSummary = '/reports/satisfaction-summary';
   static const String reportsSatisfaction = '/reports/satisfaction';

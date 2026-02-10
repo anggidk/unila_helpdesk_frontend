@@ -38,6 +38,10 @@ final reportsPeriodProvider = StateProvider<String>((ref) => 'monthly');
 final reportsCategoryIdProvider = StateProvider<String?>((ref) => null);
 final reportsTemplateIdProvider = StateProvider<String?>((ref) => null);
 final reportsChartPeriodProvider = StateProvider<String>((ref) => 'monthly');
+final reportsCategoriesProvider =
+    FutureProvider.autoDispose<List<ServiceCategory>>((ref) async {
+  return ReportRepository().fetchSurveyCategories();
+});
 final reportsTemplatesProvider =
     FutureProvider.autoDispose<List<SurveyTemplate>>((ref) async {
   final categoryId = ref.watch(reportsCategoryIdProvider);

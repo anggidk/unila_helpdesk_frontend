@@ -83,7 +83,7 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<List<ServiceCategory>>>(
-      serviceCategoriesProvider,
+      reportsCategoriesProvider,
       (_, next) {
         final list = next.value ?? [];
         _syncCategory(list);
@@ -92,7 +92,7 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
     ref.listen<String?>(
       reportsCategoryIdProvider,
       (_, next) {
-        final categories = ref.read(serviceCategoriesProvider).value ?? [];
+        final categories = ref.read(reportsCategoriesProvider).value ?? [];
         final selected = categories
             .where((item) => item.id == next)
             .toList();
@@ -108,14 +108,12 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
     final usageAsync = ref.watch(reportsChartUsageProvider);
     final trendsAsync = ref.watch(reportsChartServiceTrendsProvider);
     final satisfactionAsync = ref.watch(surveySatisfactionProvider);
-    final categoriesAsync = ref.watch(serviceCategoriesProvider);
+    final categoriesAsync = ref.watch(reportsCategoriesProvider);
     final templatesAsync = ref.watch(reportsTemplatesProvider);
     final selectedCategoryId = ref.watch(reportsCategoryIdProvider);
     final selectedTemplateId = ref.watch(reportsTemplateIdProvider);
 
-    final categories = (categoriesAsync.value ?? [])
-        .where((category) => !category.guestAllowed)
-        .toList();
+    final categories = categoriesAsync.value ?? [];
     final templates = templatesAsync.value ?? [];
     final hasSelected = selectedTemplateId != null &&
         templates.any((template) => template.id == selectedTemplateId);
