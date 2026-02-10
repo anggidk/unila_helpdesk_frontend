@@ -145,6 +145,7 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.initialQuestion != null;
     return Dialog(
       insetPadding: const EdgeInsets.all(24),
       child: ConstrainedBox(
@@ -157,12 +158,12 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
             children: [
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Tambah Pertanyaan',
+                          isEditing ? 'Edit Pertanyaan' : 'Tambah Pertanyaan',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 18,
@@ -366,7 +367,7 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                             );
                             Navigator.pop(context, payload);
                           },
-                    child: const Text('Simpan'),
+                    child: Text(isEditing ? 'Simpan Perubahan' : 'Simpan'),
                   ),
                 ],
               ),
