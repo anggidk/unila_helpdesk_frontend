@@ -11,16 +11,20 @@ import 'package:unila_helpdesk_frontend/core/widgets/filter_dropdown.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/pagination_controls.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
 
-final adminSurveyHistorySearchProvider =
-    StateProvider.autoDispose<String>((ref) => '');
-final adminSurveyHistoryCategoryProvider =
-    StateProvider.autoDispose<String?>((ref) => null);
-final adminSurveyHistoryTemplateProvider =
-    StateProvider.autoDispose<String?>((ref) => null);
+final adminSurveyHistorySearchProvider = StateProvider.autoDispose<String>(
+  (ref) => '',
+);
+final adminSurveyHistoryCategoryProvider = StateProvider.autoDispose<String?>(
+  (ref) => null,
+);
+final adminSurveyHistoryTemplateProvider = StateProvider.autoDispose<String?>(
+  (ref) => null,
+);
 final adminSurveyHistoryDateFilterProvider =
     StateProvider.autoDispose<AdminDateFilter>((ref) => AdminDateFilter.all);
-final adminSurveyHistoryPageProvider =
-    StateProvider.autoDispose<int>((ref) => 1);
+final adminSurveyHistoryPageProvider = StateProvider.autoDispose<int>(
+  (ref) => 1,
+);
 const List<AdminDateFilter> _surveyDateFilters = [
   AdminDateFilter.all,
   AdminDateFilter.today,
@@ -31,29 +35,29 @@ const List<AdminDateFilter> _surveyDateFilters = [
 ];
 final adminSurveyHistoryProvider =
     FutureProvider.autoDispose<SurveyResponsePage>((ref) async {
-  final query = ref.watch(adminSurveyHistorySearchProvider);
-  final categoryId = ref.watch(adminSurveyHistoryCategoryProvider);
-  final templateId = ref.watch(adminSurveyHistoryTemplateProvider);
-  final dateFilter = ref.watch(adminSurveyHistoryDateFilterProvider);
-  final page = ref.watch(adminSurveyHistoryPageProvider);
-  final now = DateTime.now();
-  DateTime? start;
-  DateTime? end;
-  final range = adminDateRange(dateFilter, now);
-  if (range != null) {
-    start = range.start;
-    end = range.end;
-  }
-  return SurveyRepository().fetchSurveyResponsesPaged(
-    query: query,
-    categoryId: categoryId,
-    templateId: templateId,
-    start: start,
-    end: end,
-    page: page,
-    limit: 50,
-  );
-});
+      final query = ref.watch(adminSurveyHistorySearchProvider);
+      final categoryId = ref.watch(adminSurveyHistoryCategoryProvider);
+      final templateId = ref.watch(adminSurveyHistoryTemplateProvider);
+      final dateFilter = ref.watch(adminSurveyHistoryDateFilterProvider);
+      final page = ref.watch(adminSurveyHistoryPageProvider);
+      final now = DateTime.now();
+      DateTime? start;
+      DateTime? end;
+      final range = adminDateRange(dateFilter, now);
+      if (range != null) {
+        start = range.start;
+        end = range.end;
+      }
+      return SurveyRepository().fetchSurveyResponsesPaged(
+        query: query,
+        categoryId: categoryId,
+        templateId: templateId,
+        start: start,
+        end: end,
+        page: page,
+        limit: 15,
+      );
+    });
 
 class AdminSurveyHistoryPage extends ConsumerStatefulWidget {
   const AdminSurveyHistoryPage({super.key});
@@ -70,8 +74,9 @@ class _AdminSurveyHistoryPageState
   @override
   void initState() {
     super.initState();
-    _searchController =
-        TextEditingController(text: ref.read(adminSurveyHistorySearchProvider));
+    _searchController = TextEditingController(
+      text: ref.read(adminSurveyHistorySearchProvider),
+    );
   }
 
   @override
@@ -112,15 +117,15 @@ class _AdminSurveyHistoryPageState
     final categoryLabel = selectedCategoryId == null
         ? 'Semua'
         : categories
-            .where((item) => item.id == selectedCategoryId)
-            .map((item) => item.name)
-            .firstWhere((_) => true, orElse: () => selectedCategoryId);
+              .where((item) => item.id == selectedCategoryId)
+              .map((item) => item.name)
+              .firstWhere((_) => true, orElse: () => selectedCategoryId);
     final templateLabel = selectedTemplateId == null
         ? 'Semua'
         : templates
-            .where((item) => item.id == selectedTemplateId)
-            .map((item) => item.title)
-            .firstWhere((_) => true, orElse: () => selectedTemplateId);
+              .where((item) => item.id == selectedTemplateId)
+              .map((item) => item.title)
+              .firstWhere((_) => true, orElse: () => selectedTemplateId);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -129,7 +134,8 @@ class _AdminSurveyHistoryPageState
         children: [
           AdminFilterToolbar(
             controller: _searchController,
-            searchHintText: 'Cari berdasarkan entitas, kategori, atau template...',
+            searchHintText:
+                'Cari berdasarkan entitas, kategori, atau template...',
             searchValue: searchValue,
             onSearchChanged: (value) {
               ref.read(adminSurveyHistorySearchProvider.notifier).state = value;
@@ -141,8 +147,10 @@ class _AdminSurveyHistoryPageState
             },
             onReset: () {
               ref.read(adminSurveyHistorySearchProvider.notifier).state = '';
-              ref.read(adminSurveyHistoryCategoryProvider.notifier).state = null;
-              ref.read(adminSurveyHistoryTemplateProvider.notifier).state = null;
+              ref.read(adminSurveyHistoryCategoryProvider.notifier).state =
+                  null;
+              ref.read(adminSurveyHistoryTemplateProvider.notifier).state =
+                  null;
               ref.read(adminSurveyHistoryDateFilterProvider.notifier).state =
                   AdminDateFilter.all;
               ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
@@ -187,7 +195,9 @@ class _AdminSurveyHistoryPageState
                   for (final filter in _surveyDateFilters) filter: filter.label,
                 },
                 onChanged: (value) {
-                  ref.read(adminSurveyHistoryDateFilterProvider.notifier).state =
+                  ref
+                          .read(adminSurveyHistoryDateFilterProvider.notifier)
+                          .state =
                       value;
                   ref.read(adminSurveyHistoryPageProvider.notifier).state = 1;
                 },
@@ -230,9 +240,13 @@ class _AdminSurveyHistoryPageState
                   builder: (context, constraints) => SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth,
+                      ),
                       child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(AppTheme.surface),
+                        headingRowColor: WidgetStateProperty.all(
+                          AppTheme.surface,
+                        ),
                         columns: const [
                           DataColumn(
                             label: Text(
@@ -266,8 +280,12 @@ class _AdminSurveyHistoryPageState
                           ),
                         ],
                         rows: rows.map((row) {
-                          final category = row.category.isEmpty ? row.categoryId : row.category;
-                          final template = row.template.isEmpty ? row.templateId : row.template;
+                          final category = row.category.isEmpty
+                              ? row.categoryId
+                              : row.category;
+                          final template = row.template.isEmpty
+                              ? row.templateId
+                              : row.template;
                           return DataRow(
                             cells: [
                               DataCell(Text(row.userEntity)),
@@ -289,12 +307,16 @@ class _AdminSurveyHistoryPageState
                     totalItems: responsePage.total,
                     hasPrev: responsePage.hasPrev,
                     hasNext: responsePage.hasNext,
-                    onPrev: () => ref
-                        .read(adminSurveyHistoryPageProvider.notifier)
-                        .state = responsePage.page - 1,
-                    onNext: () => ref
-                        .read(adminSurveyHistoryPageProvider.notifier)
-                        .state = responsePage.page + 1,
+                    onPrev: () =>
+                        ref
+                                .read(adminSurveyHistoryPageProvider.notifier)
+                                .state =
+                            responsePage.page - 1,
+                    onNext: () =>
+                        ref
+                                .read(adminSurveyHistoryPageProvider.notifier)
+                                .state =
+                            responsePage.page + 1,
                   ),
               ],
             ),
