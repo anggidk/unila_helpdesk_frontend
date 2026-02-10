@@ -23,12 +23,12 @@ class Style15BottomNavBar extends StatelessWidget {
   final ValueChanged<int> onTap;
   final Style15NavItem middleItem;
   final VoidCallback onMiddleTap;
-  static const double _barHeight = 68.0;
-  static const double _middleSize = 64.0;
-  static const double _floatingGap = 24.0;
-  static const double _topSpace = (_middleSize / 2) + 8;
+  static const double _barHeight = 54.0;
+  static const double _middleSize = 54.0;
+  static const double _floatingGap = 16.0;
+  static const double _topSpace = (_middleSize / 2) + 2;
   static const double _cornerRadius = 28.0;
-  static const double _notchRadius = 36.0;
+  static const double _notchRadius = 30.0;
 
   static double heightFor(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
@@ -62,7 +62,7 @@ class Style15BottomNavBar extends StatelessWidget {
               child: SizedBox(
                 height: _barHeight,
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.only(top: 1),
                   child: Row(
                     children: [
                       Expanded(
@@ -171,10 +171,11 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppTheme.accentBlue : AppTheme.textMuted;
+    final color = selected ? AppTheme.unilaBlue : AppTheme.textMuted;
     final textStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
       color: color,
       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      height: 1.0,
     );
 
     return InkWell(
@@ -186,7 +187,7 @@ class _NavItem extends StatelessWidget {
           AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: selected
@@ -202,9 +203,9 @@ class _NavItem extends StatelessWidget {
                     ]
                   : const [],
             ),
-            child: Icon(item.icon, color: color, size: 22),
+            child: Icon(item.icon, color: color, size: 20),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(item.label, style: textStyle),
         ],
       ),
@@ -250,7 +251,7 @@ class _FloatingMiddleButton extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(item.icon, color: AppTheme.unilaBlack, size: 30),
+          child: Icon(item.icon, color: AppTheme.unilaBlack, size: 26),
         ),
       ),
     );
