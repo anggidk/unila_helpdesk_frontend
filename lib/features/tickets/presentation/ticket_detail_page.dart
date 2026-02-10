@@ -58,16 +58,16 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
 
   void _handleMenu(String value) {
     if (value == 'edit') {
-      context.pushNamed(AppRouteNames.ticketForm, extra: _ticket);
+      _openEdit();
     } else if (value == 'delete') {
       showDialog<void>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('Hapus Tiket'),
           content: const Text('Apakah Anda yakin ingin menghapus tiket ini?'),
           actions: [
             TextButton(
-              onPressed: () => context.pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Batal'),
             ),
             ElevatedButton(
@@ -91,7 +91,8 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                         setState(() => _isDeleting = false);
                         return;
                       }
-                      context.pop();
+                      ref.invalidate(ticketsProvider);
+                      Navigator.of(dialogContext).pop();
                       context.pop();
                     },
               child: _isDeleting
@@ -108,6 +109,17 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
           ],
         ),
       );
+    }
+  }
+
+  Future<void> _openEdit() async {
+    final updated = await context.pushNamed<bool>(
+      AppRouteNames.ticketForm,
+      extra: _ticket,
+    );
+    if (updated == true) {
+      ref.invalidate(ticketsProvider);
+      await _loadDetail();
     }
   }
 
@@ -150,7 +162,11 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
   @override
   Widget build(BuildContext context) {
     final ticket = _ticket;
-    final canEdit = ticket.status != TicketStatus.resolved;
+    final currentUser = ref.watch(currentUserProvider);
+    final canEdit =
+        currentUser != null &&
+        !ticket.isGuest &&
+        ticket.status != TicketStatus.resolved;
     final canGoBack = Navigator.of(context).canPop();
 
     return Scaffold(

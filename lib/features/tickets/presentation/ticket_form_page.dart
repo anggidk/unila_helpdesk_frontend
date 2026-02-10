@@ -41,10 +41,13 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     _descriptionController = TextEditingController(
       text: widget.existing?.description ?? '',
     );
-    ref.read(ticketFormPriorityProvider.notifier).state =
-        widget.existing?.priority ?? TicketPriority.medium;
-    ref.read(ticketFormSelectedCategoryProvider.notifier).state =
-        widget.existing?.categoryId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(ticketFormPriorityProvider.notifier).state =
+          widget.existing?.priority ?? TicketPriority.medium;
+      ref.read(ticketFormSelectedCategoryProvider.notifier).state =
+          widget.existing?.categoryId;
+    });
   }
 
   @override
@@ -95,7 +98,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
           ),
         ),
       );
-      context.pop();
+      context.pop(true);
     } catch (error) {
       if (!mounted) return;
       String errorMessage = error.toString();
@@ -148,10 +151,36 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(serviceCategoriesProvider);
-    final categories = (categoriesAsync.value ?? [])
+    final allCategories = categoriesAsync.value ?? <ServiceCategory>[];
+    final categories = allCategories
         .where((category) => !category.guestAllowed)
         .toList();
-    final selectedCategory = ref.watch(ticketFormSelectedCategoryProvider);
+    final existing = widget.existing;
+    if (existing != null &&
+        existing.categoryId.isNotEmpty &&
+        !categories.any((category) => category.id == existing.categoryId)) {
+      final matched = allCategories.where((category) {
+        return category.id == existing.categoryId;
+      });
+      if (matched.isNotEmpty) {
+        categories.insert(0, matched.first);
+      } else {
+        categories.insert(
+          0,
+          ServiceCategory(
+            id: existing.categoryId,
+            name: existing.category,
+            guestAllowed: true,
+          ),
+        );
+      }
+    }
+    final selectedCategoryRaw = ref.watch(ticketFormSelectedCategoryProvider);
+    final selectedCategory =
+        selectedCategoryRaw != null &&
+            categories.any((category) => category.id == selectedCategoryRaw)
+        ? selectedCategoryRaw
+        : null;
     final selectedPriority = ref.watch(ticketFormPriorityProvider);
     final isEditing = widget.existing != null;
     final textTheme = Theme.of(context).textTheme;
