@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
+import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/core/auth/logout_helper.dart';
+import 'package:unila_helpdesk_frontend/features/auth/data/auth_repository.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_cohort_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_dashboard_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_reports_page.dart';
@@ -21,11 +23,62 @@ final adminProfileMenuOpenProvider = StateProvider.autoDispose<bool>(
   (ref) => false,
 );
 
-class AdminShell extends ConsumerWidget {
+class AdminShell extends ConsumerStatefulWidget {
   const AdminShell({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminShell> createState() => _AdminShellState();
+}
+
+class _AdminShellState extends ConsumerState<AdminShell> {
+  bool _isSyncingProfile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncAdminProfile());
+  }
+
+  Future<void> _syncAdminProfile() async {
+    if (_isSyncingProfile) return;
+    _isSyncingProfile = true;
+
+    final storage = TokenStorage();
+    final storedUser = await storage.readUser();
+    if (storedUser != null && storedUser.role == UserRole.admin) {
+      ref.read(adminUserProvider.notifier).state = storedUser;
+      ref.read(currentUserProvider.notifier).state = null;
+    }
+
+    final refreshToken = await storage.readRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      _isSyncingProfile = false;
+      return;
+    }
+
+    try {
+      final session = await AuthRepository().refreshSession(
+        refreshToken: refreshToken,
+      );
+      if (session.token.isNotEmpty) {
+        await storage.saveToken(session.token);
+      }
+      if (session.refreshToken.isNotEmpty) {
+        await storage.saveRefreshToken(session.refreshToken);
+      }
+      await storage.saveUser(session.user);
+      if (!mounted) return;
+      ref.read(adminUserProvider.notifier).state = session.user;
+      ref.read(currentUserProvider.notifier).state = null;
+    } catch (_) {
+      // Keep current data when refresh fails; sidebar will still use cached user.
+    } finally {
+      _isSyncingProfile = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final index = ref.watch(adminShellIndexProvider);
     final isExpanded = ref.watch(adminSidebarExpandedProvider);
     final showProfileMenu = ref.watch(adminProfileMenuOpenProvider);
@@ -386,14 +439,14 @@ class _ProfileSection extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        adminUser?.name ?? 'Admin',
+                        adminUser?.name ?? '',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
-                        adminUser?.email ?? 'admin@unila.ac.id',
+                        adminUser?.email ?? '',
                         style: const TextStyle(color: Colors.white70),
                       ),
                     ],

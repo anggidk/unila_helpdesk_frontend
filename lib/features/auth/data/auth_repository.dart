@@ -13,9 +13,26 @@ class AuthRepository {
     required String password,
   }) async {
     final response = await login(username: username, password: password);
+    return _parseSession(response, fallbackMessage: 'Login gagal');
+  }
+
+  Future<AuthSession> refreshSession({
+    required String refreshToken,
+  }) async {
+    final response = await _client.post(
+      ApiEndpoints.refresh,
+      body: {'refresh_token': refreshToken},
+    );
+    return _parseSession(response, fallbackMessage: 'Refresh sesi gagal');
+  }
+
+  AuthSession _parseSession(
+    ApiResponse<Map<String, dynamic>> response, {
+    required String fallbackMessage,
+  }) {
     final data = response.data?['data'];
     if (!response.isSuccess || data is! Map<String, dynamic>) {
-      throw Exception(response.error?.message ?? 'Login gagal');
+      throw Exception(response.error?.message ?? fallbackMessage);
     }
     final token = data['token']?.toString() ?? '';
     final refreshToken = data['refreshToken']?.toString() ?? '';
