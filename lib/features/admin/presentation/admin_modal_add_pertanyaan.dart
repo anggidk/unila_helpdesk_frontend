@@ -42,9 +42,19 @@ class _AdminAddQuestionDialog extends StatefulWidget {
 }
 
 class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
+  static const List<SurveyQuestionType> _supportedTypes = [
+    SurveyQuestionType.likert3,
+    SurveyQuestionType.likert4,
+    SurveyQuestionType.likert5,
+    SurveyQuestionType.yesNo,
+    SurveyQuestionType.multipleChoice,
+    SurveyQuestionType.text,
+  ];
+
   final _textController = TextEditingController();
   final _optionController = TextEditingController();
-  SurveyQuestionType _type = SurveyQuestionType.likert;
+  SurveyQuestionType _type = SurveyQuestionType.likert5;
+  _LikertLabelStyle _likertStyle = _LikertLabelStyle.puas;
   late ServiceCategory _category;
   bool _isRequired = true;
   final List<String> _options = [];
@@ -56,6 +66,10 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
     if (widget.initialQuestion != null) {
       _textController.text = widget.initialQuestion!.text;
       _type = widget.initialQuestion!.type;
+      if (_type.isLikertFamily) {
+        _type = _normalizeLikertType(widget.initialQuestion!);
+        _likertStyle = _detectLikertStyle(widget.initialQuestion!);
+      }
       _options
         ..clear()
         ..addAll(widget.initialQuestion!.options);
@@ -77,6 +91,56 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
       _options.add(value);
       _optionController.clear();
     });
+  }
+
+  List<String> get _likertOptions {
+    return _buildLikertOptions(
+      scale: _likertScaleFromType(_type),
+      style: _likertStyle,
+    );
+  }
+
+  SurveyQuestionType _normalizeLikertType(SurveyQuestion question) {
+    if (question.options.length >= 3 && question.options.length <= 5) {
+      switch (question.options.length) {
+        case 3:
+          return SurveyQuestionType.likert3;
+        case 4:
+          return SurveyQuestionType.likert4;
+        default:
+          return SurveyQuestionType.likert5;
+      }
+    }
+    if (question.type == SurveyQuestionType.likert3) {
+      return SurveyQuestionType.likert3;
+    }
+    if (question.type == SurveyQuestionType.likert4) {
+      return SurveyQuestionType.likert4;
+    }
+    return SurveyQuestionType.likert5;
+  }
+
+  int _likertScaleFromType(SurveyQuestionType type) {
+    switch (type) {
+      case SurveyQuestionType.likert3:
+        return 3;
+      case SurveyQuestionType.likert4:
+        return 4;
+      case SurveyQuestionType.likert5:
+      default:
+        return 5;
+    }
+  }
+
+  _LikertLabelStyle _detectLikertStyle(SurveyQuestion question) {
+    final joined = question.options.join(' ').toLowerCase();
+    if (joined.contains('setuju')) {
+      return _LikertLabelStyle.setuju;
+    }
+    if (joined.contains('baik') || joined.contains('buruk')) {
+      return _LikertLabelStyle.baik;
+    }
+    return _LikertLabelStyle.puas;
   }
 
   @override
@@ -138,7 +202,7 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                   Expanded(
                     child: DropdownButtonFormField<SurveyQuestionType>(
                       initialValue: _type,
-                      items: SurveyQuestionType.values
+                      items: _supportedTypes
                           .map(
                             (value) => DropdownMenuItem(
                               value: value,
@@ -147,7 +211,7 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                           )
                           .toList(),
                       onChanged: (value) => setState(() {
-                        _type = value ?? SurveyQuestionType.likert;
+                        _type = value ?? SurveyQuestionType.likert5;
                         if (_type != SurveyQuestionType.multipleChoice) {
                           _options.clear();
                           _optionController.clear();
@@ -182,6 +246,26 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                   ),
                 ],
               ),
+              if (_type.isLikertFamily) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<_LikertLabelStyle>(
+                  initialValue: _likertStyle,
+                  items: _LikertLabelStyle.values
+                      .map(
+                        (value) => DropdownMenuItem(
+                          value: value,
+                          child: Text(value.label),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => setState(() {
+                    _likertStyle = value ?? _LikertLabelStyle.puas;
+                  }),
+                  decoration: const InputDecoration(
+                    labelText: 'Label Skala',
+                  ),
+                ),
+              ],
               if (_type == SurveyQuestionType.multipleChoice) ...[
                 const SizedBox(height: 16),
                 const Text(
@@ -234,7 +318,9 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                     ? 'Seberapa puas Anda dengan layanan kami?'
                     : _textController.text,
                 type: _type,
-                options: _options,
+                options: _type.isLikertFamily
+                    ? _likertOptions
+                    : _options,
               ),
               const SizedBox(height: 12),
               CheckboxListTile(
@@ -269,8 +355,9 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                                         .toString(),
                                 text: _textController.text.trim(),
                                 type: _type,
-                                options:
-                                    _type == SurveyQuestionType.multipleChoice
+                                options: _type.isLikertFamily
+                                    ? List.unmodifiable(_likertOptions)
+                                    : _type == SurveyQuestionType.multipleChoice
                                     ? (_options.isEmpty
                                           ? const ['Opsi 1', 'Opsi 2', 'Opsi 3']
                                           : List.unmodifiable(_options))
@@ -338,42 +425,8 @@ class _PreviewSection extends StatelessWidget {
           const SizedBox(height: 12),
           Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          if (type == SurveyQuestionType.likert)
-            _LikertPreview(
-              count: 5,
-              lowLabel: 'SANGAT TIDAK PUAS',
-              highLabel: 'SANGAT PUAS',
-            ),
-          if (type == SurveyQuestionType.likertQuality)
-            _LikertPreview(
-              count: 5,
-              lowLabel: 'SANGAT BURUK',
-              highLabel: 'SANGAT BAIK',
-            ),
-          if (type == SurveyQuestionType.likert4Puas)
-            _LikertPreview(
-              count: 4,
-              lowLabel: 'SANGAT TIDAK PUAS',
-              highLabel: 'SANGAT PUAS',
-            ),
-          if (type == SurveyQuestionType.likert4)
-            _LikertPreview(
-              count: 4,
-              lowLabel: 'SANGAT BURUK',
-              highLabel: 'SANGAT BAIK',
-            ),
-          if (type == SurveyQuestionType.likert3Puas)
-            _LikertPreview(
-              count: 3,
-              lowLabel: 'SANGAT TIDAK PUAS',
-              highLabel: 'SANGAT PUAS',
-            ),
-          if (type == SurveyQuestionType.likert3)
-            _LikertPreview(
-              count: 3,
-              lowLabel: 'SANGAT BURUK',
-              highLabel: 'SANGAT BAIK',
-            ),
+          if (type.isLikertFamily)
+            _LikertPreview(options: options ?? const []),
           if (type == SurveyQuestionType.yesNo) _YesNoPreview(),
           if (type == SurveyQuestionType.multipleChoice)
             _MultipleChoicePreview(options: options),
@@ -392,14 +445,10 @@ class _PreviewSection extends StatelessWidget {
 
 class _LikertPreview extends StatelessWidget {
   const _LikertPreview({
-    required this.count,
-    required this.lowLabel,
-    required this.highLabel,
+    required this.options,
   });
 
-  final int count;
-  final String lowLabel;
-  final String highLabel;
+  final List<String> options;
 
   @override
   Widget build(BuildContext context) {
@@ -408,7 +457,7 @@ class _LikertPreview extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(
-            count,
+            options.length,
             (index) => Column(
               children: [
                 Container(
@@ -417,7 +466,9 @@ class _LikertPreview extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: AppTheme.outline),
-                    color: index == (count / 2).floor() ? AppTheme.navy : Colors.white,
+                    color: index == (options.length / 2).floor()
+                        ? AppTheme.navy
+                        : Colors.white,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -434,11 +485,11 @@ class _LikertPreview extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              lowLabel,
+              options.isEmpty ? '-' : options.first.toUpperCase(),
               style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
             ),
             Text(
-              highLabel,
+              options.isEmpty ? '-' : options.last.toUpperCase(),
               style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
             ),
           ],
@@ -516,5 +567,64 @@ class _PreviewChoice extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+enum _LikertLabelStyle {
+  puas('Puas'),
+  baik('Baik'),
+  setuju('Setuju');
+
+  const _LikertLabelStyle(this.label);
+  final String label;
+}
+
+List<String> _buildLikertOptions({
+  required int scale,
+  required _LikertLabelStyle style,
+}) {
+  switch (style) {
+    case _LikertLabelStyle.puas:
+      if (scale == 3) {
+        return const ['Tidak Puas', 'Cukup Puas', 'Puas'];
+      }
+      if (scale == 4) {
+        return const ['Sangat Tidak Puas', 'Tidak Puas', 'Puas', 'Sangat Puas'];
+      }
+      return const [
+        'Sangat Tidak Puas',
+        'Tidak Puas',
+        'Cukup Puas',
+        'Puas',
+        'Sangat Puas',
+      ];
+    case _LikertLabelStyle.baik:
+      if (scale == 3) {
+        return const ['Kurang Baik', 'Cukup Baik', 'Baik'];
+      }
+      if (scale == 4) {
+        return const ['Sangat Kurang Baik', 'Kurang Baik', 'Baik', 'Sangat Baik'];
+      }
+      return const [
+        'Sangat Kurang Baik',
+        'Kurang Baik',
+        'Cukup Baik',
+        'Baik',
+        'Sangat Baik',
+      ];
+    case _LikertLabelStyle.setuju:
+      if (scale == 3) {
+        return const ['Tidak Setuju', 'Netral', 'Setuju'];
+      }
+      if (scale == 4) {
+        return const ['Sangat Tidak Setuju', 'Tidak Setuju', 'Setuju', 'Sangat Setuju'];
+      }
+      return const [
+        'Sangat Tidak Setuju',
+        'Tidak Setuju',
+        'Netral',
+        'Setuju',
+        'Sangat Setuju',
+      ];
   }
 }

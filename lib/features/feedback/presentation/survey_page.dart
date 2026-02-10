@@ -216,17 +216,12 @@ class _SurveyQuestionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          if (question.type == SurveyQuestionType.likert ||
-              question.type == SurveyQuestionType.likertQuality ||
-              question.type == SurveyQuestionType.likert4Puas ||
-              question.type == SurveyQuestionType.likert4 ||
-              question.type == SurveyQuestionType.likert3Puas ||
-              question.type == SurveyQuestionType.likert3)
+          if (question.type.isLikertFamily)
             RadioGroup<int>(
               groupValue: value as int?,
               onChanged: onChanged,
               child: Column(
-                children: _likertOptions(question.type)
+                children: _likertOptions(question)
                     .map(
                       (option) => RadioListTile<int>(
                         value: option.score,
@@ -298,50 +293,37 @@ class _LikertOption {
   final String label;
 }
 
-List<_LikertOption> _likertOptions(SurveyQuestionType type) {
-  switch (type) {
-    case SurveyQuestionType.likert4:
-      return const [
-        _LikertOption(score: 1, label: 'Sangat Buruk'),
-        _LikertOption(score: 2, label: 'Buruk'),
-        _LikertOption(score: 3, label: 'Baik'),
-        _LikertOption(score: 4, label: 'Sangat Baik'),
-      ];
-    case SurveyQuestionType.likert4Puas:
-      return const [
-        _LikertOption(score: 1, label: 'Sangat Tidak Puas'),
-        _LikertOption(score: 2, label: 'Tidak Puas'),
-        _LikertOption(score: 3, label: 'Puas'),
-        _LikertOption(score: 4, label: 'Sangat Puas'),
-      ];
+List<_LikertOption> _likertOptions(SurveyQuestion question) {
+  if (question.options.isNotEmpty) {
+    return question.options
+        .asMap()
+        .entries
+        .map((entry) => _LikertOption(score: entry.key + 1, label: entry.value))
+        .toList();
+  }
+
+  switch (question.type) {
     case SurveyQuestionType.likert3:
       return const [
-        _LikertOption(score: 1, label: 'Buruk'),
-        _LikertOption(score: 2, label: 'Netral'),
-        _LikertOption(score: 3, label: 'Baik'),
+        _LikertOption(score: 1, label: 'Rendah'),
+        _LikertOption(score: 2, label: 'Sedang'),
+        _LikertOption(score: 3, label: 'Tinggi'),
       ];
-    case SurveyQuestionType.likert3Puas:
+    case SurveyQuestionType.likert4:
       return const [
-        _LikertOption(score: 1, label: 'Sangat Tidak Puas'),
-        _LikertOption(score: 2, label: 'Netral'),
-        _LikertOption(score: 3, label: 'Sangat Puas'),
+        _LikertOption(score: 1, label: 'Sangat Rendah'),
+        _LikertOption(score: 2, label: 'Rendah'),
+        _LikertOption(score: 3, label: 'Tinggi'),
+        _LikertOption(score: 4, label: 'Sangat Tinggi'),
       ];
-    case SurveyQuestionType.likertQuality:
-      return const [
-        _LikertOption(score: 1, label: 'Sangat Buruk'),
-        _LikertOption(score: 2, label: 'Buruk'),
-        _LikertOption(score: 3, label: 'Netral'),
-        _LikertOption(score: 4, label: 'Baik'),
-        _LikertOption(score: 5, label: 'Sangat Baik'),
-      ];
-    case SurveyQuestionType.likert:
+    case SurveyQuestionType.likert5:
     default:
       return const [
-        _LikertOption(score: 1, label: 'Sangat Tidak Puas'),
-        _LikertOption(score: 2, label: 'Tidak Puas'),
-        _LikertOption(score: 3, label: 'Netral'),
-        _LikertOption(score: 4, label: 'Puas'),
-        _LikertOption(score: 5, label: 'Sangat Puas'),
+        _LikertOption(score: 1, label: 'Sangat Rendah'),
+        _LikertOption(score: 2, label: 'Rendah'),
+        _LikertOption(score: 3, label: 'Sedang'),
+        _LikertOption(score: 4, label: 'Tinggi'),
+        _LikertOption(score: 5, label: 'Sangat Tinggi'),
       ];
   }
 }

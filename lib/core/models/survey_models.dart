@@ -1,9 +1,6 @@
 enum SurveyQuestionType {
-  likert,
-  likertQuality,
-  likert4Puas,
+  likert5,
   likert4,
-  likert3Puas,
   likert3,
   yesNo,
   multipleChoice,
@@ -11,20 +8,25 @@ enum SurveyQuestionType {
 }
 
 extension SurveyQuestionTypeX on SurveyQuestionType {
+  bool get isLikertFamily {
+    switch (this) {
+      case SurveyQuestionType.likert5:
+      case SurveyQuestionType.likert4:
+      case SurveyQuestionType.likert3:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   String get label {
     switch (this) {
-      case SurveyQuestionType.likert:
-        return 'Skala Likert (1-5) - Puas';
-      case SurveyQuestionType.likertQuality:
-        return 'Skala Likert (1-5) - Baik';
-      case SurveyQuestionType.likert4Puas:
-        return 'Skala Likert (1-4) - Puas';
+      case SurveyQuestionType.likert5:
+        return 'Skala Likert (1-5)';
       case SurveyQuestionType.likert4:
-        return 'Skala Likert (1-4) - Baik';
-      case SurveyQuestionType.likert3Puas:
-        return 'Skala Likert (1-3) - Puas';
+        return 'Skala Likert (1-4)';
       case SurveyQuestionType.likert3:
-        return 'Skala Likert (1-3) - Baik';
+        return 'Skala Likert (1-3)';
       case SurveyQuestionType.yesNo:
         return 'Ya / Tidak';
       case SurveyQuestionType.multipleChoice:
@@ -182,23 +184,19 @@ class SurveyResponsePage {
 
 SurveyQuestionType _questionTypeFromString(String value) {
   switch (value) {
-    case 'yesNo':
-      return SurveyQuestionType.yesNo;
-    case 'likertQuality':
-      return SurveyQuestionType.likertQuality;
-    case 'likert4Puas':
-      return SurveyQuestionType.likert4Puas;
+    case 'likert5':
+      return SurveyQuestionType.likert5;
     case 'likert4':
       return SurveyQuestionType.likert4;
-    case 'likert3Puas':
-      return SurveyQuestionType.likert3Puas;
     case 'likert3':
       return SurveyQuestionType.likert3;
+    case 'yesNo':
+      return SurveyQuestionType.yesNo;
     case 'multipleChoice':
       return SurveyQuestionType.multipleChoice;
     case 'text':
       return SurveyQuestionType.text;
     default:
-      return SurveyQuestionType.likert;
+      return SurveyQuestionType.likert5;
   }
 }

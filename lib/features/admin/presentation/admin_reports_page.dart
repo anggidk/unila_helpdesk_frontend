@@ -495,22 +495,18 @@ String _questionTypeLabel(String type) {
   switch (type) {
     case 'yesNo':
       return 'Ya/Tidak';
+    case 'likert5':
+      return 'Likert 1-5';
     case 'likert4':
-      return 'Likert 1-4 (Baik)';
-    case 'likert4Puas':
-      return 'Likert 1-4 (Puas)';
+      return 'Likert 1-4';
     case 'likert3':
-      return 'Likert 1-3 (Baik)';
-    case 'likert3Puas':
-      return 'Likert 1-3 (Puas)';
-    case 'likertQuality':
-      return 'Likert 1-5 (Baik)';
+      return 'Likert 1-3';
     case 'multipleChoice':
       return 'Pilihan Ganda';
     case 'text':
       return 'Teks';
     default:
-      return 'Likert 1-5 (Puas)';
+      return 'Likert';
   }
 }
 
