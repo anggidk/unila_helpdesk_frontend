@@ -91,6 +91,7 @@ class _FeedbackList extends ConsumerWidget {
       itemCount: tickets.length,
       itemBuilder: (context, index) {
         final ticket = tickets[index];
+        final categoryColor = colorForTicketCategory(ticket.categoryId);
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.all(16),
@@ -105,10 +106,10 @@ class _FeedbackList extends ConsumerWidget {
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: AppTheme.surface,
+                    backgroundColor: categoryColor.withValues(alpha: 0.12),
                     child: Icon(
-                      iconForTicketCategory(ticket.category),
-                      color: AppTheme.accentBlue,
+                      iconForTicketCategory(ticket.categoryId),
+                      color: categoryColor,
                     ),
                   ),
                   const SizedBox(width: 12),
