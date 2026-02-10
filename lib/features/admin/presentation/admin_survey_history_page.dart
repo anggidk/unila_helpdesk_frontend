@@ -129,7 +129,7 @@ class _AdminSurveyHistoryPageState
         children: [
           AdminFilterToolbar(
             controller: _searchController,
-            searchHintText: 'Cari berdasarkan ID tiket atau pengguna...',
+            searchHintText: 'Cari berdasarkan entitas, kategori, atau template...',
             searchValue: searchValue,
             onSearchChanged: (value) {
               ref.read(adminSurveyHistorySearchProvider.notifier).state = value;
@@ -236,18 +236,6 @@ class _AdminSurveyHistoryPageState
                         columns: const [
                           DataColumn(
                             label: Text(
-                              'ID Tiket',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
-                              'Pengguna',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
                               'Entitas',
                               style: TextStyle(fontWeight: FontWeight.w600),
                             ),
@@ -278,29 +266,10 @@ class _AdminSurveyHistoryPageState
                           ),
                         ],
                         rows: rows.map((row) {
-                          final userName = row.userName.isEmpty ? '-' : row.userName;
-                          final userEmail = row.userEmail.isEmpty ? '-' : row.userEmail;
                           final category = row.category.isEmpty ? row.categoryId : row.category;
                           final template = row.template.isEmpty ? row.templateId : row.template;
                           return DataRow(
                             cells: [
-                              DataCell(Text(row.ticketId)),
-                              DataCell(
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      userName,
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
-                                    ),
-                                    Text(
-                                      userEmail,
-                                      style: const TextStyle(color: AppTheme.textMuted),
-                                    ),
-                                  ],
-                                ),
-                              ),
                               DataCell(Text(row.userEntity)),
                               DataCell(Text(category)),
                               DataCell(Text(template)),
