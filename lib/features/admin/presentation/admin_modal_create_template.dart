@@ -237,18 +237,49 @@ class _AdminCreateTemplateDialogState
                 ],
               ),
               const SizedBox(height: 12),
-              ..._questions.map(
-                (question) => _QuestionTile(
-                  question: question,
-                  onDelete: () => setState(() => _questions.remove(question)),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 280),
+                child: Scrollbar(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: _questions
+                          .map(
+                            (question) => _QuestionTile(
+                              question: question,
+                              onEdit: () async {
+                                final payload = await showAdminAddQuestionModal(
+                                  context: context,
+                                  categories: widget.categories,
+                                  selectedCategory: widget.selectedCategory,
+                                  initialQuestion: question,
+                                  lockCategory: true,
+                                );
+                                if (payload == null) return;
+                                final index = _questions.indexWhere(
+                                  (item) => item.id == question.id,
+                                );
+                                if (index == -1) return;
+                                setState(() {
+                                  _questions[index] = payload.question;
+                                });
+                              },
+                              onDelete: () =>
+                                  setState(() => _questions.remove(question)),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(height: 8),
               GestureDetector(
                 onTap: () async {
                   final payload = await showAdminAddQuestionModal(
                     context: context,
                     categories: widget.categories,
                     selectedCategory: widget.selectedCategory,
+                    lockCategory: true,
                   );
                   if (payload != null) {
                     setState(() => _questions.add(payload.question));
@@ -346,9 +377,14 @@ class _AdminCreateTemplateDialogState
 }
 
 class _QuestionTile extends StatelessWidget {
-  const _QuestionTile({required this.question, required this.onDelete});
+  const _QuestionTile({
+    required this.question,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   final SurveyQuestion question;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
@@ -384,7 +420,7 @@ class _QuestionTile extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.edit_outlined)),
+          IconButton(onPressed: onEdit, icon: const Icon(Icons.edit_outlined)),
           IconButton(
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline),
