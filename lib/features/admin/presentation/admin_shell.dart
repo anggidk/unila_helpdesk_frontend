@@ -46,9 +46,7 @@ class AdminShell extends ConsumerWidget {
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
             width: isExpanded ? 240 : 84,
-            decoration: const BoxDecoration(
-              color: AppTheme.deepBlue,
-            ),
+            decoration: const BoxDecoration(color: AppTheme.unilaBlack),
             child: ClipRect(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -82,7 +80,8 @@ class AdminShell extends ConsumerWidget {
                                     const Expanded(
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             'Admin UNILA',
@@ -96,7 +95,9 @@ class AdminShell extends ConsumerWidget {
                                           ),
                                           Text(
                                             'Sistem Helpdesk',
-                                            style: TextStyle(color: Colors.white70),
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                            ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             softWrap: false,
@@ -114,63 +115,65 @@ class AdminShell extends ConsumerWidget {
                         label: 'Dasbor',
                         selected: index == 0,
                         showLabel: !isCompact,
-                        onTap: () => ref
-                            .read(adminShellIndexProvider.notifier)
-                            .state = 0,
+                        onTap: () =>
+                            ref.read(adminShellIndexProvider.notifier).state =
+                                0,
                       ),
                       _NavItem(
                         icon: Icons.confirmation_number_outlined,
-                        label: 'Tiket',
+                        label: 'Manajemen Tiket',
                         selected: index == 1,
                         showLabel: !isCompact,
-                        onTap: () => ref
-                            .read(adminShellIndexProvider.notifier)
-                            .state = 1,
+                        onTap: () =>
+                            ref.read(adminShellIndexProvider.notifier).state =
+                                1,
                       ),
                       _NavItem(
                         icon: Icons.assessment_outlined,
-                        label: 'Laporan',
+                        label: 'Laporan Survei',
                         selected: index == 2,
                         showLabel: !isCompact,
-                        onTap: () => ref
-                            .read(adminShellIndexProvider.notifier)
-                            .state = 2,
+                        onTap: () =>
+                            ref.read(adminShellIndexProvider.notifier).state =
+                                2,
                       ),
                       _NavItem(
                         icon: Icons.group_work_outlined,
-                        label: 'Kohort',
+                        label: 'Analisis Kohort',
                         selected: index == 3,
                         showLabel: !isCompact,
-                        onTap: () => ref
-                            .read(adminShellIndexProvider.notifier)
-                            .state = 3,
+                        onTap: () =>
+                            ref.read(adminShellIndexProvider.notifier).state =
+                                3,
                       ),
                       _NavItem(
                         icon: Icons.quiz_outlined,
-                        label: 'Survei',
+                        label: 'Pengaturan Survei',
                         selected: index == 4,
                         showLabel: !isCompact,
-                        onTap: () => ref
-                            .read(adminShellIndexProvider.notifier)
-                            .state = 4,
+                        onTap: () =>
+                            ref.read(adminShellIndexProvider.notifier).state =
+                                4,
                       ),
                       _NavItem(
                         icon: Icons.history,
                         label: 'Riwayat Survei',
                         selected: index == 5,
                         showLabel: !isCompact,
-                        onTap: () => ref
-                            .read(adminShellIndexProvider.notifier)
-                            .state = 5,
+                        onTap: () =>
+                            ref.read(adminShellIndexProvider.notifier).state =
+                                5,
                       ),
                       const Spacer(),
                       _ProfileSection(
                         isExpanded: !isCompact,
                         showMenu: showProfileMenu,
                         adminUser: adminUser,
-                        onToggleMenu: () => ref
-                            .read(adminProfileMenuOpenProvider.notifier)
-                            .state = !showProfileMenu,
+                        onToggleMenu: () =>
+                            ref
+                                    .read(adminProfileMenuOpenProvider.notifier)
+                                    .state =
+                                !showProfileMenu,
                         onLogout: () async {
                           await performLogout(ref);
                           if (!context.mounted) return;
@@ -200,9 +203,13 @@ class AdminShell extends ConsumerWidget {
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () => ref
-                                .read(adminSidebarExpandedProvider.notifier)
-                                .state = !isExpanded,
+                            onPressed: () =>
+                                ref
+                                        .read(
+                                          adminSidebarExpandedProvider.notifier,
+                                        )
+                                        .state =
+                                    !isExpanded,
                             icon: const Icon(Icons.menu),
                           ),
                           const SizedBox(width: 8),
@@ -297,8 +304,10 @@ class _NavItem extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      leading:
-          Icon(icon, color: selected ? AppTheme.accentYellow : Colors.white70),
+      leading: Icon(
+        icon,
+        color: selected ? AppTheme.accentYellow : Colors.white70,
+      ),
       title: Text(
         label,
         style: TextStyle(
@@ -406,9 +415,7 @@ class _ProfileSection extends StatelessWidget {
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
-                  side: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.4),
-                  ),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 onPressed: onLogout,
@@ -421,4 +428,3 @@ class _ProfileSection extends StatelessWidget {
     );
   }
 }
-
