@@ -22,7 +22,7 @@ class TicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canManage =
-        ticket.status != TicketStatus.resolved &&
+        ticket.status == TicketStatus.waiting &&
         (onEdit != null || onDelete != null);
     return Container(
       margin: const EdgeInsets.only(bottom: 14),

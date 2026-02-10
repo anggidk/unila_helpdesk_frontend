@@ -167,7 +167,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
     final canEdit =
         currentUser != null &&
         !ticket.isGuest &&
-        ticket.status != TicketStatus.resolved;
+        ticket.status == TicketStatus.waiting;
     final canGoBack = Navigator.of(context).canPop();
 
     return Scaffold(
