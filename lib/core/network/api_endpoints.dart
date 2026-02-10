@@ -3,6 +3,7 @@ class ApiEndpoints {
 
   static const String login = '/auth/login';
   static const String refresh = '/auth/refresh';
+  static const String logout = '/auth/logout';
 
   static const String tickets = '/tickets';
   static const String ticketsPaged = '/tickets/paged';

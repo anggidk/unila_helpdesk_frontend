@@ -39,6 +39,15 @@ class AuthRepository {
       'password': password,
     });
   }
+
+  Future<ApiResponse<Map<String, dynamic>>> logout({
+    required String refreshToken,
+  }) {
+    return _client.post(
+      ApiEndpoints.logout,
+      body: {'refresh_token': refreshToken},
+    );
+  }
 }
 
 class AuthSession {
