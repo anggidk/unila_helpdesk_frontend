@@ -9,11 +9,10 @@ class UserTopAppBar extends AppBar {
     super.actions,
     super.bottom,
     bool centerTitle = true,
-    bool automaticallyImplyLeading = true,
+    super.automaticallyImplyLeading = true,
   }) : super(
          title: Text(titleText),
          centerTitle: centerTitle,
-         automaticallyImplyLeading: automaticallyImplyLeading,
          foregroundColor: AppTheme.textPrimary,
          backgroundColor: Colors.white,
          surfaceTintColor: Colors.transparent,
