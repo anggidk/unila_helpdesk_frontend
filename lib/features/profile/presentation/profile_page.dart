@@ -7,6 +7,7 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/core/auth/logout_helper.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -26,7 +27,7 @@ class ProfilePage extends ConsumerWidget {
         .where((ticket) => ticket.status == TicketStatus.resolved)
         .length;
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil Saya')),
+      appBar: UserTopAppBar(titleText: 'Profil Saya'),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
           20,

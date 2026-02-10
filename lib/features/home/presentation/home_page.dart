@@ -7,6 +7,7 @@ import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/ticket_ui.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/home/application/home_provider.dart';
 import 'package:unila_helpdesk_frontend/features/home/domain/home_models.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
@@ -21,8 +22,8 @@ class HomePage extends ConsumerWidget {
     final summaryAsync = ref.watch(homeSummaryProvider(user));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Beranda'),
+      appBar: UserTopAppBar(
+        titleText: 'Beranda',
         actions: [
           IconButton(
             onPressed: () {

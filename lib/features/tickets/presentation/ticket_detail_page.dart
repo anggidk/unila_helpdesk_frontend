@@ -7,6 +7,7 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
@@ -171,8 +172,8 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
     final canGoBack = Navigator.of(context).canPop();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detail Tiket'),
+      appBar: UserTopAppBar(
+        titleText: 'Detail Tiket',
         leading: canGoBack
             ? null
             : IconButton(

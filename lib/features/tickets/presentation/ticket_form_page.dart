@@ -6,6 +6,7 @@ import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/file_picker_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/attachment_tile.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/form_widgets.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final ticketFormSelectedCategoryProvider = StateProvider.autoDispose<String?>(
@@ -186,7 +187,9 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text(isEditing ? 'Edit Tiket' : 'Buat Tiket Baru')),
+      appBar: UserTopAppBar(
+        titleText: isEditing ? 'Edit Tiket' : 'Buat Tiket Baru',
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

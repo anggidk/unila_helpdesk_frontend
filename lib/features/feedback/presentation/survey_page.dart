@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
 
 final surveyAnswersProvider = StateProvider.autoDispose<Map<String, dynamic>>(
@@ -32,7 +33,7 @@ class SurveyPage extends ConsumerWidget {
         ? 0.0
         : answers.length / questions.length;
     return Scaffold(
-      appBar: AppBar(title: const Text('Survei Kepuasan')),
+      appBar: UserTopAppBar(titleText: 'Survei Kepuasan'),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

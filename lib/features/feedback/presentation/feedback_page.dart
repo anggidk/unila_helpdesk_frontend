@@ -10,6 +10,7 @@ import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
 import 'package:unila_helpdesk_frontend/core/utils/ticket_ui.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/star_icons.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 class FeedbackPage extends ConsumerWidget {
@@ -31,8 +32,8 @@ class FeedbackPage extends ConsumerWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Umpan Balik'),
+        appBar: UserTopAppBar(
+          titleText: 'Umpan Balik',
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Menunggu Umpan Balik'),

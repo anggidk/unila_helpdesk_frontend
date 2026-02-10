@@ -5,6 +5,7 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/navigation/ticket_navigation.dart';
 import 'package:unila_helpdesk_frontend/core/notifications/fcm_service.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 
 final notificationsFcmEnabledProvider = FutureProvider.autoDispose<bool>(
   (ref) => FcmService.isPushEnabled(),
@@ -24,7 +25,7 @@ class NotificationsPage extends ConsumerWidget {
     final isUpdating = ref.watch(notificationsFcmUpdatingProvider);
     final fcmEnabled = fcmEnabledAsync.value ?? true;
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifikasi')),
+      appBar: UserTopAppBar(titleText: 'Notifikasi'),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

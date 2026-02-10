@@ -9,6 +9,7 @@ import 'package:unila_helpdesk_frontend/core/utils/file_picker_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/attachment_tile.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/form_widgets.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/info_banner.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final guestTicketSelectedCategoryProvider = StateProvider.autoDispose<String?>(
@@ -222,7 +223,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     final selectedPriority = ref.watch(guestTicketPriorityProvider);
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Form Tiket Tamu')),
+      appBar: UserTopAppBar(titleText: 'Form Tiket Tamu'),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

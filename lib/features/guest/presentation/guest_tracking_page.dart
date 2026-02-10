@@ -5,6 +5,7 @@ import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/info_banner.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 
 final guestTrackingFoundTicketProvider = StateProvider.autoDispose<Ticket?>(
@@ -62,7 +63,7 @@ class _GuestTrackingPageState extends ConsumerState<GuestTrackingPage> {
     final foundTicket = ref.watch(guestTrackingFoundTicketProvider);
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Lacak Tiket')),
+      appBar: UserTopAppBar(titleText: 'Lacak Tiket'),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

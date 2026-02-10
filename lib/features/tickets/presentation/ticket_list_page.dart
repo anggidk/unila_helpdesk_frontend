@@ -5,6 +5,7 @@ import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/presentation/widgets/ticket_card.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
@@ -73,7 +74,7 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tiket')),
+      appBar: UserTopAppBar(titleText: 'Tiket'),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
           20,
