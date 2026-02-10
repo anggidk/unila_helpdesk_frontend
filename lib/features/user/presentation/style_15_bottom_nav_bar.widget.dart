@@ -171,7 +171,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppTheme.unilaBlack : AppTheme.textMuted;
+    final color = selected ? AppTheme.accentBlue : AppTheme.textMuted;
     final textStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
       color: color,
       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
@@ -183,7 +183,27 @@ class _NavItem extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(item.icon, color: color, size: 22),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: selected
+                  ? AppTheme.accentBlue.withValues(alpha: 0.12)
+                  : Colors.transparent,
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.accentBlue.withValues(alpha: 0.45),
+                        blurRadius: 16,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: Icon(item.icon, color: color, size: 22),
+          ),
           const SizedBox(height: 4),
           Text(item.label, style: textStyle),
         ],
