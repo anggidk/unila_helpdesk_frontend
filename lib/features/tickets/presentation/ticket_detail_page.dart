@@ -92,6 +92,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                         return;
                       }
                       ref.invalidate(ticketsProvider);
+                      if (!dialogContext.mounted) return;
                       Navigator.of(dialogContext).pop();
                       context.pop();
                     },

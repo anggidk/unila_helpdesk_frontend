@@ -5,6 +5,7 @@ import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/presentation/widgets/ticket_card.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
@@ -22,6 +23,7 @@ class TicketListPage extends ConsumerStatefulWidget {
 
 class _TicketListPageState extends ConsumerState<TicketListPage> {
   late final TextEditingController _searchController;
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -158,7 +160,75 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
               onTap: () {
                 context.pushNamed(AppRouteNames.ticketDetail, extra: ticket);
               },
+              onEdit: () async {
+                final updated = await context.pushNamed<bool>(
+                  AppRouteNames.ticketForm,
+                  extra: ticket,
+                );
+                if (updated == true) {
+                  ref.invalidate(ticketsProvider);
+                }
+              },
+              onDelete: () => _confirmDelete(ticket),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(Ticket ticket) async {
+    if (_isDeleting) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus Tiket'),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus tiket ${ticket.displayNumber}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: _isDeleting
+                ? null
+                : () async {
+                    setState(() => _isDeleting = true);
+                    final response = await TicketRepository().deleteTicket(
+                      ticket.id,
+                    );
+                    if (!mounted) return;
+                    if (!response.isSuccess) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            response.error?.message ?? 'Gagal menghapus tiket.',
+                          ),
+                        ),
+                      );
+                      setState(() => _isDeleting = false);
+                      return;
+                    }
+                    ref.invalidate(ticketsProvider);
+                    if (!dialogContext.mounted) return;
+                    Navigator.of(dialogContext).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Tiket berhasil dihapus.')),
+                    );
+                    setState(() => _isDeleting = false);
+                  },
+            child: _isDeleting
+                ? const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Hapus'),
           ),
         ],
       ),

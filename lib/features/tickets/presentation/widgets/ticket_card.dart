@@ -6,13 +6,24 @@ import 'package:unila_helpdesk_frontend/core/utils/ticket_ui.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
 
 class TicketCard extends StatelessWidget {
-  const TicketCard({super.key, required this.ticket, this.onTap});
+  const TicketCard({
+    super.key,
+    required this.ticket,
+    this.onTap,
+    this.onEdit,
+    this.onDelete,
+  });
 
   final Ticket ticket;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final canManage =
+        ticket.status != TicketStatus.resolved &&
+        (onEdit != null || onDelete != null);
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -86,6 +97,33 @@ class TicketCard extends StatelessWidget {
                       ],
                     ],
                   ),
+                  if (canManage) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (onEdit != null)
+                          TextButton.icon(
+                            onPressed: onEdit,
+                            icon: const Icon(Icons.edit_outlined, size: 16),
+                            label: const Text('Edit'),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                        if (onDelete != null)
+                          TextButton.icon(
+                            onPressed: onDelete,
+                            icon: const Icon(Icons.delete_outline, size: 16),
+                            label: const Text('Hapus'),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              foregroundColor: AppTheme.danger,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
