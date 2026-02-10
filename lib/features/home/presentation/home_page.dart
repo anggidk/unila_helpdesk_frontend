@@ -3,13 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
-import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
-import 'package:unila_helpdesk_frontend/core/utils/ticket_ui.dart';
-import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/home/application/home_provider.dart';
 import 'package:unila_helpdesk_frontend/features/home/domain/home_models.dart';
+import 'package:unila_helpdesk_frontend/features/tickets/presentation/widgets/ticket_card.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
 class HomePage extends ConsumerWidget {
@@ -103,18 +101,21 @@ class _HomeContent extends StatelessWidget {
               label: 'Menunggu',
               value: '${summary.waitingCount}',
               color: AppTheme.danger,
+              icon: Icons.hourglass_bottom_rounded,
             ),
             const SizedBox(width: 12),
             _StatCard(
               label: 'Diproses',
               value: '${summary.activeCount}',
               color: AppTheme.warning,
+              icon: Icons.confirmation_number_outlined,
             ),
             const SizedBox(width: 12),
             _StatCard(
               label: 'Selesai',
               value: '${summary.resolvedCount}',
               color: AppTheme.success,
+              icon: Icons.check_rounded,
             ),
           ],
         ),
@@ -149,7 +150,12 @@ class _HomeContent extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         ...summary.recentTickets.map(
-          (ticket) => _TicketPreview(ticket: ticket),
+          (ticket) => TicketCard(
+            ticket: ticket,
+            onTap: () {
+              context.pushNamed(AppRouteNames.ticketDetail, extra: ticket);
+            },
+          ),
         ),
       ],
     );
@@ -161,11 +167,13 @@ class _StatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.color,
+    required this.icon,
   });
 
   final String label;
   final String value;
   final Color color;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -181,68 +189,19 @@ class _StatCard extends StatelessWidget {
           children: [
             CircleAvatar(
               backgroundColor: color.withValues(alpha: 0.15),
-              child: Icon(Icons.circle, color: color, size: 16),
+              child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(height: 8),
             Text(label, style: const TextStyle(color: AppTheme.textMuted)),
             const SizedBox(height: 6),
             Text(
               value,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TicketPreview extends StatelessWidget {
-  const _TicketPreview({required this.ticket});
-
-  final Ticket ticket;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.outline),
-      ),
-      child: InkWell(
-        onTap: () {
-          context.pushNamed(AppRouteNames.ticketDetail, extra: ticket);
-        },
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: AppTheme.surface,
-              child: Icon(
-                iconForTicketCategory(ticket.category),
-                color: AppTheme.accentBlue,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: color,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    ticket.title,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    ticket.displayNumber,
-                    style: const TextStyle(color: AppTheme.textMuted),
-                  ),
-                ],
-              ),
-            ),
-            StatusBadge(status: ticket.status),
           ],
         ),
       ),
