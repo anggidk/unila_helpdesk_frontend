@@ -6,6 +6,7 @@ import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 import 'package:unila_helpdesk_frontend/core/notifications/fcm_service.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/presentation/feedback_page.dart';
 import 'package:unila_helpdesk_frontend/features/home/presentation/home_page.dart';
 import 'package:unila_helpdesk_frontend/features/profile/presentation/profile_page.dart';
@@ -101,7 +102,7 @@ class _MissingUserPage extends StatelessWidget {
       );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('Kesalahan')),
+      appBar: UserTopAppBar(titleText: 'Kesalahan'),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

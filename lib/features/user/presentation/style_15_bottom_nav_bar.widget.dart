@@ -23,113 +23,136 @@ class Style15BottomNavBar extends StatelessWidget {
   final ValueChanged<int> onTap;
   final Style15NavItem middleItem;
   final VoidCallback onMiddleTap;
+  static const double _barHeight = 68.0;
+  static const double _middleSize = 64.0;
+  static const double _floatingGap = 24.0;
+  static const double _topSpace = (_middleSize / 2) + 8;
+  static const double _cornerRadius = 28.0;
+  static const double _notchRadius = 36.0;
 
   static double heightFor(BuildContext context) {
-    const barHeight = 64.0;
-    const fabSize = 56.0;
-    const extraGap = 8.0;
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final totalHeight = barHeight + (fabSize / 2);
-    return totalHeight + extraGap + bottomInset;
+    return _barHeight + _topSpace + bottomInset + _floatingGap;
   }
 
   @override
   Widget build(BuildContext context) {
-    final barHeight = 64.0;
-    final fabSize = 56.0;
-    final totalHeight = barHeight + (fabSize / 2);
     final bottomInset = MediaQuery.of(context).padding.bottom;
+    final barBottom = bottomInset + _floatingGap;
+    final middleBottom = barBottom + _barHeight - (_middleSize / 2) + 2;
 
     return SizedBox(
-      height: totalHeight + 8 + bottomInset,
+      height: _barHeight + _topSpace + barBottom,
       child: Stack(
+        clipBehavior: Clip.none,
         alignment: Alignment.bottomCenter,
         children: [
           Positioned(
             left: 16,
             right: 16,
-            bottom: bottomInset,
-            child: Container(
-              height: barHeight,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+            bottom: barBottom,
+            child: PhysicalShape(
+              color: Colors.white,
+              elevation: 10,
+              shadowColor: Colors.black.withValues(alpha: 0.12),
+              clipper: const _NotchedNavBarClipper(
+                cornerRadius: _cornerRadius,
+                notchRadius: _notchRadius,
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _NavItem(
-                      index: 0,
-                      item: items[0],
-                      selected: currentIndex == 0,
-                      onTap: onTap,
-                    ),
+              child: SizedBox(
+                height: _barHeight,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _NavItem(
+                          index: 0,
+                          item: items[0],
+                          selected: currentIndex == 0,
+                          onTap: onTap,
+                        ),
+                      ),
+                      Expanded(
+                        child: _NavItem(
+                          index: 1,
+                          item: items[1],
+                          selected: currentIndex == 1,
+                          onTap: onTap,
+                        ),
+                      ),
+                      Expanded(child: const SizedBox.shrink()),
+                      Expanded(
+                        child: _NavItem(
+                          index: 2,
+                          item: items[2],
+                          selected: currentIndex == 2,
+                          onTap: onTap,
+                        ),
+                      ),
+                      Expanded(
+                        child: _NavItem(
+                          index: 3,
+                          item: items[3],
+                          selected: currentIndex == 3,
+                          onTap: onTap,
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: _NavItem(
-                      index: 1,
-                      item: items[1],
-                      selected: currentIndex == 1,
-                      onTap: onTap,
-                    ),
-                  ),
-                  SizedBox(width: fabSize),
-                  Expanded(
-                    child: _NavItem(
-                      index: 2,
-                      item: items[2],
-                      selected: currentIndex == 2,
-                      onTap: onTap,
-                    ),
-                  ),
-                  Expanded(
-                    child: _NavItem(
-                      index: 3,
-                      item: items[3],
-                      selected: currentIndex == 3,
-                      onTap: onTap,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
           Positioned(
-            bottom: bottomInset + barHeight - (fabSize / 2),
-            child: GestureDetector(
+            bottom: middleBottom,
+            child: _FloatingMiddleButton(
+              item: middleItem,
               onTap: onMiddleTap,
-              child: Container(
-                width: fabSize,
-                height: fabSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.accentYellow,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.accentYellow.withValues(alpha: 0.5),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  middleItem.icon,
-                  color: AppTheme.unilaBlack,
-                  size: 28,
-                ),
-              ),
+              size: _middleSize,
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+class _NotchedNavBarClipper extends CustomClipper<Path> {
+  const _NotchedNavBarClipper({
+    required this.cornerRadius,
+    required this.notchRadius,
+  });
+
+  final double cornerRadius;
+  final double notchRadius;
+
+  @override
+  Path getClip(Size size) {
+    final width = size.width;
+    final height = size.height;
+    final centerX = width / 2;
+    final outer = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, width, height),
+          Radius.circular(cornerRadius),
+        ),
+      );
+
+    // True semicircle notch: cut by a full circle centered on top edge.
+    final notch = Path()
+      ..addOval(
+        Rect.fromCircle(center: Offset(centerX, 0), radius: notchRadius),
+      );
+
+    return Path.combine(PathOperation.difference, outer, notch);
+  }
+
+  @override
+  bool shouldReclip(covariant _NotchedNavBarClipper oldClipper) {
+    return oldClipper.cornerRadius != cornerRadius ||
+        oldClipper.notchRadius != notchRadius;
   }
 }
 
@@ -164,6 +187,51 @@ class _NavItem extends StatelessWidget {
           const SizedBox(height: 4),
           Text(item.label, style: textStyle),
         ],
+      ),
+    );
+  }
+}
+
+class _FloatingMiddleButton extends StatelessWidget {
+  const _FloatingMiddleButton({
+    required this.item,
+    required this.onTap,
+    required this.size,
+  });
+
+  final Style15NavItem item;
+  final VoidCallback onTap;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(size / 2),
+        child: Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppTheme.accentYellow,
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.accentYellow.withValues(alpha: 0.45),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Icon(item.icon, color: AppTheme.unilaBlack, size: 30),
+        ),
       ),
     );
   }
