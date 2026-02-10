@@ -26,20 +26,11 @@ class AdminDashboardPage extends ConsumerWidget {
     final satisfactionAsync = ref.watch(dashboardSatisfactionProvider);
     final summary = summaryAsync.value;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(21),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Dasbor',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 5),
           if (summaryAsync.isLoading)
             const Center(child: CircularProgressIndicator())
           else if (summaryAsync.hasError)
@@ -53,7 +44,7 @@ class AdminDashboardPage extends ConsumerWidget {
                 _StatCard(
                   label: 'Total Tiket',
                   value: _formatCount(summary?.totalTickets),
-                  icon: Icons.folder_open,
+                  icon: Icons.confirmation_number,
                   color: AppTheme.accentBlue,
                 ),
                 const SizedBox(width: 16),
@@ -546,14 +537,14 @@ List<ServiceTrend> _mergeServiceTrends({
 
 List<Color> _palette(int count) {
   const base = [
-    AppTheme.unilaBlack,
-    AppTheme.unilaBlue,
     AppTheme.unilaGold,
-    AppTheme.success,
+    AppTheme.unilaBlue,
+    AppTheme.unilaBlack,
+    AppTheme.textMuted,
     AppTheme.warning,
     AppTheme.danger,
-    AppTheme.textMuted,
-    AppTheme.birutua,
+    AppTheme.unilaGreen,
+    AppTheme.textPrimary,
   ];
   if (count <= base.length) {
     return base.take(count).toList();

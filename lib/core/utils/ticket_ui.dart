@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 
 IconData iconForTicketCategory(String categoryId) {
   switch (categoryId) {
@@ -24,20 +25,20 @@ IconData iconForTicketCategory(String categoryId) {
 Color colorForTicketCategory(String categoryId) {
   switch (categoryId) {
     case 'CAT001':
-      return const Color(0xFF1E88E5); // Internet
+      return AppTheme.accentBlue;
     case 'CAT002':
-      return const Color(0xFF3949AB); // SIAKAD
+      return AppTheme.warning;
     case 'CAT003':
-      return const Color(0xFF00897B); // Website
+      return AppTheme.success;
     case 'CAT004':
-      return const Color(0xFFEF6C00); // Sistem Informasi
+      return AppTheme.danger;
     case 'CAT005':
-      return const Color(0xFF546E7A); // Lainnya
+      return AppTheme.textMuted;
     case 'GST001':
     case 'GST002':
-      return const Color(0xFFC62828); // SSO/Akun
+      return AppTheme.unilaBlack;
     case 'GST003':
-      return const Color(0xFF00ACC1); // Registrasi Email
+      return AppTheme.accentYellow;
   }
-  return const Color(0xFF607D8B);
+  return AppTheme.textMuted;
 }
