@@ -6,6 +6,7 @@ import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_filters.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/admin_filter_toolbar.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/filter_dropdown.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/pagination_controls.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
@@ -273,7 +274,7 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
                               ),
                               DataCell(Text(ticket.category)),
                               DataCell(Text(formatDate(ticket.createdAt))),
-                              DataCell(_StatusChip(label: ticket.status.label)),
+                              DataCell(StatusBadge(status: ticket.status)),
                               DataCell(
                                 IconButton(
                                   onPressed: () {},
@@ -305,34 +306,6 @@ class _AdminTicketsPageState extends ConsumerState<AdminTicketsPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    Color color = AppTheme.accentBlue;
-    if (label.toLowerCase().contains('selesai')) {
-      color = AppTheme.success;
-    } else if (label.toLowerCase().contains('menunggu')) {
-      color = AppTheme.warning;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
     );
   }

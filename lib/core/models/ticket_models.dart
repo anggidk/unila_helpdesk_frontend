@@ -6,7 +6,7 @@ extension TicketStatusX on TicketStatus {
       case TicketStatus.waiting:
         return 'Menunggu';
       case TicketStatus.inProgress:
-        return 'Progres';
+        return 'Diproses';
       case TicketStatus.resolved:
         return 'Selesai';
     }
