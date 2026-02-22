@@ -96,9 +96,11 @@ class SurveyTemplate {
       framework: json['framework']?.toString() ?? '',
       categoryId: json['categoryId']?.toString() ?? '',
       questions: questions,
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
-      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
+      updatedAt:
+          DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
           DateTime.now(),
     );
   }
@@ -143,7 +145,8 @@ class SurveyResponseItem {
       templateId: json['templateId']?.toString() ?? '',
       template: json['template']?.toString() ?? '',
       score: (json['score'] as num?)?.toDouble() ?? 0,
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
     );
   }

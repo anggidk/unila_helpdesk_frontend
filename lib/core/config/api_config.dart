@@ -1,27 +1,42 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class ApiConfig {
   const ApiConfig._();
 
-  // Environment detection
-  static const String environment = String.fromEnvironment(
-    'ENVIRONMENT',
-    defaultValue: 'development',
-  );
+  static String _dotenvValue(String key) {
+    try {
+      return (dotenv.env[key] ?? '').trim();
+    } catch (_) {
+      return '';
+    }
+  }
 
-  // Base URL berdasarkan environment
+  // Environment detection
+  static String get environment {
+    const defineEnvironment = String.fromEnvironment('ENVIRONMENT');
+    if (defineEnvironment.isNotEmpty) return defineEnvironment.toLowerCase();
+
+    final dotenvEnvironment = _dotenvValue('ENVIRONMENT');
+    if (dotenvEnvironment.isNotEmpty) return dotenvEnvironment.toLowerCase();
+
+    throw StateError(
+      'ENVIRONMENT belum di-set. Isi di .env atau jalankan dengan --dart-define=ENVIRONMENT=development|staging|production.',
+    );
+  }
+
+  // Base URL didefinisikan berdasarkan ENVIRONMENT.
   static String get baseUrl {
-    // Jika ada override dari --dart-define, gunakan itu
-    const override = String.fromEnvironment('API_BASE_URL');
-    if (override.isNotEmpty) return override;
-    
-    // Jika tidak, gunakan default berdasarkan environment
     switch (environment) {
+      case 'development':
+        return 'http://localhost:8080';
+      case 'staging':
+        return 'https://api.withanggi.web.id';
       case 'production':
         return 'https://api.unila-helpdesk.com';
-      case 'staging':
-        return 'https://staging-api.unila-helpdesk.com';
-      case 'development':
       default:
-        return 'http://localhost:8080';
+        throw StateError(
+          "ENVIRONMENT '$environment' tidak valid. Gunakan development, staging, atau production.",
+        );
     }
   }
 

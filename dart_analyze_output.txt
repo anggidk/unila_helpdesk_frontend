@@ -1,0 +1,6 @@
+Analyzing unila_helpdesk_frontend...
+
+  error - lib\features\admin\presentation\admin_cohort_page.dart:53:37 - The method '_IkmSection' isn't defined for the type 'AdminCohortPage'. Try correcting the name to the name of an existing method, or defining a method named '_IkmSection'. - undefined_method
+   info - lib\features\admin\presentation\admin_modal_add_pertanyaan.dart:205:17 - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+2 issues found.

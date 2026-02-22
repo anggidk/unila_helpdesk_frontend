@@ -39,7 +39,9 @@ class ApiClient {
 
   Uri buildUri(String path, [Map<String, String>? query]) {
     if (baseUrl.isEmpty) {
-      throw StateError('API_BASE_URL belum di-set. Jalankan dengan --dart-define=API_BASE_URL=...');
+      throw StateError(
+        'Base URL kosong. Pastikan ENVIRONMENT di-set ke development, staging, atau production.',
+      );
     }
     return Uri.parse(baseUrl).replace(path: path, queryParameters: query);
   }
@@ -217,4 +219,8 @@ class ApiClient {
   }
 }
 
-final ApiClient sharedApiClient = ApiClient(baseUrl: ApiConfig.baseUrl);
+late final ApiClient sharedApiClient;
+
+void initializeSharedApiClient() {
+  sharedApiClient = ApiClient(baseUrl: ApiConfig.baseUrl);
+}

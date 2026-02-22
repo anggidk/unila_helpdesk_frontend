@@ -16,10 +16,7 @@ class ReportRepository {
   }) async {
     final response = await _client.get(
       ApiEndpoints.cohort,
-      query: {
-        'period': period,
-        'periods': periods.toString(),
-      },
+      query: {'period': period, 'periods': periods.toString()},
     );
     final items = response.data?['data'];
     if (response.isSuccess && items is List) {
@@ -75,10 +72,7 @@ class ReportRepository {
   }) async {
     final response = await _client.get(
       ApiEndpoints.reportsSatisfactionSummary,
-      query: {
-        'period': period,
-        'periods': periods.toString(),
-      },
+      query: {'period': period, 'periods': periods.toString()},
     );
     final items = response.data?['data'];
     if (response.isSuccess && items is List) {
@@ -106,7 +100,10 @@ class ReportRepository {
     if (templateId != null && templateId.isNotEmpty) {
       query['templateId'] = templateId;
     }
-    final response = await _client.get(ApiEndpoints.reportsSatisfaction, query: query);
+    final response = await _client.get(
+      ApiEndpoints.reportsSatisfaction,
+      query: query,
+    );
     final data = response.data?['data'];
     if (response.isSuccess && data is Map<String, dynamic>) {
       return SurveySatisfactionReport.fromJson(data);
@@ -138,7 +135,9 @@ class ReportRepository {
     throw Exception(response.error?.message ?? 'Gagal export CSV');
   }
 
-  Future<List<SurveyTemplate>> fetchTemplatesByCategory(String categoryId) async {
+  Future<List<SurveyTemplate>> fetchTemplatesByCategory(
+    String categoryId,
+  ) async {
     final response = await _client.get(
       ApiEndpoints.reportsTemplates,
       query: {'categoryId': categoryId},
@@ -159,10 +158,7 @@ class ReportRepository {
   }) async {
     final response = await _client.get(
       ApiEndpoints.usageCohort,
-      query: {
-        'period': period,
-        'periods': periods.toString(),
-      },
+      query: {'period': period, 'periods': periods.toString()},
     );
     final items = response.data?['data'];
     if (response.isSuccess && items is List) {
@@ -180,10 +176,7 @@ class ReportRepository {
   }) async {
     final response = await _client.get(
       ApiEndpoints.entityService,
-      query: {
-        'period': period,
-        'periods': periods.toString(),
-      },
+      query: {'period': period, 'periods': periods.toString()},
     );
     final items = response.data?['data'];
     if (response.isSuccess && items is List) {

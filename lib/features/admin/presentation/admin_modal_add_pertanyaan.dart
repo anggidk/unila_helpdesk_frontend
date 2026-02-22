@@ -238,10 +238,9 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                       onChanged: widget.lockCategory
                           ? null
                           : (value) => setState(
-                                () =>
-                                    _category =
-                                        value ?? widget.selectedCategory,
-                              ),
+                              () =>
+                                  _category = value ?? widget.selectedCategory,
+                            ),
                       decoration: const InputDecoration(labelText: 'Kategori'),
                     ),
                   ),
@@ -262,9 +261,7 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                   onChanged: (value) => setState(() {
                     _likertStyle = value ?? _LikertLabelStyle.puas;
                   }),
-                  decoration: const InputDecoration(
-                    labelText: 'Label Skala',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Label Skala'),
                 ),
               ],
               if (_type == SurveyQuestionType.multipleChoice) ...[
@@ -319,9 +316,7 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                     ? 'Seberapa puas Anda dengan layanan kami?'
                     : _textController.text,
                 type: _type,
-                options: _type.isLikertFamily
-                    ? _likertOptions
-                    : _options,
+                options: _type.isLikertFamily ? _likertOptions : _options,
               ),
               const SizedBox(height: 12),
               CheckboxListTile(
@@ -350,9 +345,9 @@ class _AdminAddQuestionDialogState extends State<_AdminAddQuestionDialog> {
                         : () {
                             final payload = AddQuestionPayload(
                               question: SurveyQuestion(
-                                id: widget.initialQuestion?.id ??
-                                    DateTime.now()
-                                        .millisecondsSinceEpoch
+                                id:
+                                    widget.initialQuestion?.id ??
+                                    DateTime.now().millisecondsSinceEpoch
                                         .toString(),
                                 text: _textController.text.trim(),
                                 type: _type,
@@ -426,8 +421,7 @@ class _PreviewSection extends StatelessWidget {
           const SizedBox(height: 12),
           Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          if (type.isLikertFamily)
-            _LikertPreview(options: options ?? const []),
+          if (type.isLikertFamily) _LikertPreview(options: options ?? const []),
           if (type == SurveyQuestionType.yesNo) _YesNoPreview(),
           if (type == SurveyQuestionType.multipleChoice)
             _MultipleChoicePreview(options: options),
@@ -445,9 +439,7 @@ class _PreviewSection extends StatelessWidget {
 }
 
 class _LikertPreview extends StatelessWidget {
-  const _LikertPreview({
-    required this.options,
-  });
+  const _LikertPreview({required this.options});
 
   final List<String> options;
 
@@ -604,7 +596,12 @@ List<String> _buildLikertOptions({
         return const ['Kurang Baik', 'Cukup Baik', 'Baik'];
       }
       if (scale == 4) {
-        return const ['Sangat Kurang Baik', 'Kurang Baik', 'Baik', 'Sangat Baik'];
+        return const [
+          'Sangat Kurang Baik',
+          'Kurang Baik',
+          'Baik',
+          'Sangat Baik',
+        ];
       }
       return const [
         'Sangat Kurang Baik',
@@ -618,7 +615,12 @@ List<String> _buildLikertOptions({
         return const ['Tidak Setuju', 'Netral', 'Setuju'];
       }
       if (scale == 4) {
-        return const ['Sangat Tidak Setuju', 'Tidak Setuju', 'Setuju', 'Sangat Setuju'];
+        return const [
+          'Sangat Tidak Setuju',
+          'Tidak Setuju',
+          'Setuju',
+          'Sangat Setuju',
+        ];
       }
       return const [
         'Sangat Tidak Setuju',

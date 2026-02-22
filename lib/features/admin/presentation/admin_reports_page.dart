@@ -52,19 +52,21 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
       final filename = 'survey_${categoryId}_$period.csv';
       await downloadCsv(filename: filename, content: csv);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Export CSV berhasil.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Export CSV berhasil.')));
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal export: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal export: $error')));
     }
   }
 
   void _syncCategory(List<ServiceCategory> categories) {
-    final filtered = categories.where((category) => !category.guestAllowed).toList();
+    final filtered = categories
+        .where((category) => !category.guestAllowed)
+        .toList();
     if (filtered.isEmpty) {
       return;
     }
@@ -82,26 +84,21 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<List<ServiceCategory>>>(
-      reportsCategoriesProvider,
-      (_, next) {
-        final list = next.value ?? [];
-        _syncCategory(list);
-      },
-    );
-    ref.listen<String?>(
-      reportsCategoryIdProvider,
-      (_, next) {
-        final categories = ref.read(reportsCategoriesProvider).value ?? [];
-        final selected = categories
-            .where((item) => item.id == next)
-            .toList();
-        if (next != null && next != _lastCategoryId) {
-          _lastCategoryId = next;
-          _syncTemplateFromCategory(selected.isNotEmpty ? selected.first : null);
-        }
-      },
-    );
+    ref.listen<AsyncValue<List<ServiceCategory>>>(reportsCategoriesProvider, (
+      _,
+      next,
+    ) {
+      final list = next.value ?? [];
+      _syncCategory(list);
+    });
+    ref.listen<String?>(reportsCategoryIdProvider, (_, next) {
+      final categories = ref.read(reportsCategoriesProvider).value ?? [];
+      final selected = categories.where((item) => item.id == next).toList();
+      if (next != null && next != _lastCategoryId) {
+        _lastCategoryId = next;
+        _syncTemplateFromCategory(selected.isNotEmpty ? selected.first : null);
+      }
+    });
 
     final period = ref.watch(reportsPeriodProvider);
     final chartPeriod = ref.watch(reportsChartPeriodProvider);
@@ -115,7 +112,8 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
 
     final categories = categoriesAsync.value ?? [];
     final templates = templatesAsync.value ?? [];
-    final hasSelected = selectedTemplateId != null &&
+    final hasSelected =
+        selectedTemplateId != null &&
         templates.any((template) => template.id == selectedTemplateId);
     if (!hasSelected && templates.isEmpty && selectedTemplateId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -181,16 +179,19 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
               children: [
                 Row(
                   children: [
-                    const Text('Hasil Kepuasan Survei', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const Text(
+                      'Hasil Kepuasan Survei',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
                     const Spacer(),
                     OutlinedButton.icon(
                       onPressed: kIsWeb
                           ? () => _exportSurveyCsv(
-                                context: context,
-                                period: period,
-                                categoryId: selectedCategoryId,
-                                templateId: selectedTemplateId,
-                              )
+                              context: context,
+                              period: period,
+                              categoryId: selectedCategoryId,
+                              templateId: selectedTemplateId,
+                            )
                           : null,
                       icon: const Icon(Icons.download, size: 18),
                       label: const Text('Export CSV'),
@@ -206,11 +207,15 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
                 satisfactionAsync.when(
                   data: (report) {
                     if (report == null || report.rows.isEmpty) {
-                      return const Text('Belum ada data survei.', style: TextStyle(color: AppTheme.textMuted));
+                      return const Text(
+                        'Belum ada data survei.',
+                        style: TextStyle(color: AppTheme.textMuted),
+                      );
                     }
                     return _SatisfactionTable(report: report);
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (error, _) => Text(
                     'Gagal memuat hasil survei: $error',
                     style: const TextStyle(color: AppTheme.textMuted),
@@ -246,14 +251,18 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
                   child: usageAsync.when(
                     data: (rows) {
                       if (rows.isEmpty) {
-                        return const Text('Belum ada data.', style: TextStyle(color: AppTheme.textMuted));
+                        return const Text(
+                          'Belum ada data.',
+                          style: TextStyle(color: AppTheme.textMuted),
+                        );
                       }
                       return LineChart(
                         labels: rows.map((row) => row.label).toList(),
                         series: buildUsageLineSeries(rows),
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (error, _) => Text(
                       'Gagal memuat tren: $error',
                       style: const TextStyle(color: AppTheme.textMuted),
@@ -269,11 +278,15 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
                   child: trendsAsync.when(
                     data: (rows) {
                       if (rows.isEmpty) {
-                        return const Text('Belum ada data.', style: TextStyle(color: AppTheme.textMuted));
+                        return const Text(
+                          'Belum ada data.',
+                          style: TextStyle(color: AppTheme.textMuted),
+                        );
                       }
                       return _TopIssuesBarChart(rows: rows);
                     },
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (error, _) => Text(
                       'Gagal memuat top isu: $error',
                       style: const TextStyle(color: AppTheme.textMuted),
@@ -363,7 +376,11 @@ class _SelectDropdown extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          border: Border.all(color: enabled ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.4)),
+          border: Border.all(
+            color: enabled
+                ? AppTheme.outline
+                : AppTheme.outline.withValues(alpha: 0.4),
+          ),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -395,9 +412,13 @@ class _TopIssuesBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [...rows]..sort((a, b) => b.percentage.compareTo(a.percentage));
+    final sorted = [...rows]
+      ..sort((a, b) => b.percentage.compareTo(a.percentage));
     final visible = sorted.take(6).toList();
-    final maxValue = visible.fold<double>(0, (max, row) => row.percentage > max ? row.percentage : max);
+    final maxValue = visible.fold<double>(
+      0,
+      (max, row) => row.percentage > max ? row.percentage : max,
+    );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: visible
@@ -410,7 +431,10 @@ class _TopIssuesBarChart extends StatelessWidget {
                   children: [
                     Text(
                       '${row.percentage.toStringAsFixed(0)}%',
-                      style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppTheme.textMuted,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Container(
@@ -426,7 +450,10 @@ class _TopIssuesBarChart extends StatelessWidget {
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -467,15 +494,23 @@ class _SatisfactionTable extends StatelessWidget {
               DataColumn(label: Text('Respon')),
             ],
             rows: report.rows.map((row) {
-              final supportsScore = row.type != 'text' && row.type != 'multipleChoice';
-              final avgText =
-                  !supportsScore || row.responses == 0 ? '-' : formatScoreFive(row.avgScore);
+              final supportsScore =
+                  row.type != 'text' && row.type != 'multipleChoice';
+              final avgText = !supportsScore || row.responses == 0
+                  ? '-'
+                  : formatScoreFive(row.avgScore);
               return DataRow(
                 cells: [
-                  DataCell(SizedBox(
-                    width: 360,
-                    child: Text(row.question, maxLines: 2, overflow: TextOverflow.ellipsis),
-                  )),
+                  DataCell(
+                    SizedBox(
+                      width: 360,
+                      child: Text(
+                        row.question,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
                   DataCell(Text(_questionTypeLabel(row.type))),
                   DataCell(Text(avgText)),
                   DataCell(Text(row.responses.toString())),
@@ -507,4 +542,3 @@ String _questionTypeLabel(String type) {
       return 'Likert';
   }
 }
-

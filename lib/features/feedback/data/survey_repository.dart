@@ -4,8 +4,7 @@ import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
 import 'package:unila_helpdesk_frontend/core/network/query_params.dart';
 
 class SurveyRepository {
-  SurveyRepository({ApiClient? client})
-      : _client = client ?? sharedApiClient;
+  SurveyRepository({ApiClient? client}) : _client = client ?? sharedApiClient;
 
   final ApiClient _client;
 
@@ -36,10 +35,10 @@ class SurveyRepository {
     required String ticketId,
     required Map<String, dynamic> answers,
   }) {
-    return _client.post(ApiEndpoints.surveyResponses, body: {
-      'ticket_id': ticketId,
-      'answers': answers,
-    });
+    return _client.post(
+      ApiEndpoints.surveyResponses,
+      body: {'ticket_id': ticketId, 'answers': answers},
+    );
   }
 
   Future<SurveyTemplate> createTemplate({
@@ -49,22 +48,25 @@ class SurveyRepository {
     required String categoryId,
     required List<SurveyQuestion> questions,
   }) async {
-    final response = await _client.post(ApiEndpoints.surveyTemplates, body: {
-      'title': title,
-      'description': description,
-      'framework': framework,
-      'categoryId': categoryId,
-      'questions': questions
-          .map(
-            (question) => {
-              'id': question.id,
-              'text': question.text,
-              'type': question.type.name,
-              'options': question.options,
-            },
-          )
-          .toList(),
-    });
+    final response = await _client.post(
+      ApiEndpoints.surveyTemplates,
+      body: {
+        'title': title,
+        'description': description,
+        'framework': framework,
+        'categoryId': categoryId,
+        'questions': questions
+            .map(
+              (question) => {
+                'id': question.id,
+                'text': question.text,
+                'type': question.type.name,
+                'options': question.options,
+              },
+            )
+            .toList(),
+      },
+    );
     final data = response.data?['data'];
     if (response.isSuccess && data is Map<String, dynamic>) {
       return SurveyTemplate.fromJson(data);
@@ -80,22 +82,25 @@ class SurveyRepository {
     required String categoryId,
     required List<SurveyQuestion> questions,
   }) async {
-    final response = await _client.put(ApiEndpoints.surveyTemplateById(templateId), body: {
-      'title': title,
-      'description': description,
-      'framework': framework,
-      'categoryId': categoryId,
-      'questions': questions
-          .map(
-            (question) => {
-              'id': question.id,
-              'text': question.text,
-              'type': question.type.name,
-              'options': question.options,
-            },
-          )
-          .toList(),
-    });
+    final response = await _client.put(
+      ApiEndpoints.surveyTemplateById(templateId),
+      body: {
+        'title': title,
+        'description': description,
+        'framework': framework,
+        'categoryId': categoryId,
+        'questions': questions
+            .map(
+              (question) => {
+                'id': question.id,
+                'text': question.text,
+                'type': question.type.name,
+                'options': question.options,
+              },
+            )
+            .toList(),
+      },
+    );
     final data = response.data?['data'];
     if (response.isSuccess && data is Map<String, dynamic>) {
       return SurveyTemplate.fromJson(data);
@@ -104,7 +109,9 @@ class SurveyRepository {
   }
 
   Future<void> deleteTemplate(String templateId) async {
-    final response = await _client.delete(ApiEndpoints.surveyTemplateById(templateId));
+    final response = await _client.delete(
+      ApiEndpoints.surveyTemplateById(templateId),
+    );
     if (!response.isSuccess) {
       throw Exception(response.error?.message ?? 'Gagal menghapus template');
     }
@@ -125,16 +132,22 @@ class SurveyRepository {
       query: query,
       start: start,
       end: end,
-      extra: {
-        'categoryId': categoryId,
-        'templateId': templateId,
-      },
+      extra: {'categoryId': categoryId, 'templateId': templateId},
     );
-    final response = await _client.get(ApiEndpoints.surveyResponsesAdmin, query: params);
+    final response = await _client.get(
+      ApiEndpoints.surveyResponsesAdmin,
+      query: params,
+    );
     final data = response.data?['data'];
     if (response.isSuccess && data is Map<String, dynamic>) {
       return SurveyResponsePage.fromJson(data);
     }
-    return const SurveyResponsePage(items: [], page: 1, limit: 50, total: 0, totalPages: 1);
+    return const SurveyResponsePage(
+      items: [],
+      page: 1,
+      limit: 50,
+      total: 0,
+      totalPages: 1,
+    );
   }
 }
