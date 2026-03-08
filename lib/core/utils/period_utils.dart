@@ -14,6 +14,32 @@ int periodsFor(String period) {
   }
 }
 
+int cohortBucketCountFor(String period) {
+  switch (period) {
+    case 'daily':
+      return 10;
+    case 'weekly':
+      return 8;
+    case 'yearly':
+      return 5;
+    default:
+      return 6;
+  }
+}
+
+int cohortLookbackPeriodsFor(String period) {
+  switch (period) {
+    case 'daily':
+      return 30;
+    case 'weekly':
+      return 12;
+    case 'yearly':
+      return 5;
+    default:
+      return 6;
+  }
+}
+
 int reportPeriodsFor(String period) {
   return 1;
 }
@@ -37,13 +63,15 @@ DateRange reportWindowRangeFor(String period, DateTime now) {
         end: dayEnd,
       );
     case 'yearly':
-      final yearStart = wibMidnightUtc(currentWib.year, 1, 1);
-      final yearEnd = wibMidnightUtc(currentWib.year + 1, 1, 1);
-      return DateRange(start: yearStart, end: yearEnd);
+      return DateRange(
+        start: dayStart.subtract(const Duration(days: 364)),
+        end: dayEnd,
+      );
     default:
-      final monthStart = wibMidnightUtc(currentWib.year, currentWib.month, 1);
-      final monthEnd = wibMidnightUtc(currentWib.year, currentWib.month + 1, 1);
-      return DateRange(start: monthStart, end: monthEnd);
+      return DateRange(
+        start: dayStart.subtract(const Duration(days: 29)),
+        end: dayEnd,
+      );
   }
 }
 

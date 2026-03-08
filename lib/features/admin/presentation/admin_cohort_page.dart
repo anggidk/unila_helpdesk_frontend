@@ -5,7 +5,6 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/period_dropdown.dart';
-import 'package:unila_helpdesk_frontend/core/widgets/star_icons.dart';
 
 class AdminCohortPage extends ConsumerWidget {
   const AdminCohortPage({super.key});
@@ -13,246 +12,287 @@ class AdminCohortPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedPeriod = ref.watch(cohortPeriodProvider);
-    final analysis = ref.watch(cohortAnalysisProvider);
-    const allowedAnalyses = ['retention', 'entity-service'];
-    if (!allowedAnalyses.contains(analysis)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(cohortAnalysisProvider.notifier).state = 'retention';
-      });
-    }
+    final reportAsync = ref.watch(cohortReportProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Analisis Cohort',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Cohort dibentuk dari survei pertama pengguna. Fokus analisis pada retensi dan tren kepuasan.',
+                        style: const TextStyle(color: AppTheme.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                PeriodDropdown(
+                  value: selectedPeriod,
+                  enabled: true,
+                  onChanged: (value) {
+                    ref.read(cohortPeriodProvider.notifier).state = value;
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            reportAsync.when(
+              data: (report) {
+                if (report == null || report.overall.isEmpty) {
+                  return _SectionCard(
+                    title: 'Analisis Belum Tersedia',
+                    subtitle:
+                        'Belum ada data survei registered yang cukup untuk membentuk cohort pada periode ini.',
+                    child: const Text(
+                      'Coba gunakan periode lain atau tambahkan data survei.',
+                      style: TextStyle(color: AppTheme.textMuted),
+                    ),
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _OverviewSection(report: report),
+                    const SizedBox(height: 20),
+                    _RetentionHeatmapSection(report: report),
+                    const SizedBox(height: 20),
+                    _ComparisonSection(
+                      title: 'Perbandingan Cohort per Layanan',
+                      subtitle:
+                          'Kelompok dibandingkan berdasarkan layanan pada survei pertama pengguna.',
+                      rows: report.serviceComparisons,
+                      bucketLabels: report.bucketLabels,
+                      emptyMessage:
+                          'Belum ada perbandingan layanan yang dapat ditampilkan.',
+                    ),
+                    const SizedBox(height: 20),
+                    _ComparisonSection(
+                      title: 'Perbandingan Cohort per Entitas',
+                      subtitle:
+                          'Kelompok dibandingkan berdasarkan entitas pengguna pada survei pertama.',
+                      rows: report.entityComparisons,
+                      bucketLabels: report.bucketLabels,
+                      emptyMessage:
+                          'Belum ada perbandingan entitas yang dapat ditampilkan.',
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => _SectionCard(
+                title: 'Gagal Memuat Cohort',
+                subtitle: 'Terjadi masalah saat menghitung analisis cohort.',
+                child: Text(
+                  error.toString(),
+                  style: const TextStyle(color: AppTheme.textMuted),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OverviewSection extends StatelessWidget {
+  const _OverviewSection({required this.report});
+
+  final CohortAnalysisReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final unitLabel = switch (report.period) {
+      'daily' => 'hari',
+      'weekly' => 'minggu',
+      'yearly' => 'tahun',
+      _ => 'bulan',
+    };
+    final summaryText =
+        'Cohort diambil dari ${report.lookbackPeriods} $unitLabel terakhir dengan horizon ${report.bucketCount} bucket. Semua bucket dihitung relatif terhadap survei pertama pengguna.';
+
+    return _SectionCard(
+      title: 'Overview Diagnostik',
+      subtitle: summaryText,
+      child: report.insights.isEmpty
+          ? const Text(
+              'Belum ada insight diagnostik yang cukup untuk periode ini.',
+              style: TextStyle(color: AppTheme.textMuted),
+            )
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                const spacing = 12.0;
+                final columns = _overviewColumnCount(constraints.maxWidth);
+                final cardWidth =
+                    (constraints.maxWidth - (spacing * (columns - 1))) /
+                    columns;
+
+                return Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  children: report.insights
+                      .map(
+                        (insight) => SizedBox(
+                          width: cardWidth,
+                          child: _InsightCard(insight: insight),
+                        ),
+                      )
+                      .toList(),
+                );
+              },
+            ),
+    );
+  }
+}
+
+class _InsightCard extends StatelessWidget {
+  const _InsightCard({required this.insight});
+
+  final CohortDiagnosticInsight insight;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 148,
+      child: Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.outline),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              _AnalysisDropdown(
-                value: analysis,
-                onChanged: (value) {
-                  ref.read(cohortAnalysisProvider.notifier).state = value;
-                },
-              ),
-              const SizedBox(width: 12),
-              PeriodDropdown(
-                value: selectedPeriod,
-                enabled: true,
-                onChanged: (value) {
-                  ref.read(cohortPeriodProvider.notifier).state = value;
-                },
-              ),
-              const Spacer(),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (analysis == 'retention')
-            _RetentionSection(period: selectedPeriod),
-          if (analysis == 'entity-service')
-            _CenteredSection(child: _EntityServiceSection()),
-        ],
-      ),
-    );
-  }
-}
-
-class _RetentionCell extends StatelessWidget {
-  const _RetentionCell({required this.value});
-
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorStrength = (value / 100).clamp(0.1, 0.9).toDouble();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppTheme.navy.withValues(alpha: colorStrength),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        '$value%',
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _AnalysisDropdown extends StatelessWidget {
-  const _AnalysisDropdown({required this.value, required this.onChanged});
-
-  final String value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      onSelected: onChanged,
-      itemBuilder: (context) => const [
-        PopupMenuItem(value: 'retention', child: Text('Kohort Retensi')),
-        PopupMenuItem(
-          value: 'entity-service',
-          child: Text('Kelompok Pengguna x Layanan'),
-        ),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppTheme.outline),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.expand_more, size: 18),
-            const SizedBox(width: 6),
-            Text(
-              'Analisis: ${_analysisLabel(value)}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+          Text(
+            insight.title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CohortScoreRow extends StatelessWidget {
-  const _CohortScoreRow({
-    required this.label,
-    required this.score,
-    required this.responseRate,
-  });
-
-  final String label;
-  final double score;
-  final double responseRate;
-
-  @override
-  Widget build(BuildContext context) {
-    final clamped = scoreToFive(score).clamp(0, 5).toDouble();
-    final stars = buildStarIcons(clamped, size: 18);
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          Expanded(
-            child: Text('Skor Rata-rata: ${clamped.toStringAsFixed(2)} / 5'),
           ),
-          Expanded(child: Text('Respon: ${responseRate.toStringAsFixed(0)}%')),
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: stars,
+          const SizedBox(height: 8),
+          Text(
+            insight.value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.navy,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            insight.detail,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppTheme.textMuted,
+              height: 1.35,
             ),
           ),
         ],
       ),
+      ),
     );
   }
 }
 
-class _HeatmapLegend extends StatelessWidget {
-  const _HeatmapLegend({required this.maxValue});
-
-  final int maxValue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('Rendah', style: TextStyle(color: AppTheme.textMuted)),
-        const SizedBox(width: 8),
-        Container(
-          width: 160,
-          height: 12,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            gradient: LinearGradient(
-              colors: [
-                AppTheme.navy.withValues(alpha: 0.15),
-                AppTheme.navy.withValues(alpha: 0.9),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          'Tinggi (max $maxValue)',
-          style: const TextStyle(color: AppTheme.textMuted),
-        ),
-      ],
-    );
+int _overviewColumnCount(double width) {
+  if (width >= 1500) {
+    return 5;
   }
+  if (width >= 1180) {
+    return 4;
+  }
+  if (width >= 860) {
+    return 3;
+  }
+  if (width >= 560) {
+    return 2;
+  }
+  return 1;
 }
 
-class _HeatmapTable extends StatelessWidget {
-  const _HeatmapTable({
-    required this.entities,
-    required this.categories,
-    required this.matrix,
-    required this.maxValue,
-  });
+class _RetentionHeatmapSection extends StatelessWidget {
+  const _RetentionHeatmapSection({required this.report});
 
-  final List<String> entities;
-  final List<String> categories;
-  final Map<String, Map<String, int>> matrix;
-  final int maxValue;
+  final CohortAnalysisReport report;
 
   @override
   Widget build(BuildContext context) {
-    const entityWidth = 140.0;
-    const categoryWidth = 140.0;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Align(
-        alignment: Alignment.center,
+    return _SectionCard(
+      title: 'Heatmap Retensi Cohort',
+      subtitle:
+          'Baris menunjukkan cohort berdasarkan survei pertama. Kolom D/W/M/Y menunjukkan umur cohort relatif.',
+      child: _HorizontalTableFrame(
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(AppTheme.surface),
+          headingRowColor: WidgetStateProperty.all(const Color(0xFFF3F5F7)),
+          dataTextStyle: _compactCellStyle,
+          headingTextStyle: _compactHeaderStyle,
+          columnSpacing: 10,
+          horizontalMargin: 10,
+          dividerThickness: 0.5,
+          headingRowHeight: 36,
+          dataRowMinHeight: 42,
+          dataRowMaxHeight: 42,
           columns: [
             const DataColumn(
-              label: SizedBox(
-                width: entityWidth,
-                child: Text(
-                  'Entitas',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.w600),
+              label: _HeaderLabel(
+                'Cohort',
+                width: 112,
+              ),
+            ),
+            const DataColumn(
+              label: _HeaderLabel(
+                'Users',
+                width: 52,
+              ),
+            ),
+            ...report.bucketLabels.map(
+              (label) => DataColumn(
+                label: _HeaderLabel(
+                  label,
+                  width: 58,
                 ),
               ),
             ),
-            ...categories.map(
-              (category) => DataColumn(
-                label: SizedBox(
-                  width: categoryWidth,
-                  child: Text(
-                    category,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
+            const DataColumn(
+              label: _HeaderLabel(
+                'Δ Rating',
+                width: 72,
               ),
             ),
           ],
-          rows: entities.map((entity) {
-            final row = matrix[entity] ?? const <String, int>{};
+          rows: report.overall.map((row) {
             return DataRow(
               cells: [
-                DataCell(SizedBox(width: entityWidth, child: Text(entity))),
-                ...categories.map((category) {
-                  final value = row[category] ?? 0;
-                  return DataCell(
-                    SizedBox(
-                      width: categoryWidth,
-                      child: Center(
-                        child: _HeatmapCell(value: value, maxValue: maxValue),
-                      ),
-                    ),
-                  );
-                }),
+                DataCell(_TableCellLabel(row.label, width: 112, alignLeft: true)),
+                DataCell(_TableCellLabel(row.users.toString(), width: 52)),
+                ...row.buckets.map(
+                  (bucket) => DataCell(_RetentionHeatCell(metric: bucket)),
+                ),
+                DataCell(
+                  _TableCellLabel(_formatSignedScore(row.scoreDelta), width: 72),
+                ),
               ],
             );
           }).toList(),
@@ -262,271 +302,260 @@ class _HeatmapTable extends StatelessWidget {
   }
 }
 
-class _HeatmapCell extends StatelessWidget {
-  const _HeatmapCell({required this.value, required this.maxValue});
+class _ComparisonSection extends StatelessWidget {
+  const _ComparisonSection({
+    required this.title,
+    required this.subtitle,
+    required this.rows,
+    required this.bucketLabels,
+    required this.emptyMessage,
+  });
 
-  final int value;
-  final int maxValue;
+  final String title;
+  final String subtitle;
+  final List<CohortAnalysisRow> rows;
+  final List<String> bucketLabels;
+  final String emptyMessage;
 
   @override
   Widget build(BuildContext context) {
-    final ratio = maxValue <= 0 ? 0 : (value / maxValue);
-    final alpha = (0.15 + (0.75 * ratio)).clamp(0.15, 0.9);
-    return Container(
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppTheme.navy.withValues(alpha: alpha),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        value.toString(),
-        style: TextStyle(
-          color: alpha > 0.45 ? Colors.white : AppTheme.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+    return _SectionCard(
+      title: title,
+      subtitle: subtitle,
+      child: rows.isEmpty
+          ? Text(
+              emptyMessage,
+              style: const TextStyle(color: AppTheme.textMuted),
+            )
+          : _HorizontalTableFrame(
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(const Color(0xFFF3F5F7)),
+                dataTextStyle: _compactCellStyle,
+                headingTextStyle: _compactHeaderStyle,
+                columnSpacing: 10,
+                horizontalMargin: 10,
+                dividerThickness: 0.5,
+                headingRowHeight: 36,
+                dataRowMinHeight: 42,
+                dataRowMaxHeight: 42,
+                columns: [
+                  const DataColumn(
+                    label: _HeaderLabel(
+                      'Kelompok',
+                      width: 112,
+                    ),
+                  ),
+                  const DataColumn(
+                    label: _HeaderLabel(
+                      'Users',
+                      width: 52,
+                    ),
+                  ),
+                  ...bucketLabels.map(
+                    (label) => DataColumn(
+                      label: _HeaderLabel(
+                        label,
+                        width: 58,
+                      ),
+                    ),
+                  ),
+                  const DataColumn(
+                    label: _HeaderLabel(
+                      'Drop-off',
+                      width: 78,
+                    ),
+                  ),
+                  const DataColumn(
+                    label: _HeaderLabel(
+                      'Δ Rating',
+                      width: 72,
+                    ),
+                  ),
+                ],
+                rows: rows.map((row) {
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        _TableCellLabel(row.label, width: 112, alignLeft: true),
+                      ),
+                      DataCell(_TableCellLabel(row.users.toString(), width: 52)),
+                      ...row.buckets.map(
+                        (bucket) => DataCell(_RetentionHeatCell(metric: bucket)),
+                      ),
+                      DataCell(
+                        _TableCellLabel(_formatDropOff(row.dropOff), width: 78),
+                      ),
+                      DataCell(
+                        _TableCellLabel(
+                          _formatSignedScore(row.scoreDelta),
+                          width: 72,
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
     );
   }
 }
 
-Map<String, Map<String, int>> _buildEntityServiceMatrix(
-  List<EntityServiceRow> rows,
-) {
-  final matrix = <String, Map<String, int>>{};
-  for (final row in rows) {
-    matrix.putIfAbsent(row.entity, () => <String, int>{});
-    matrix[row.entity]![row.category] = row.surveys;
-  }
-  return matrix;
-}
-
-List<String> _sortedEntities(List<EntityServiceRow> rows) {
-  final set = <String>{};
-  for (final row in rows) {
-    set.add(row.entity);
-  }
-  final list = set.toList()..sort();
-  return list;
-}
-
-List<String> _sortedCategories(List<EntityServiceRow> rows) {
-  final set = <String>{};
-  for (final row in rows) {
-    set.add(row.category);
-  }
-  final list = set.toList()..sort();
-  return list;
-}
-
-int _maxMatrixValue(Map<String, Map<String, int>> matrix) {
-  var maxValue = 0;
-  for (final row in matrix.values) {
-    for (final value in row.values) {
-      if (value > maxValue) {
-        maxValue = value;
-      }
-    }
-  }
-  return maxValue == 0 ? 1 : maxValue;
-}
-
-class _CenteredSection extends StatelessWidget {
-  const _CenteredSection({required this.child});
+class _HorizontalTableFrame extends StatefulWidget {
+  const _HorizontalTableFrame({required this.child});
 
   final Widget child;
 
   @override
+  State<_HorizontalTableFrame> createState() => _HorizontalTableFrameState();
+}
+
+class _HorizontalTableFrameState extends State<_HorizontalTableFrame> {
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topLeft,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 980),
-        child: child,
+    return LayoutBuilder(
+      builder: (context, constraints) => Scrollbar(
+        controller: _controller,
+        thumbVisibility: true,
+        trackVisibility: true,
+        scrollbarOrientation: ScrollbarOrientation.bottom,
+        child: SingleChildScrollView(
+          controller: _controller,
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: widget.child,
+          ),
+        ),
       ),
     );
   }
 }
 
-List<String> _retentionLabels(String period, int? length) {
-  final count = length ?? 5;
-  switch (period) {
-    case 'daily':
-      return List<String>.generate(count, (index) => 'D$index');
-    case 'weekly':
-      return List<String>.generate(count, (index) => 'W$index');
-    case 'yearly':
-      return List<String>.generate(count, (index) => 'Y$index');
-    default:
-      return List<String>.generate(count, (index) => 'M$index');
-  }
-}
+class _RetentionHeatCell extends StatelessWidget {
+  const _RetentionHeatCell({required this.metric});
 
-String _analysisLabel(String value) {
-  switch (value) {
-    case 'entity-service':
-      return 'Kelompok Pengguna x Layanan';
-    default:
-      return 'Kohort Retensi';
-  }
-}
-
-class _RetentionSection extends ConsumerWidget {
-  const _RetentionSection({required this.period});
-
-  final String period;
+  final CohortBucketMetric metric;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cohortRowsAsync = ref.watch(cohortRowsProvider);
-    final cohortRows = cohortRowsAsync.value ?? [];
-    final retentionLabels = _retentionLabels(
-      period,
-      cohortRows.isNotEmpty ? cohortRows.first.retention.length : null,
-    );
-    if (cohortRowsAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (cohortRowsAsync.hasError) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(
-          'Gagal memuat kohort: ${cohortRowsAsync.error}',
-          style: const TextStyle(color: AppTheme.textMuted),
-        ),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Align(
-          alignment: Alignment.topLeft,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 980),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.outline),
-              ),
-              child: LayoutBuilder(
-                builder: (context, constraints) => SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                    child: DataTable(
-                      headingRowColor: WidgetStateProperty.all(
-                        AppTheme.surface,
-                      ),
-                      columns: [
-                        const DataColumn(
-                          label: Text(
-                            'Kohort',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        const DataColumn(
-                          label: Text(
-                            'Pengguna',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        ...retentionLabels.map(
-                          (label) => DataColumn(
-                            label: Text(
-                              label,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                      rows: cohortRows.map((row) {
-                        final retention = row.retention;
-                        return DataRow(
-                          cells: [
-                            DataCell(Text(row.label)),
-                            DataCell(Text(row.users.toString())),
-                            ...List.generate(retention.length, (index) {
-                              final value = retention[index];
-                              return DataCell(_RetentionCell(value: value));
-                            }),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.outline),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Skor Kepuasan per Kohort',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                if (cohortRows.isEmpty)
-                  const Text(
-                    'Belum ada data survei.',
-                    style: TextStyle(color: AppTheme.textMuted),
-                  )
-                else
-                  ...cohortRows.map(
-                    (row) => _CohortScoreRow(
-                      label: row.label,
-                      score: row.avgScore,
-                      responseRate: row.responseRate,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EntityServiceSection extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final entityServiceAsync = ref.watch(entityServiceProvider);
-    final entityServiceRows = entityServiceAsync.value ?? [];
-    if (entityServiceAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (entityServiceAsync.hasError) {
-      return Text(
-        'Gagal memuat kelompok pengguna x layanan: ${entityServiceAsync.error}',
-        style: const TextStyle(color: AppTheme.textMuted),
-      );
-    }
-    if (entityServiceRows.isEmpty) {
+  Widget build(BuildContext context) {
+    if (metric.retention == null) {
       return const Text(
-        'Belum ada data kelompok pengguna.',
+        '-',
         style: TextStyle(color: AppTheme.textMuted),
       );
     }
-    final categories = _sortedCategories(entityServiceRows);
-    final entities = _sortedEntities(entityServiceRows);
-    final matrix = _buildEntityServiceMatrix(entityServiceRows);
-    final maxValue = _maxMatrixValue(matrix);
+
+    final retention = metric.retention!.clamp(0, 100).toDouble();
+    final alpha = (0.15 + (retention / 100 * 0.75)).clamp(0.15, 0.9);
+    final textColor =
+        alpha > 0.45 ? Colors.white : AppTheme.textPrimary;
+    final tooltip = [
+      'Retensi: ${retention.toStringAsFixed(1)}%',
+      if (metric.activeUsers != null && metric.eligibleUsers != null)
+        'Aktif: ${metric.activeUsers}/${metric.eligibleUsers}',
+      if (metric.avgScore != null)
+        'Skor: ${formatScoreFive(metric.avgScore)}',
+    ].join('\n');
+
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 58,
+        height: 30,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppTheme.navy.withValues(alpha: alpha),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          '${retention.toStringAsFixed(0)}%',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderLabel extends StatelessWidget {
+  const _HeaderLabel(this.text, {required this.width});
+
+  final String text;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: _compactHeaderStyle,
+        ),
+      ),
+    );
+  }
+}
+
+class _TableCellLabel extends StatelessWidget {
+  const _TableCellLabel(
+    this.text, {
+    required this.width,
+    this.alignLeft = false,
+  });
+
+  final String text;
+  final double width;
+  final bool alignLeft;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Align(
+        alignment: alignLeft ? Alignment.centerLeft : Alignment.center,
+        child: Text(
+          text,
+          textAlign: alignLeft ? TextAlign.left : TextAlign.center,
+          style: _compactCellStyle,
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -537,32 +566,48 @@ class _EntityServiceSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Kelompok Pengguna x Layanan',
-            style: TextStyle(fontWeight: FontWeight.w700),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Heatmap pengisian kuesioner per entitas & layanan.',
-            style: TextStyle(color: AppTheme.textMuted),
+          Text(
+            subtitle,
+            style: const TextStyle(color: AppTheme.textMuted),
           ),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _HeatmapLegend(maxValue: maxValue),
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _HeatmapTable(
-              entities: entities,
-              categories: categories,
-              matrix: matrix,
-              maxValue: maxValue,
-            ),
-          ),
+          child,
         ],
       ),
     );
   }
 }
+
+String _formatDropOff(double? value) {
+  if (value == null) {
+    return '-';
+  }
+  return '${value.toStringAsFixed(1)} poin';
+}
+
+String _formatSignedScore(double? value) {
+  if (value == null) {
+    return '-';
+  }
+  if (value > 0) {
+    return '+${value.toStringAsFixed(2)}';
+  }
+  return value.toStringAsFixed(2);
+}
+
+const TextStyle _compactHeaderStyle = TextStyle(
+  fontSize: 12,
+  fontWeight: FontWeight.w700,
+  letterSpacing: 0.2,
+  color: AppTheme.textMuted,
+);
+
+const TextStyle _compactCellStyle = TextStyle(
+  fontSize: 13,
+  color: AppTheme.textPrimary,
+);

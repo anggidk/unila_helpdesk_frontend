@@ -312,19 +312,37 @@ class _SatisfactionIndexTable extends StatelessWidget {
           child: DataTable(
             headingRowColor: WidgetStateProperty.all(AppTheme.surface),
             columns: const [
-              DataColumn(label: Text('Kategori Layanan')),
-              DataColumn(label: Text('Respon')),
-              DataColumn(label: Text('Nilai Kepuasan')),
-              DataColumn(label: Text('Indeks (100)')),
+              DataColumn(
+                label: _ReportHeaderLabel('Kategori Layanan', width: 220),
+              ),
+              DataColumn(label: _ReportHeaderLabel('Respon', width: 80)),
+              DataColumn(
+                label: _ReportHeaderLabel('Nilai Kepuasan', width: 120),
+              ),
+              DataColumn(label: _ReportHeaderLabel('Indeks (100)', width: 120)),
             ],
             rows: [
               ...rows.map(
                 (row) => DataRow(
                   cells: [
-                    DataCell(Text(row.label)),
-                    DataCell(Text(row.responses.toString())),
-                    DataCell(Text(formatScoreFive(row.avgScore))),
-                    DataCell(Text(_formatIndex(_toIndex100(row.avgScore)))),
+                    DataCell(
+                      _ReportCellLabel(row.label, width: 220, alignLeft: true),
+                    ),
+                    DataCell(
+                      _ReportCellLabel(row.responses.toString(), width: 80),
+                    ),
+                    DataCell(
+                      _ReportCellLabel(
+                        formatScoreFive(row.avgScore),
+                        width: 120,
+                      ),
+                    ),
+                    DataCell(
+                      _ReportCellLabel(
+                        _formatIndex(_toIndex100(row.avgScore)),
+                        width: 120,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -334,27 +352,32 @@ class _SatisfactionIndexTable extends StatelessWidget {
                 ),
                 cells: [
                   const DataCell(
-                    Text(
+                    _ReportCellLabel(
                       'Indeks Kepuasan Total',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      width: 220,
+                      alignLeft: true,
+                      isBold: true,
                     ),
                   ),
                   DataCell(
-                    Text(
+                    _ReportCellLabel(
                       totalResponses.toString(),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      width: 80,
+                      isBold: true,
                     ),
                   ),
                   DataCell(
-                    Text(
+                    _ReportCellLabel(
                       formatScoreFive(totalAverage),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      width: 120,
+                      isBold: true,
                     ),
                   ),
                   DataCell(
-                    Text(
+                    _ReportCellLabel(
                       _formatIndex(totalIndex),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      width: 120,
+                      isBold: true,
                     ),
                   ),
                 ],
@@ -453,10 +476,10 @@ class _SatisfactionTable extends StatelessWidget {
           child: DataTable(
             headingRowColor: WidgetStateProperty.all(AppTheme.surface),
             columns: const [
-              DataColumn(label: Text('Pertanyaan')),
-              DataColumn(label: Text('Tipe')),
-              DataColumn(label: Text('Skor (AVG)')),
-              DataColumn(label: Text('Respon')),
+              DataColumn(label: _ReportHeaderLabel('Pertanyaan', width: 360)),
+              DataColumn(label: _ReportHeaderLabel('Tipe', width: 100)),
+              DataColumn(label: _ReportHeaderLabel('Skor (AVG)', width: 100)),
+              DataColumn(label: _ReportHeaderLabel('Respon', width: 80)),
             ],
             rows: report.rows.map((row) {
               final supportsScore =
@@ -467,21 +490,82 @@ class _SatisfactionTable extends StatelessWidget {
               return DataRow(
                 cells: [
                   DataCell(
-                    SizedBox(
+                    _ReportCellLabel(
+                      row.question,
                       width: 360,
-                      child: Text(
-                        row.question,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      alignLeft: true,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  DataCell(Text(_questionTypeLabel(row.type))),
-                  DataCell(Text(avgText)),
-                  DataCell(Text(row.responses.toString())),
+                  DataCell(
+                    _ReportCellLabel(_questionTypeLabel(row.type), width: 100),
+                  ),
+                  DataCell(_ReportCellLabel(avgText, width: 100)),
+                  DataCell(
+                    _ReportCellLabel(row.responses.toString(), width: 80),
+                  ),
                 ],
               );
             }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportHeaderLabel extends StatelessWidget {
+  const _ReportHeaderLabel(this.text, {required this.width});
+
+  final String text;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportCellLabel extends StatelessWidget {
+  const _ReportCellLabel(
+    this.text, {
+    required this.width,
+    this.alignLeft = false,
+    this.isBold = false,
+    this.maxLines,
+    this.overflow,
+  });
+
+  final String text;
+  final double width;
+  final bool alignLeft;
+  final bool isBold;
+  final int? maxLines;
+  final TextOverflow? overflow;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Align(
+        alignment: alignLeft ? Alignment.centerLeft : Alignment.center,
+        child: Text(
+          text,
+          textAlign: alignLeft ? TextAlign.left : TextAlign.center,
+          maxLines: maxLines,
+          overflow: overflow,
+          style: TextStyle(
+            fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
           ),
         ),
       ),

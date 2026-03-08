@@ -40,7 +40,7 @@ final surveyTemplateByCategoryProvider =
     });
 final adminUserProvider = StateProvider<UserProfile?>((ref) => null);
 final currentUserProvider = StateProvider<UserProfile?>((ref) => null);
-final cohortPeriodProvider = StateProvider<String>((ref) => 'monthly');
+final cohortPeriodProvider = StateProvider<String>((ref) => 'daily');
 final cohortAnalysisProvider = StateProvider<String>((ref) => 'retention');
 final reportsPeriodProvider = StateProvider<String>((ref) => 'monthly');
 final reportsSatisfactionIndexPeriodProvider = StateProvider<String>(
@@ -61,13 +61,13 @@ final reportsTemplatesProvider =
       }
       return ReportRepository().fetchTemplatesByCategory(categoryId);
     });
-final cohortRowsProvider = FutureProvider.autoDispose<List<CohortRow>>((
-  ref,
-) async {
+final cohortReportProvider =
+    FutureProvider.autoDispose<CohortAnalysisReport?>((ref) async {
   final period = ref.watch(cohortPeriodProvider);
   return ReportRepository().fetchCohort(
     period: period,
-    periods: periodsFor(period),
+    buckets: cohortBucketCountFor(period),
+    lookback: cohortLookbackPeriodsFor(period),
   );
 });
 final entityServiceProvider =

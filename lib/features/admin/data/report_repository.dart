@@ -10,22 +10,24 @@ class ReportRepository {
 
   final ApiClient _client;
 
-  Future<List<CohortRow>> fetchCohort({
-    String period = 'monthly',
-    int periods = 5,
+  Future<CohortAnalysisReport?> fetchCohort({
+    String period = 'daily',
+    int buckets = 7,
+    int lookback = 60,
   }) async {
     final response = await _client.get(
       ApiEndpoints.cohort,
-      query: {'period': period, 'periods': periods.toString()},
+      query: {
+        'period': period,
+        'buckets': buckets.toString(),
+        'lookback': lookback.toString(),
+      },
     );
-    final items = response.data?['data'];
-    if (response.isSuccess && items is List) {
-      return items
-          .whereType<Map<String, dynamic>>()
-          .map(CohortRow.fromJson)
-          .toList();
+    final data = response.data?['data'];
+    if (response.isSuccess && data is Map<String, dynamic>) {
+      return CohortAnalysisReport.fromJson(data);
     }
-    return [];
+    return null;
   }
 
   Future<List<ServiceTrend>> fetchServiceTrends({

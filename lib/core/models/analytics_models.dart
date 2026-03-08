@@ -1,29 +1,136 @@
-class CohortRow {
-  const CohortRow({
-    required this.label,
-    required this.users,
+class CohortBucketMetric {
+  const CohortBucketMetric({
+    required this.eligibleUsers,
+    required this.activeUsers,
     required this.retention,
     required this.avgScore,
-    required this.responseRate,
+  });
+
+  final int? eligibleUsers;
+  final int? activeUsers;
+  final double? retention;
+  final double? avgScore;
+
+  factory CohortBucketMetric.fromJson(Map<String, dynamic> json) {
+    return CohortBucketMetric(
+      eligibleUsers: int.tryParse(json['eligibleUsers']?.toString() ?? ''),
+      activeUsers: int.tryParse(json['activeUsers']?.toString() ?? ''),
+      retention: double.tryParse(json['retention']?.toString() ?? ''),
+      avgScore: double.tryParse(json['avgScore']?.toString() ?? ''),
+    );
+  }
+}
+
+class CohortAnalysisRow {
+  const CohortAnalysisRow({
+    required this.label,
+    required this.users,
+    required this.buckets,
+    required this.dropOff,
+    required this.scoreDelta,
   });
 
   final String label;
   final int users;
-  final List<int> retention;
-  final double avgScore;
-  final double responseRate;
+  final List<CohortBucketMetric> buckets;
+  final double? dropOff;
+  final double? scoreDelta;
 
-  factory CohortRow.fromJson(Map<String, dynamic> json) {
-    final retention = (json['retention'] as List<dynamic>? ?? [])
-        .map((value) => int.tryParse(value.toString()) ?? 0)
+  factory CohortAnalysisRow.fromJson(Map<String, dynamic> json) {
+    final buckets = (json['buckets'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(CohortBucketMetric.fromJson)
         .toList();
-    return CohortRow(
+    return CohortAnalysisRow(
       label: json['label']?.toString() ?? '',
       users: int.tryParse(json['users']?.toString() ?? '') ?? 0,
-      retention: retention,
-      avgScore: double.tryParse(json['avgScore']?.toString() ?? '') ?? 0,
-      responseRate:
-          double.tryParse(json['responseRate']?.toString() ?? '') ?? 0,
+      buckets: buckets,
+      dropOff: double.tryParse(json['dropOff']?.toString() ?? ''),
+      scoreDelta: double.tryParse(json['scoreDelta']?.toString() ?? ''),
+    );
+  }
+}
+
+class CohortDiagnosticInsight {
+  const CohortDiagnosticInsight({
+    required this.title,
+    required this.detail,
+    required this.value,
+  });
+
+  final String title;
+  final String detail;
+  final String value;
+
+  factory CohortDiagnosticInsight.fromJson(Map<String, dynamic> json) {
+    return CohortDiagnosticInsight(
+      title: json['title']?.toString() ?? '',
+      detail: json['detail']?.toString() ?? '',
+      value: json['value']?.toString() ?? '',
+    );
+  }
+}
+
+class CohortAnalysisReport {
+  const CohortAnalysisReport({
+    required this.period,
+    required this.lookbackPeriods,
+    required this.bucketCount,
+    required this.start,
+    required this.end,
+    required this.bucketLabels,
+    required this.overall,
+    required this.serviceComparisons,
+    required this.entityComparisons,
+    required this.insights,
+  });
+
+  final String period;
+  final int lookbackPeriods;
+  final int bucketCount;
+  final DateTime start;
+  final DateTime end;
+  final List<String> bucketLabels;
+  final List<CohortAnalysisRow> overall;
+  final List<CohortAnalysisRow> serviceComparisons;
+  final List<CohortAnalysisRow> entityComparisons;
+  final List<CohortDiagnosticInsight> insights;
+
+  factory CohortAnalysisReport.fromJson(Map<String, dynamic> json) {
+    final bucketLabels = (json['bucketLabels'] as List<dynamic>? ?? [])
+        .map((value) => value.toString())
+        .toList();
+    final overall = (json['overall'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(CohortAnalysisRow.fromJson)
+        .toList();
+    final serviceComparisons =
+        (json['serviceComparisons'] as List<dynamic>? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map(CohortAnalysisRow.fromJson)
+            .toList();
+    final entityComparisons = (json['entityComparisons'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(CohortAnalysisRow.fromJson)
+        .toList();
+    final insights = (json['insights'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(CohortDiagnosticInsight.fromJson)
+        .toList();
+
+    return CohortAnalysisReport(
+      period: json['period']?.toString() ?? '',
+      lookbackPeriods:
+          int.tryParse(json['lookbackPeriods']?.toString() ?? '') ?? 0,
+      bucketCount: int.tryParse(json['bucketCount']?.toString() ?? '') ?? 0,
+      start:
+          DateTime.tryParse(json['start']?.toString() ?? '') ?? DateTime.now(),
+      end: DateTime.tryParse(json['end']?.toString() ?? '') ?? DateTime.now(),
+      bucketLabels: bucketLabels,
+      overall: overall,
+      serviceComparisons: serviceComparisons,
+      entityComparisons: entityComparisons,
+      insights: insights,
     );
   }
 }
