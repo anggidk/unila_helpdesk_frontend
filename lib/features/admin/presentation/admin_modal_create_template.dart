@@ -51,6 +51,7 @@ class _AdminCreateTemplateDialogState
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   final _customFrameworkController = TextEditingController();
+  final _contentScrollController = ScrollController();
   late final List<SurveyQuestion> _questions;
   String _framework = _frameworkNone;
 
@@ -83,6 +84,7 @@ class _AdminCreateTemplateDialogState
     _nameController.dispose();
     _descController.dispose();
     _customFrameworkController.dispose();
+    _contentScrollController.dispose();
     super.dispose();
   }
 
@@ -113,14 +115,15 @@ class _AdminCreateTemplateDialogState
 
   @override
   Widget build(BuildContext context) {
+    final maxDialogHeight = MediaQuery.sizeOf(context).height * 0.9;
+
     return Dialog(
       insetPadding: const EdgeInsets.all(24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620),
+        constraints: BoxConstraints(maxWidth: 620, maxHeight: maxDialogHeight),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -153,167 +156,176 @@ class _AdminCreateTemplateDialogState
                 ],
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Nama Template',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _nameController,
-                onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
-                  hintText: 'contoh: Survei Kepuasan Layanan Internet',
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Deskripsi',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _descController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Jelaskan tujuan survei ini...',
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: _framework,
-                items: [
-                  _frameworkNone,
-                  ..._baseFrameworkOptions,
-                  _frameworkCustom,
-                ]
-                    .map(
-                      (value) =>
-                          DropdownMenuItem(value: value, child: Text(value)),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() {
-                    _framework = value;
-                    if (_framework != _frameworkCustom) {
-                      _customFrameworkController.clear();
-                    }
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'Kerangka'),
-              ),
-              if (_framework == _frameworkCustom) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _customFrameworkController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nama Framework',
-                    hintText: 'contoh: ISO 27001',
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const Text(
-                    'Pertanyaan',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accentBlue.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      '${_questions.length} Pertanyaan',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 280),
+              Expanded(
                 child: Scrollbar(
+                  controller: _contentScrollController,
                   child: SingleChildScrollView(
+                    controller: _contentScrollController,
                     child: Column(
-                      children: _questions
-                          .map(
-                            (question) => _QuestionTile(
-                              question: question,
-                              onEdit: () async {
-                                final payload = await showAdminAddQuestionModal(
-                                  context: context,
-                                  categories: widget.categories,
-                                  selectedCategory: widget.selectedCategory,
-                                  initialQuestion: question,
-                                  lockCategory: true,
-                                );
-                                if (payload == null) return;
-                                final index = _questions.indexWhere(
-                                  (item) => item.id == question.id,
-                                );
-                                if (index == -1) return;
-                                setState(() {
-                                  _questions[index] = payload.question;
-                                });
-                              },
-                              onDelete: () =>
-                                  setState(() => _questions.remove(question)),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () async {
-                  final payload = await showAdminAddQuestionModal(
-                    context: context,
-                    categories: widget.categories,
-                    selectedCategory: widget.selectedCategory,
-                    lockCategory: true,
-                  );
-                  if (payload != null) {
-                    setState(() => _questions.add(payload.question));
-                  }
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppTheme.outline,
-                      style: BorderStyle.solid,
-                    ),
-                    color: Colors.transparent,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: AppTheme.outline,
-                        child: Icon(
-                          Icons.add,
-                          size: 16,
-                          color: AppTheme.textPrimary,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Nama Template',
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Tambah Pertanyaan',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _nameController,
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            hintText: 'contoh: Survei Kepuasan Layanan Internet',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Deskripsi',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _descController,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            hintText: 'Jelaskan tujuan survei ini...',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          initialValue: _framework,
+                          items: [
+                            _frameworkNone,
+                            ..._baseFrameworkOptions,
+                            _frameworkCustom,
+                          ]
+                              .map(
+                                (value) => DropdownMenuItem(
+                                  value: value,
+                                  child: Text(value),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() {
+                              _framework = value;
+                              if (_framework != _frameworkCustom) {
+                                _customFrameworkController.clear();
+                              }
+                            });
+                          },
+                          decoration: const InputDecoration(labelText: 'Kerangka'),
+                        ),
+                        if (_framework == _frameworkCustom) ...[
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _customFrameworkController,
+                            decoration: const InputDecoration(
+                              labelText: 'Nama Framework',
+                              hintText: 'contoh: ISO 27001',
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Text(
+                              'Pertanyaan',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentBlue.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                '${_questions.length} Pertanyaan',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Column(
+                          children: _questions
+                              .map(
+                                (question) => _QuestionTile(
+                                  question: question,
+                                  onEdit: () async {
+                                    final payload = await showAdminAddQuestionModal(
+                                      context: context,
+                                      categories: widget.categories,
+                                      selectedCategory: widget.selectedCategory,
+                                      initialQuestion: question,
+                                      lockCategory: true,
+                                    );
+                                    if (payload == null) return;
+                                    final index = _questions.indexWhere(
+                                      (item) => item.id == question.id,
+                                    );
+                                    if (index == -1) return;
+                                    setState(() {
+                                      _questions[index] = payload.question;
+                                    });
+                                  },
+                                  onDelete: () => setState(
+                                    () => _questions.remove(question),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            final payload = await showAdminAddQuestionModal(
+                              context: context,
+                              categories: widget.categories,
+                              selectedCategory: widget.selectedCategory,
+                              lockCategory: true,
+                            );
+                            if (payload != null) {
+                              setState(() => _questions.add(payload.question));
+                            }
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppTheme.outline,
+                                style: BorderStyle.solid,
+                              ),
+                              color: Colors.transparent,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                CircleAvatar(
+                                  radius: 12,
+                                  backgroundColor: AppTheme.outline,
+                                  child: Icon(
+                                    Icons.add,
+                                    size: 16,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Tambah Pertanyaan',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
