@@ -43,6 +43,9 @@ final currentUserProvider = StateProvider<UserProfile?>((ref) => null);
 final cohortPeriodProvider = StateProvider<String>((ref) => 'monthly');
 final cohortAnalysisProvider = StateProvider<String>((ref) => 'retention');
 final reportsPeriodProvider = StateProvider<String>((ref) => 'monthly');
+final reportsSatisfactionIndexPeriodProvider = StateProvider<String>(
+  (ref) => 'monthly',
+);
 final reportsCategoryIdProvider = StateProvider<String?>((ref) => null);
 final reportsTemplateIdProvider = StateProvider<String?>((ref) => null);
 final reportsChartPeriodProvider = StateProvider<String>((ref) => 'monthly');
@@ -104,6 +107,14 @@ final dashboardSatisfactionProvider =
       return ReportRepository().fetchServiceSatisfactionSummary(
         period: 'monthly',
         periods: 6,
+      );
+    });
+final reportsSatisfactionSummaryProvider =
+    FutureProvider.autoDispose<List<ServiceSatisfaction>>((ref) async {
+      final period = ref.watch(reportsSatisfactionIndexPeriodProvider);
+      return ReportRepository().fetchServiceSatisfactionSummary(
+        period: period,
+        periods: reportPeriodsFor(period),
       );
     });
 final surveySatisfactionProvider =

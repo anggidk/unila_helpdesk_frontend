@@ -8,8 +8,6 @@ import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/csv_exporter.dart';
 import 'package:unila_helpdesk_frontend/core/utils/period_utils.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
-import 'package:unila_helpdesk_frontend/core/widgets/charts/line_chart.dart';
-import 'package:unila_helpdesk_frontend/core/widgets/charts/usage_series.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/period_dropdown.dart';
 import 'package:unila_helpdesk_frontend/features/admin/data/report_repository.dart';
 
@@ -101,9 +99,10 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
     });
 
     final period = ref.watch(reportsPeriodProvider);
-    final chartPeriod = ref.watch(reportsChartPeriodProvider);
-    final usageAsync = ref.watch(reportsChartUsageProvider);
-    final trendsAsync = ref.watch(reportsChartServiceTrendsProvider);
+    final indexPeriod = ref.watch(reportsSatisfactionIndexPeriodProvider);
+    final satisfactionSummaryAsync = ref.watch(
+      reportsSatisfactionSummaryProvider,
+    );
     final satisfactionAsync = ref.watch(surveySatisfactionProvider);
     final categoriesAsync = ref.watch(reportsCategoriesProvider);
     final templatesAsync = ref.watch(reportsTemplatesProvider);
@@ -225,76 +224,62 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
             ),
           ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              const Text(
-                'Grafik',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(width: 12),
-              PeriodDropdown(
-                value: chartPeriod,
-                onChanged: (value) {
-                  ref.read(reportsChartPeriodProvider.notifier).state = value;
-                },
-              ),
-              const Spacer(),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _CardPlaceholder(
-                  title: 'Tren Tiket & Survei',
-                  description: 'Jumlah tiket dan survei per periode.',
-                  child: usageAsync.when(
-                    data: (rows) {
-                      if (rows.isEmpty) {
-                        return const Text(
-                          'Belum ada data.',
-                          style: TextStyle(color: AppTheme.textMuted),
-                        );
-                      }
-                      return LineChart(
-                        labels: rows.map((row) => row.label).toList(),
-                        series: buildUsageLineSeries(rows),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.outline),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Indeks Kepuasan Layanan',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const Spacer(),
+                    PeriodDropdown(
+                      value: indexPeriod,
+                      onChanged: (value) {
+                        ref
+                                .read(
+                                  reportsSatisfactionIndexPeriodProvider
+                                      .notifier,
+                                )
+                                .state =
+                            value;
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Nilai kepuasan tiap kategori dinormalisasi ke skala 100.',
+                  style: TextStyle(color: AppTheme.textMuted),
+                ),
+                const SizedBox(height: 12),
+                satisfactionSummaryAsync.when(
+                  data: (rows) {
+                    if (rows.isEmpty) {
+                      return const Text(
+                        'Belum ada data kepuasan per kategori.',
+                        style: TextStyle(color: AppTheme.textMuted),
                       );
-                    },
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (error, _) => Text(
-                      'Gagal memuat tren: $error',
-                      style: const TextStyle(color: AppTheme.textMuted),
-                    ),
+                    }
+                    return _SatisfactionIndexTable(rows: rows);
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => Text(
+                    'Gagal memuat indeks kepuasan: $error',
+                    style: const TextStyle(color: AppTheme.textMuted),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _CardPlaceholder(
-                  title: 'Top Isu per Layanan',
-                  description: 'Persentase tiket per kategori layanan.',
-                  child: trendsAsync.when(
-                    data: (rows) {
-                      if (rows.isEmpty) {
-                        return const Text(
-                          'Belum ada data.',
-                          style: TextStyle(color: AppTheme.textMuted),
-                        );
-                      }
-                      return _TopIssuesBarChart(rows: rows);
-                    },
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (error, _) => Text(
-                      'Gagal memuat top isu: $error',
-                      style: const TextStyle(color: AppTheme.textMuted),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -302,46 +287,94 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
   }
 }
 
-class _CardPlaceholder extends StatelessWidget {
-  const _CardPlaceholder({
-    required this.title,
-    required this.description,
-    required this.child,
-  });
+class _SatisfactionIndexTable extends StatelessWidget {
+  const _SatisfactionIndexTable({required this.rows});
 
-  final String title;
-  final String description;
-  final Widget child;
+  final List<ServiceSatisfaction> rows;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.outline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(description, style: const TextStyle(color: AppTheme.textMuted)),
-          const SizedBox(height: 12),
-          Container(
-            height: 300,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.outline),
-            ),
-            child: child,
+    final totalResponses = rows.fold<int>(0, (sum, row) => sum + row.responses);
+    final totalWeightedScore = rows.fold<double>(
+      0,
+      (sum, row) => sum + (row.avgScore * row.responses),
+    );
+    final totalAverage = totalResponses == 0
+        ? 0.0
+        : totalWeightedScore / totalResponses;
+    final totalIndex = _toIndex100(totalAverage);
+
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+          child: DataTable(
+            headingRowColor: WidgetStateProperty.all(AppTheme.surface),
+            columns: const [
+              DataColumn(label: Text('Kategori Layanan')),
+              DataColumn(label: Text('Respon')),
+              DataColumn(label: Text('Nilai Kepuasan')),
+              DataColumn(label: Text('Indeks (100)')),
+            ],
+            rows: [
+              ...rows.map(
+                (row) => DataRow(
+                  cells: [
+                    DataCell(Text(row.label)),
+                    DataCell(Text(row.responses.toString())),
+                    DataCell(Text(formatScoreFive(row.avgScore))),
+                    DataCell(Text(_formatIndex(_toIndex100(row.avgScore)))),
+                  ],
+                ),
+              ),
+              DataRow(
+                color: WidgetStateProperty.all(
+                  AppTheme.surface.withValues(alpha: 0.75),
+                ),
+                cells: [
+                  const DataCell(
+                    Text(
+                      'Indeks Kepuasan Total',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      totalResponses.toString(),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      formatScoreFive(totalAverage),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      _formatIndex(totalIndex),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  double _toIndex100(double score) {
+    if (score <= 0) {
+      return 0;
+    }
+    return (score * 20).clamp(0, 100).toDouble();
+  }
+
+  String _formatIndex(double score) {
+    return score.toStringAsFixed(2);
   }
 }
 
@@ -402,74 +435,6 @@ class _SelectDropdown extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _TopIssuesBarChart extends StatelessWidget {
-  const _TopIssuesBarChart({required this.rows});
-
-  final List<ServiceTrend> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    final sorted = [...rows]
-      ..sort((a, b) => b.percentage.compareTo(a.percentage));
-    final visible = sorted.take(6).toList();
-    final maxValue = visible.fold<double>(
-      0,
-      (max, row) => row.percentage > max ? row.percentage : max,
-    );
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: visible
-          .map(
-            (row) => Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${row.percentage.toStringAsFixed(0)}%',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: AppTheme.textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      height: _barHeight(row.percentage, maxValue),
-                      decoration: BoxDecoration(
-                        color: AppTheme.navy,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      row.label,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-
-  double _barHeight(double value, double maxValue) {
-    if (maxValue <= 0) {
-      return 0;
-    }
-    final ratio = value / maxValue;
-    return (ratio * 120).clamp(8.0, 120.0).toDouble();
   }
 }
 
