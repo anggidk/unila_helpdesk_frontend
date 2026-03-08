@@ -20,7 +20,7 @@ class FeedbackPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ticketsAsync = ref.watch(ticketsProvider);
     final resolvedTickets = (ticketsAsync.value ?? [])
-        .where((ticket) => ticket.status == TicketStatus.resolved)
+        .where((ticket) => ticket.status == TicketStatus.done)
         .toList();
     final pending = resolvedTickets
         .where((ticket) => ticket.surveyRequired)

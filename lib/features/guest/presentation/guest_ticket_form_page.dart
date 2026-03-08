@@ -30,51 +30,32 @@ class GuestTicketFormPage extends ConsumerStatefulWidget {
 class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _idController = TextEditingController();
+  final _numberIdController = TextEditingController();
   final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _descriptionController = TextEditingController();
+  final _notesController = TextEditingController();
   bool _isSubmitting = false;
-  String? _statusUser;
-  String? _identityAttachment;
-  String? _selfieAttachment;
-  String? _identityName;
-  String? _selfieName;
-  bool _isUploadingIdentity = false;
-  bool _isUploadingSelfie = false;
+  String? _entity;
+  String? _lamp1;
+  String? _lamp2;
+  String? _lamp1Name;
+  String? _lamp2Name;
+  bool _isUploadingLamp1 = false;
+  bool _isUploadingLamp2 = false;
   bool _attachmentsError = false;
 
   @override
   void dispose() {
     _nameController.dispose();
-    _idController.dispose();
+    _numberIdController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
-    _descriptionController.dispose();
+    _notesController.dispose();
     super.dispose();
-  }
-
-  String _composeDescription() {
-    final buffer = StringBuffer();
-    final description = _descriptionController.text.trim();
-    if (description.isNotEmpty) {
-      buffer.writeln(description);
-    }
-    buffer.writeln('');
-    buffer.writeln('--- Data Pelapor Tamu ---');
-    buffer.writeln('Nama: ${_nameController.text.trim()}');
-    buffer.writeln('Status: ${_statusUser ?? '-'}');
-    buffer.writeln('No. Identitas: ${_idController.text.trim()}');
-    buffer.writeln('Email: ${_emailController.text.trim()}');
-    buffer.writeln('No. Telepon: ${_phoneController.text.trim()}');
-    return buffer.toString().trim();
   }
 
   Future<void> _submit() async {
     if (_isSubmitting) return;
     final isValid = _formKey.currentState!.validate();
-    final attachmentsValid =
-        _identityAttachment != null && _selfieAttachment != null;
+    final attachmentsValid = _lamp1 != null && _lamp2 != null;
     if (!attachmentsValid) {
       setState(() => _attachmentsError = true);
     }
@@ -89,35 +70,27 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       );
       return;
     }
+    if (_entity == null || _entity!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Entitas wajib dipilih')),
+      );
+      return;
+    }
 
     setState(() => _isSubmitting = true);
     try {
-      final name = _nameController.text.trim();
-      final categories = ref.read(guestCategoriesProvider).value ?? [];
-      final categoryName = categories
-          .where((item) => item.id == selectedCategory)
-          .map((item) => item.name)
-          .cast<String?>()
-          .firstWhere((item) => item != null, orElse: () => null);
-      final title = categoryName == null
-          ? 'Laporan Tamu'
-          : 'Laporan Tamu - $categoryName';
-
-      final draft = TicketDraft(
-        title: title,
-        description: _composeDescription(),
-        category: selectedCategory,
-        priority: ref.read(guestTicketPriorityProvider),
-        attachments: [
-          if (_identityAttachment != null) _identityAttachment!,
-          if (_selfieAttachment != null) _selfieAttachment!,
-        ],
-      );
       final response = await TicketRepository().createGuestTicket(
-        draft: draft,
-        reporterName: name,
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim(),
+        draft: GuestTicketDraft(
+          name: _nameController.text.trim(),
+          numberId: _numberIdController.text.trim(),
+          email: _emailController.text.trim(),
+          entity: _entity!,
+          serviceId: selectedCategory,
+          notes: _notesController.text.trim(),
+          priority: ref.read(guestTicketPriorityProvider),
+          lamp1: _lamp1!,
+          lamp2: _lamp2!,
+        ),
       );
       if (!response.isSuccess) {
         throw Exception(
@@ -128,11 +101,6 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       final createdTicket = payload is Map<String, dynamic>
           ? Ticket.fromJson(payload)
           : null;
-      final createdTicketID = payload is Map<String, dynamic>
-          ? (payload['ticketNumber']?.toString() ??
-                payload['id']?.toString() ??
-                '')
-          : '';
       if (!mounted) return;
       if (createdTicket != null && createdTicket.id.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -145,16 +113,8 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
         context.pushNamed(AppRouteNames.ticketDetail, extra: createdTicket);
         return;
       }
-
-      final fallbackTicketID = createdTicketID.isNotEmpty
-          ? createdTicketID
-          : '-';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Laporan tamu berhasil dikirim. Nomor tiket: $fallbackTicketID',
-          ),
-        ),
+        const SnackBar(content: Text('Laporan tamu berhasil dikirim.')),
       );
     } catch (error) {
       if (!mounted) return;
@@ -168,32 +128,34 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     }
   }
 
-  Future<void> _pickGuestAttachment({required bool isIdentity}) async {
-    if (isIdentity && _isUploadingIdentity) return;
-    if (!isIdentity && _isUploadingSelfie) return;
+  Future<void> _pickGuestAttachment({required bool firstSlot}) async {
+    if (firstSlot && _isUploadingLamp1) return;
+    if (!firstSlot && _isUploadingLamp2) return;
     final pickedFile = await pickAttachmentFile(context);
     if (pickedFile == null) {
       return;
     }
+
     setState(() {
-      if (isIdentity) {
-        _isUploadingIdentity = true;
+      if (firstSlot) {
+        _isUploadingLamp1 = true;
       } else {
-        _isUploadingSelfie = true;
+        _isUploadingLamp2 = true;
       }
     });
+
     try {
-      final url = await TicketRepository().uploadAttachment(
+      final path = await TicketRepository().uploadAttachment(
         filename: pickedFile.name,
         bytes: pickedFile.bytes,
       );
       setState(() {
-        if (isIdentity) {
-          _identityAttachment = url;
-          _identityName = pickedFile.name;
+        if (firstSlot) {
+          _lamp1 = path;
+          _lamp1Name = pickedFile.name;
         } else {
-          _selfieAttachment = url;
-          _selfieName = pickedFile.name;
+          _lamp2 = path;
+          _lamp2Name = pickedFile.name;
         }
         _attachmentsError = false;
       });
@@ -205,10 +167,10 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     } finally {
       if (mounted) {
         setState(() {
-          if (isIdentity) {
-            _isUploadingIdentity = false;
+          if (firstSlot) {
+            _isUploadingLamp1 = false;
           } else {
-            _isUploadingSelfie = false;
+            _isUploadingLamp2 = false;
           }
         });
       }
@@ -222,6 +184,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     final selectedCategory = ref.watch(guestTicketSelectedCategoryProvider);
     final selectedPriority = ref.watch(guestTicketPriorityProvider);
     final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: UserTopAppBar(titleText: 'Form Tiket Tamu'),
       body: ListView(
@@ -229,7 +192,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
         children: [
           const InfoBanner(
             text:
-                'Silakan isi formulir di bawah ini untuk melaporkan masalah tanpa login. Laporan Anda akan diproses oleh tim helpdesk kami.',
+                'Silakan lengkapi formulir berikut dengan data yang benar dan lengkap agar laporan dapat diverifikasi dan diproses oleh tim helpdesk.',
           ),
           const SizedBox(height: 16),
           Form(
@@ -315,26 +278,28 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                       const RequiredLabel(text: 'Status User'),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        initialValue: _statusUser,
+                        initialValue: _entity,
                         items: const [
                           DropdownMenuItem(
-                            value: 'Mahasiswa',
+                            value: 'MAHASISWA',
                             child: Text('Mahasiswa'),
                           ),
                           DropdownMenuItem(
-                            value: 'Dosen',
+                            value: 'DOSEN',
                             child: Text('Dosen'),
                           ),
                           DropdownMenuItem(
-                            value: 'Tendik',
+                            value: 'TENDIK',
                             child: Text('Tendik'),
                           ),
+                          DropdownMenuItem(
+                            value: 'LAINNYA',
+                            child: Text('Lainnya'),
+                          ),
                         ],
-                        onChanged: (value) => setState(() {
-                          _statusUser = value;
-                        }),
+                        onChanged: (value) => setState(() => _entity = value),
                         decoration: const InputDecoration(
-                          hintText: '--Pilih Status--',
+                          hintText: '--Pilih Status User--',
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -344,30 +309,37 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      const RequiredLabel(text: 'No. Identitas'),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _idController,
-                        decoration: const InputDecoration(
-                          hintText: 'NPM / NIP / NIK',
-                          prefixIcon: Icon(Icons.badge_outlined),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'No. identitas wajib diisi';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 8),
+                      const RequiredLabel(text: 'No Identitas'),
+                      const SizedBox(height: 4),
                       Text(
-                        'No KTM (Mahasiswa) / NIP / NIK / SK Pengangkatan',
+                        'Masukkan No KTM (Mahasiswa) / NIP / NIK / SK Pengangkatan',
                         style: textTheme.bodySmall?.copyWith(
                           color: AppTheme.textMuted,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _numberIdController,
+                        decoration: const InputDecoration(
+                          hintText:
+                              'No KTM (Mahasiswa) / NIP / NIK / SK Pengangkatan',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'No identitas wajib diisi';
+                          }
+                          return null;
+                        },
+                      ),
                       const SizedBox(height: 16),
                       const RequiredLabel(text: 'Email Aktif'),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Masukkan email Aktif (bukan email @unila.ac.id)',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _emailController,
@@ -386,30 +358,6 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Bukan email @unila.ac.id',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const RequiredLabel(text: 'No. Telepon'),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          hintText: '0812...',
-                          prefixIcon: Icon(Icons.phone_outlined),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'No. telepon wajib diisi';
-                          }
-                          return null;
-                        },
-                      ),
                     ],
                   ),
                 ),
@@ -422,11 +370,11 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                       const RequiredLabel(text: 'Deskripsi Masalah'),
                       const SizedBox(height: 8),
                       TextFormField(
-                        controller: _descriptionController,
-                        maxLines: 4,
+                        controller: _notesController,
+                        maxLines: 5,
                         decoration: const InputDecoration(
                           hintText:
-                              'Jelaskan kendala yang Anda alami secara detail...',
+                              'Jelaskan kendala yang Anda alami secara detail.',
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -437,36 +385,38 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Lampiran',
+                        'Lampiran Wajib',
                         style: textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const RequiredLabel(text: 'Wajib diisi'),
+                      const RequiredLabel(text: 'Lampiran 1 dan Lampiran 2 wajib'),
                       const SizedBox(height: 8),
                       AttachmentTile(
-                        title: 'Foto KTM / ID Card / SK Pengangkatan',
-                        subtitle: _identityName ?? 'JPG, PNG, PDF (Max 5MB)',
+                        title:
+                            'Foto KTM (Mahasiswa) / ID Card / KTP / SK Pengangkatan',
+                        subtitle: _lamp1Name ?? 'JPG, PNG, PDF (maks 5MB)',
                         icon: Icons.badge_outlined,
-                        isUploaded: _identityAttachment != null,
-                        isUploading: _isUploadingIdentity,
-                        onTap: () => _pickGuestAttachment(isIdentity: true),
+                        isUploaded: _lamp1 != null,
+                        isUploading: _isUploadingLamp1,
+                        onTap: () => _pickGuestAttachment(firstSlot: true),
                       ),
                       const SizedBox(height: 12),
                       AttachmentTile(
-                        title: 'Swafoto (Selfie) dengan KTM',
-                        subtitle: _selfieName ?? 'JPG, PNG, PDF (Max 5MB)',
+                        title:
+                            'Swafoto (Selfie) dengan KTM (Mahasiswa) / ID Card / KTP / SK Pengangkatan',
+                        subtitle: _lamp2Name ?? 'JPG, PNG, PDF (maks 5MB)',
                         icon: Icons.camera_alt_outlined,
-                        isUploaded: _selfieAttachment != null,
-                        isUploading: _isUploadingSelfie,
-                        onTap: () => _pickGuestAttachment(isIdentity: false),
+                        isUploaded: _lamp2 != null,
+                        isUploading: _isUploadingLamp2,
+                        onTap: () => _pickGuestAttachment(firstSlot: false),
                       ),
                       if (_attachmentsError)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            'Lampiran wajib diisi.',
+                            'Lampiran 1 dan Lampiran 2 wajib diisi.',
                             style: textTheme.bodySmall?.copyWith(
                               color: AppTheme.danger,
                             ),

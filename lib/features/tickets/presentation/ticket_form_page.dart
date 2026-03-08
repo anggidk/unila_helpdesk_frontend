@@ -27,34 +27,32 @@ class TicketFormPage extends ConsumerStatefulWidget {
 
 class _TicketFormPageState extends ConsumerState<TicketFormPage> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _titleController;
-  late final TextEditingController _descriptionController;
+  late final TextEditingController _notesController;
   bool _isSubmitting = false;
   bool _isUploading = false;
-  final List<_AttachmentItem> _attachments = [];
+  String? _lamp1;
+  String? _lamp1Name;
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(
-      text: widget.existing?.title ?? '',
-    );
-    _descriptionController = TextEditingController(
-      text: widget.existing?.description ?? '',
-    );
+    _notesController = TextEditingController(text: widget.existing?.notes ?? '');
+    _lamp1 = widget.existing?.lamp1.isNotEmpty == true ? widget.existing!.lamp1 : null;
+    _lamp1Name = widget.existing?.lamp1.isNotEmpty == true ? widget.existing!.lamp1 : null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(ticketFormPriorityProvider.notifier).state =
           widget.existing?.priority ?? TicketPriority.medium;
       ref.read(ticketFormSelectedCategoryProvider.notifier).state =
-          widget.existing?.categoryId;
+          widget.existing?.serviceId.isNotEmpty == true
+          ? widget.existing!.serviceId
+          : widget.existing?.categoryId;
     });
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -63,23 +61,23 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
     final selectedCategory = ref.read(ticketFormSelectedCategoryProvider);
     final selectedPriority = ref.read(ticketFormPriorityProvider);
     if (selectedCategory == null || selectedCategory.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Kategori wajib dipilih')));
+      ).showSnackBar(const SnackBar(content: Text('Layanan wajib dipilih')));
       return;
     }
 
     setState(() => _isSubmitting = true);
     try {
       final draft = TicketDraft(
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
-        category: selectedCategory,
+        serviceId: selectedCategory,
+        notes: _notesController.text.trim(),
         priority: selectedPriority,
-        attachments: _attachments.map((item) => item.url).toList(),
+        lamp1: _lamp1,
       );
       final repo = TicketRepository();
       final response = widget.existing == null
@@ -102,19 +100,9 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
       context.pop(true);
     } catch (error) {
       if (!mounted) return;
-      String errorMessage = error.toString();
-      // Handle specific error messages from backend
-      if (errorMessage.contains(
-        'tiket yang sudah selesai tidak dapat diedit',
-      )) {
-        errorMessage = 'Tiket yang sudah selesai tidak dapat diedit';
-      } else if (errorMessage.contains('tidak memiliki akses')) {
-        errorMessage = 'Anda tidak memiliki akses untuk mengedit tiket ini';
-      }
-
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(errorMessage)));
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -130,18 +118,19 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     }
     setState(() => _isUploading = true);
     try {
-      final url = await TicketRepository().uploadAttachment(
+      final path = await TicketRepository().uploadAttachment(
         filename: pickedFile.name,
         bytes: pickedFile.bytes,
       );
       setState(() {
-        _attachments.add(_AttachmentItem(name: pickedFile.name, url: url));
+        _lamp1 = path;
+        _lamp1Name = pickedFile.name;
       });
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() => _isUploading = false);
@@ -156,26 +145,6 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     final categories = allCategories
         .where((category) => !category.guestAllowed)
         .toList();
-    final existing = widget.existing;
-    if (existing != null &&
-        existing.categoryId.isNotEmpty &&
-        !categories.any((category) => category.id == existing.categoryId)) {
-      final matched = allCategories.where((category) {
-        return category.id == existing.categoryId;
-      });
-      if (matched.isNotEmpty) {
-        categories.insert(0, matched.first);
-      } else {
-        categories.insert(
-          0,
-          ServiceCategory(
-            id: existing.categoryId,
-            name: existing.category,
-            guestAllowed: true,
-          ),
-        );
-      }
-    }
     final selectedCategoryRaw = ref.watch(ticketFormSelectedCategoryProvider);
     final selectedCategory =
         selectedCategoryRaw != null &&
@@ -199,7 +168,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const RequiredLabel(text: 'Kategori Layanan'),
+                const RequiredLabel(text: 'Layanan'),
                 const SizedBox(height: 8),
                 ...buildCategoryLoadIndicators(
                   isLoading: categoriesAsync.isLoading,
@@ -216,47 +185,30 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                       )
                       .toList(),
                   onChanged: (value) =>
-                      ref
-                              .read(ticketFormSelectedCategoryProvider.notifier)
-                              .state =
+                      ref.read(ticketFormSelectedCategoryProvider.notifier).state =
                           value,
                   decoration: const InputDecoration(
-                    hintText: 'Pilih Kategori... ',
+                    hintText: 'Pilih layanan internal',
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Kategori wajib dipilih';
+                      return 'Layanan wajib dipilih';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                const RequiredLabel(text: 'Judul Masalah'),
+                const RequiredLabel(text: 'Deskripsi Masalah'),
                 const SizedBox(height: 8),
                 TextFormField(
-                  controller: _titleController,
+                  controller: _notesController,
+                  maxLines: 6,
                   decoration: const InputDecoration(
-                    hintText: 'Contoh: Login E-Learning Gagal...',
+                    hintText: 'Jelaskan masalah yang Anda alami secara detail.',
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Judul masalah wajib diisi';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                const RequiredLabel(text: 'Deskripsi'),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _descriptionController,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    hintText: 'Jelaskan masalah anda secara detail...',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Deskripsi wajib diisi';
+                      return 'Deskripsi masalah wajib diisi';
                     }
                     return null;
                   },
@@ -267,8 +219,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                 PrioritySelector(
                   selected: selectedPriority,
                   onChanged: (priority) {
-                    ref.read(ticketFormPriorityProvider.notifier).state =
-                        priority;
+                    ref.read(ticketFormPriorityProvider.notifier).state = priority;
                   },
                 ),
                 const SizedBox(height: 16),
@@ -279,26 +230,22 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (_attachments.isNotEmpty)
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _attachments
-                        .map(
-                          (item) => Chip(
-                            label: Text(item.name),
-                            onDeleted: () => setState(() {
-                              _attachments.remove(item);
-                            }),
-                          ),
-                        )
-                        .toList(),
+                if (_lamp1Name != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Chip(
+                      label: Text(_lamp1Name!),
+                      onDeleted: () => setState(() {
+                        _lamp1 = null;
+                        _lamp1Name = null;
+                      }),
+                    ),
                   ),
-                const SizedBox(height: 8),
                 AttachmentTile(
-                  title: 'Tambah Lampiran',
-                  subtitle: 'Maks 5MB (JPG, PNG, PDF)',
+                  title: 'Lampiran Masalah',
+                  subtitle: _lamp1Name ?? 'JPG, PNG, PDF (maks 5MB)',
                   icon: Icons.attach_file,
+                  isUploaded: _lamp1 != null,
                   isUploading: _isUploading,
                   onTap: _pickAttachment,
                 ),
@@ -326,11 +273,4 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
       ),
     );
   }
-}
-
-class _AttachmentItem {
-  const _AttachmentItem({required this.name, required this.url});
-
-  final String name;
-  final String url;
 }

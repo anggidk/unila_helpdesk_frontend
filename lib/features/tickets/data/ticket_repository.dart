@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
@@ -43,12 +44,12 @@ class TicketRepository {
       query: query,
       start: start,
       end: end,
-      extra: {'status': status, 'categoryId': categoryId},
+      extra: {
+        'status': status?.trim().toUpperCase(),
+        'categoryId': categoryId,
+      },
     );
-    final response = await _client.get(
-      ApiEndpoints.ticketsPaged,
-      query: params,
-    );
+    final response = await _client.get(ApiEndpoints.ticketsPaged, query: params);
     final data = response.data?['data'];
     if (response.isSuccess && data is Map<String, dynamic>) {
       return TicketPage.fromJson(data);
@@ -76,20 +77,9 @@ class TicketRepository {
   }
 
   Future<ApiResponse<Map<String, dynamic>>> createGuestTicket({
-    required TicketDraft draft,
-    required String reporterName,
-    required String email,
-    required String phone,
+    required GuestTicketDraft draft,
   }) {
-    return _client.post(
-      ApiEndpoints.guestTickets,
-      body: {
-        ...draft.toJson(),
-        'reporter_name': reporterName,
-        'email': email,
-        'phone': phone,
-      },
-    );
+    return _client.post(ApiEndpoints.guestTickets, body: draft.toJson());
   }
 
   Future<ApiResponse<Map<String, dynamic>>> updateTicket({
@@ -128,6 +118,10 @@ class TicketRepository {
     final decoded = jsonDecode(body);
     final data = decoded['data'];
     if (data is Map<String, dynamic>) {
+      final path = data['path']?.toString() ?? '';
+      if (path.isNotEmpty) {
+        return path;
+      }
       final url = data['url']?.toString() ?? '';
       if (url.isNotEmpty) {
         return url;
@@ -139,26 +133,61 @@ class TicketRepository {
 
 class TicketDraft {
   TicketDraft({
-    required this.title,
-    required this.description,
-    required this.category,
+    required this.serviceId,
+    required this.notes,
     required this.priority,
-    this.attachments = const [],
+    this.lamp1,
   });
 
-  final String title;
-  final String description;
-  final String category;
+  final String serviceId;
+  final String notes;
   final TicketPriority priority;
-  final List<String> attachments;
+  final String? lamp1;
 
   Map<String, dynamic> toJson() {
     return {
-      'title': title,
-      'description': description,
-      'category': category,
-      'priority': priority.name,
-      'attachments': attachments,
+      'serviceId': int.tryParse(serviceId),
+      'notes': notes,
+      'priority': priority.apiValue,
+      if (lamp1 != null && lamp1!.trim().isNotEmpty) 'lamp1': lamp1,
+    };
+  }
+}
+
+class GuestTicketDraft {
+  GuestTicketDraft({
+    required this.name,
+    required this.numberId,
+    required this.email,
+    required this.entity,
+    required this.serviceId,
+    required this.notes,
+    required this.priority,
+    required this.lamp1,
+    required this.lamp2,
+  });
+
+  final String name;
+  final String numberId;
+  final String email;
+  final String entity;
+  final String serviceId;
+  final String notes;
+  final TicketPriority priority;
+  final String lamp1;
+  final String lamp2;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'numberId': numberId,
+      'email': email,
+      'entity': entity,
+      'serviceId': int.tryParse(serviceId),
+      'notes': notes,
+      'priority': priority.apiValue,
+      'lamp1': lamp1,
+      'lamp2': lamp2,
     };
   }
 }

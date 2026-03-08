@@ -42,14 +42,10 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
     try {
       final detail = await TicketRepository().fetchTicketById(_ticket.id);
       if (!mounted) return;
-      setState(() {
-        _ticket = detail;
-      });
+      setState(() => _ticket = detail);
     } catch (error) {
       if (!mounted) return;
-      setState(() {
-        _detailError = error.toString();
-      });
+      setState(() => _detailError = error.toString());
     } finally {
       if (mounted) {
         setState(() => _isLoadingDetail = false);
@@ -60,58 +56,61 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
   void _handleMenu(String value) {
     if (value == 'edit') {
       _openEdit();
-    } else if (value == 'delete') {
-      showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Hapus Tiket'),
-          content: const Text('Apakah Anda yakin ingin menghapus tiket ini?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: _isDeleting
-                  ? null
-                  : () async {
-                      setState(() => _isDeleting = true);
-                      final response = await TicketRepository().deleteTicket(
-                        _ticket.id,
-                      );
-                      if (!mounted) return;
-                      if (!response.isSuccess) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              response.error?.message ??
-                                  'Gagal menghapus tiket.',
-                            ),
-                          ),
-                        );
-                        setState(() => _isDeleting = false);
-                        return;
-                      }
-                      ref.invalidate(ticketsProvider);
-                      if (!dialogContext.mounted) return;
-                      Navigator.of(dialogContext).pop();
-                      context.pop();
-                    },
-              child: _isDeleting
-                  ? const SizedBox(
-                      height: 16,
-                      width: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Hapus'),
-            ),
-          ],
-        ),
-      );
+      return;
     }
+    if (value != 'delete') {
+      return;
+    }
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus Tiket'),
+        content: const Text('Apakah Anda yakin ingin menghapus tiket ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: _isDeleting
+                ? null
+                : () async {
+                    setState(() => _isDeleting = true);
+                    final response = await TicketRepository().deleteTicket(
+                      _ticket.id,
+                    );
+                    if (!mounted) return;
+                    if (!response.isSuccess) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            response.error?.message ??
+                                'Gagal menghapus tiket.',
+                          ),
+                        ),
+                      );
+                      setState(() => _isDeleting = false);
+                      return;
+                    }
+                    ref.invalidate(ticketsProvider);
+                    if (!dialogContext.mounted) return;
+                    Navigator.of(dialogContext).pop();
+                    context.pop();
+                  },
+            child: _isDeleting
+                ? const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _openEdit() async {
@@ -167,8 +166,8 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
     final currentUser = ref.watch(currentUserProvider);
     final canEdit =
         currentUser != null &&
-        !ticket.isGuest &&
-        ticket.status == TicketStatus.waiting;
+        ticket.status == TicketStatus.waiting &&
+        !ticket.isGuest;
     final canGoBack = Navigator.of(context).canPop();
 
     return Scaffold(
@@ -187,7 +186,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
               onPressed: _finishOrBack,
               child: const Text('Selesai'),
             ),
-          if (canEdit) // Only show edit menu if ticket can be edited
+          if (canEdit)
             PopupMenuButton<String>(
               onSelected: _handleMenu,
               itemBuilder: (context) => const [
@@ -200,6 +199,15 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          if (_isLoadingDetail) const LinearProgressIndicator(),
+          if (_detailError != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Gagal memuat detail: $_detailError',
+                style: const TextStyle(color: AppTheme.textMuted),
+              ),
+            ),
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -220,120 +228,99 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                     StatusBadge(status: ticket.status),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
-                  ticket.title,
+                  ticket.serviceName,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 8,
                   children: [
-                    const Icon(
-                      Icons.category_outlined,
-                      size: 18,
-                      color: AppTheme.textMuted,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 18,
+                          color: AppTheme.textMuted,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          formatDate(ticket.ticketDate),
+                          style: const TextStyle(color: AppTheme.textMuted),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      ticket.category,
-                      style: const TextStyle(color: AppTheme.textMuted),
-                    ),
-                    const SizedBox(width: 16),
-                    const Icon(
-                      Icons.calendar_today_outlined,
-                      size: 18,
-                      color: AppTheme.textMuted,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      formatDate(ticket.createdAt),
-                      style: const TextStyle(color: AppTheme.textMuted),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.person_outline,
+                          size: 18,
+                          color: AppTheme.textMuted,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          ticket.name.isEmpty ? '-' : ticket.name,
+                          style: const TextStyle(color: AppTheme.textMuted),
+                        ),
+                      ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 PriorityBadge(priority: ticket.priority),
-                const SizedBox(height: 12),
-                Text(ticket.description),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Riwayat Status',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.outline),
-            ),
-            child: Column(
-              children: [
-                if (_isLoadingDetail && ticket.history.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: LinearProgressIndicator(),
+                const SizedBox(height: 16),
+                const Text(
+                  'Deskripsi',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                Text(ticket.notes.isEmpty ? '-' : ticket.notes),
+                const SizedBox(height: 16),
+                const Text(
+                  'Catatan Staff',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                Text(ticket.staffNotes.isEmpty ? 'Belum ada catatan staff.' : ticket.staffNotes),
+                const SizedBox(height: 16),
+                const Text(
+                  'Lampiran',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                if (ticket.attachments.isEmpty)
+                  const Text(
+                    'Tidak ada lampiran.',
+                    style: TextStyle(color: AppTheme.textMuted),
                   ),
-                if (_detailError != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      'Gagal memuat detail: $_detailError',
-                      style: const TextStyle(color: AppTheme.textMuted),
-                    ),
-                  ),
-                if (!_isLoadingDetail && ticket.history.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Belum ada riwayat status.',
-                      style: TextStyle(color: AppTheme.textMuted),
-                    ),
-                  ),
-                ...ticket.history.map(
-                  (update) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const CircleAvatar(
-                      backgroundColor: AppTheme.surface,
-                      child: Icon(Icons.person_outline, color: AppTheme.navy),
-                    ),
-                    title: Text(
-                      update.title,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    subtitle: Text(
-                      '${update.description}\n${formatDateTime(update.timestamp)}',
+                ...ticket.attachments.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(item),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          const Text(
-            'Komentar',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          if (ticket.comments.where((comment) => comment.isStaff).isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 12),
-              child: Text(
-                'Belum ada catatan staff.',
-                style: TextStyle(color: AppTheme.textMuted),
-              ),
-            ),
-          ...ticket.comments
-              .where((comment) => comment.isStaff)
-              .map((comment) => _CommentBubble(comment: comment)),
-          if (ticket.isResolved && ticket.surveyRequired && !ticket.isGuest) ...[
+          if (ticket.status == TicketStatus.done && ticket.surveyRequired) ...[
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -353,63 +340,6 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _CommentBubble extends StatelessWidget {
-  const _CommentBubble({required this.comment});
-
-  final TicketComment comment;
-
-  @override
-  Widget build(BuildContext context) {
-    const background = AppTheme.surface;
-    const textColor = AppTheme.textPrimary;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          const CircleAvatar(
-            backgroundColor: AppTheme.surface,
-            child: Icon(Icons.person, color: AppTheme.navy),
-          ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: background,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    comment.author,
-                    style: TextStyle(
-                      color: textColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(comment.message, style: TextStyle(color: textColor)),
-                  const SizedBox(height: 6),
-                  Text(
-                    formatTime(comment.timestamp),
-                    style: TextStyle(
-                      color: textColor.withValues(alpha: 0.7),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );

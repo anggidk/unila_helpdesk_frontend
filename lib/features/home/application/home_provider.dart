@@ -8,9 +8,9 @@ final homeSummaryProvider =
     FutureProvider.autoDispose.family<HomeSummary, UserProfile>((ref, user) async {
   final tickets = await ref.watch(ticketsProvider.future);
   final activeCount =
-      tickets.where((ticket) => ticket.status == TicketStatus.inProgress).length;
+      tickets.where((ticket) => ticket.status == TicketStatus.assign).length;
   final resolvedCount =
-      tickets.where((ticket) => ticket.status == TicketStatus.resolved).length;
+      tickets.where((ticket) => ticket.status == TicketStatus.done).length;
   final waitingCount =
       tickets.where((ticket) => ticket.status == TicketStatus.waiting).length;
   final recentTickets = [...tickets]..sort((a, b) => b.createdAt.compareTo(a.createdAt));

@@ -21,10 +21,10 @@ class ProfilePage extends ConsumerWidget {
     final tickets = ticketsAsync.value ?? [];
     final total = tickets.length;
     final pending = tickets
-        .where((ticket) => ticket.status != TicketStatus.resolved)
+        .where((ticket) => ticket.status != TicketStatus.done)
         .length;
     final resolved = tickets
-        .where((ticket) => ticket.status == TicketStatus.resolved)
+        .where((ticket) => ticket.status == TicketStatus.done)
         .length;
     return Scaffold(
       appBar: UserTopAppBar(titleText: 'Profil Saya'),

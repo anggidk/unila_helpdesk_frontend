@@ -52,15 +52,16 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
     }
     final tickets = (ticketsAsync.value ?? []).where((ticket) {
       if (selectedFilter == TicketFilter.open) {
-        if (ticket.status == TicketStatus.resolved) {
+        if (ticket.status == TicketStatus.done ||
+            ticket.status == TicketStatus.reject) {
           return false;
         }
       } else if (selectedFilter == TicketFilter.inProgress) {
-        if (ticket.status != TicketStatus.inProgress) {
+        if (ticket.status != TicketStatus.assign) {
           return false;
         }
       } else if (selectedFilter == TicketFilter.resolved) {
-        if (ticket.status != TicketStatus.resolved) {
+        if (ticket.status != TicketStatus.done) {
           return false;
         }
       }

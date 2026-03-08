@@ -14,11 +14,14 @@ class StatusBadge extends StatelessWidget {
       case TicketStatus.waiting:
         color = AppTheme.danger;
         break;
-      case TicketStatus.inProgress:
+      case TicketStatus.assign:
         color = AppTheme.warning;
         break;
-      case TicketStatus.resolved:
+      case TicketStatus.done:
         color = AppTheme.success;
+        break;
+      case TicketStatus.reject:
+        color = AppTheme.textMuted;
         break;
     }
 

@@ -11,10 +11,7 @@ import 'package:unila_helpdesk_frontend/app/app.dart';
 
 void main() {
   testWidgets('Login screen shows helpdesk title', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
     await tester.pumpWidget(const HelpdeskApp());
-
-    // Verify that the login screen renders.
-    expect(find.text('Helpdesk Unila'), findsOneWidget);
+    expect(find.text('HELPDESK UNILA'), findsOneWidget);
   });
 }

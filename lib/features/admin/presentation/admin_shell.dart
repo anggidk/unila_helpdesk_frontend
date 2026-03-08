@@ -13,7 +13,6 @@ import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_dashbo
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_reports_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_survey_page.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_survey_history_page.dart';
-import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_tickets_page.dart';
 
 final adminShellIndexProvider = StateProvider.autoDispose<int>((ref) => 0);
 final adminSidebarExpandedProvider = StateProvider.autoDispose<bool>(
@@ -85,7 +84,6 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     final adminUser = ref.watch(adminUserProvider);
     final pages = [
       const AdminDashboardPage(),
-      const AdminTicketsPage(),
       const AdminReportsPage(),
       const AdminCohortPage(),
       const AdminSurveyPage(),
@@ -173,8 +171,8 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                                 0,
                       ),
                       _NavItem(
-                        icon: Icons.confirmation_number_outlined,
-                        label: 'Manajemen Tiket',
+                        icon: Icons.assessment_outlined,
+                        label: 'Laporan Survei',
                         selected: index == 1,
                         showLabel: !isCompact,
                         onTap: () =>
@@ -182,8 +180,8 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                                 1,
                       ),
                       _NavItem(
-                        icon: Icons.assessment_outlined,
-                        label: 'Laporan Survei',
+                        icon: Icons.group_work_outlined,
+                        label: 'Analisis Kohort',
                         selected: index == 2,
                         showLabel: !isCompact,
                         onTap: () =>
@@ -191,8 +189,8 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                                 2,
                       ),
                       _NavItem(
-                        icon: Icons.group_work_outlined,
-                        label: 'Analisis Kohort',
+                        icon: Icons.quiz_outlined,
+                        label: 'Pengaturan Survei',
                         selected: index == 3,
                         showLabel: !isCompact,
                         onTap: () =>
@@ -200,22 +198,13 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                                 3,
                       ),
                       _NavItem(
-                        icon: Icons.quiz_outlined,
-                        label: 'Pengaturan Survei',
+                        icon: Icons.history,
+                        label: 'Riwayat Survei',
                         selected: index == 4,
                         showLabel: !isCompact,
                         onTap: () =>
                             ref.read(adminShellIndexProvider.notifier).state =
                                 4,
-                      ),
-                      _NavItem(
-                        icon: Icons.history,
-                        label: 'Riwayat Survei',
-                        selected: index == 5,
-                        showLabel: !isCompact,
-                        onTap: () =>
-                            ref.read(adminShellIndexProvider.notifier).state =
-                                5,
                       ),
                       const Spacer(),
                       _ProfileSection(
@@ -292,14 +281,12 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       case 0:
         return 'Ringkasan Dasbor';
       case 1:
-        return 'Manajemen Tiket';
-      case 2:
         return 'Laporan Survei Kepuasan';
-      case 3:
+      case 2:
         return 'Analisis Kohort';
-      case 4:
+      case 3:
         return 'Pengaturan Survei';
-      case 5:
+      case 4:
         return 'Riwayat Survei';
       default:
         return 'Dasbor';

@@ -1,14 +1,29 @@
-enum TicketStatus { waiting, inProgress, resolved }
+enum TicketStatus { waiting, assign, done, reject }
 
 extension TicketStatusX on TicketStatus {
   String get label {
     switch (this) {
       case TicketStatus.waiting:
         return 'Menunggu';
-      case TicketStatus.inProgress:
-        return 'Diproses';
-      case TicketStatus.resolved:
+      case TicketStatus.assign:
+        return 'Ditugaskan';
+      case TicketStatus.done:
         return 'Selesai';
+      case TicketStatus.reject:
+        return 'Ditolak';
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case TicketStatus.waiting:
+        return 'WAITING';
+      case TicketStatus.assign:
+        return 'ASSIGN';
+      case TicketStatus.done:
+        return 'DONE';
+      case TicketStatus.reject:
+        return 'REJECT';
     }
   }
 }
@@ -24,6 +39,17 @@ extension TicketPriorityX on TicketPriority {
         return 'Normal';
       case TicketPriority.high:
         return 'Tinggi';
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case TicketPriority.low:
+        return 'LOW';
+      case TicketPriority.medium:
+        return 'MEDIUM';
+      case TicketPriority.high:
+        return 'HIGH';
     }
   }
 }
@@ -61,16 +87,6 @@ class TicketUpdate {
   final String title;
   final String description;
   final DateTime timestamp;
-
-  factory TicketUpdate.fromJson(Map<String, dynamic> json) {
-    return TicketUpdate(
-      title: json['title']?.toString() ?? '',
-      description: json['description']?.toString() ?? '',
-      timestamp:
-          DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
-          DateTime.now(),
-    );
-  }
 }
 
 class TicketComment {
@@ -90,83 +106,128 @@ class TicketComment {
 class Ticket {
   const Ticket({
     required this.id,
-    this.ticketNumber = '',
-    required this.title,
-    required this.description,
-    required this.category,
-    required this.categoryId,
-    required this.status,
+    required this.ticketNumber,
+    required this.ticketDate,
+    required this.username,
+    required this.numberId,
+    required this.name,
+    required this.email,
+    required this.entity,
+    required this.serviceId,
+    required this.serviceName,
+    required this.notes,
+    required this.staffNotes,
     required this.priority,
-    required this.createdAt,
-    required this.reporter,
-    required this.isGuest,
-    required this.attachments,
-    required this.history,
-    required this.comments,
+    required this.status,
+    required this.isReject,
+    required this.isAssign,
+    required this.isDone,
+    required this.idStaff,
+    required this.lamp1,
+    required this.lamp2,
     required this.surveyRequired,
     required this.surveyScore,
-    this.assignee,
   });
 
   final String id;
   final String ticketNumber;
-  final String title;
-  final String description;
-  final String category;
-  final String categoryId;
-  final TicketStatus status;
+  final DateTime ticketDate;
+  final String username;
+  final String numberId;
+  final String name;
+  final String email;
+  final String entity;
+  final String serviceId;
+  final String serviceName;
+  final String notes;
+  final String staffNotes;
   final TicketPriority priority;
-  final DateTime createdAt;
-  final String reporter;
-  final bool isGuest;
-  final String? assignee;
-  final List<String> attachments;
-  final List<TicketUpdate> history;
-  final List<TicketComment> comments;
+  final TicketStatus status;
+  final bool isReject;
+  final bool isAssign;
+  final bool isDone;
+  final String idStaff;
+  final String lamp1;
+  final String lamp2;
   final bool surveyRequired;
   final double surveyScore;
 
-  bool get isResolved => status == TicketStatus.resolved;
+  DateTime get createdAt => ticketDate;
+  String get category => serviceName;
+  String get categoryId => serviceId;
+  String get title => _firstLine(notes).isEmpty ? serviceName : _firstLine(notes);
+  String get description => notes;
+  String get reporter => name;
+  bool get isGuest => username.trim().isEmpty;
+  String? get assignee => idStaff.trim().isEmpty ? null : idStaff;
+  List<String> get attachments => [lamp1, lamp2]
+      .where((item) => item.trim().isNotEmpty)
+      .toList(growable: false);
+  List<TicketUpdate> get history => const <TicketUpdate>[];
+  List<TicketComment> get comments {
+    if (staffNotes.trim().isEmpty) {
+      return const <TicketComment>[];
+    }
+    return <TicketComment>[
+      TicketComment(
+        author: assignee ?? 'Staff',
+        message: staffNotes,
+        timestamp: ticketDate,
+        isStaff: true,
+      ),
+    ];
+  }
+
+  bool get isResolved => status == TicketStatus.done;
   String get displayNumber => ticketNumber.isEmpty ? id : ticketNumber;
 
   factory Ticket.fromJson(Map<String, dynamic> json) {
-    final history = (json['history'] as List<dynamic>? ?? [])
-        .whereType<Map<String, dynamic>>()
-        .map(TicketUpdate.fromJson)
-        .toList();
-    final attachments = (json['attachments'] as List<dynamic>? ?? [])
+    final fallbackAttachments = (json['attachments'] as List<dynamic>? ?? [])
         .map((value) => value.toString())
+        .where((value) => value.trim().isNotEmpty)
         .toList();
-    final createdAt =
+    final parsedTicketDate =
+        DateTime.tryParse(json['ticketDate']?.toString() ?? '') ??
         DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
         DateTime.now();
-    final assignee = json['assigneeId']?.toString();
-    final staffNotes = json['staffNotes']?.toString().trim() ?? '';
-    final comments = <TicketComment>[
-      if (staffNotes.isNotEmpty)
-        TicketComment(
-          author: (assignee == null || assignee.isEmpty) ? 'Staff' : assignee,
-          message: staffNotes,
-          timestamp: history.isNotEmpty ? history.first.timestamp : createdAt,
-          isStaff: true,
-        ),
-    ];
+
+    final rawServiceId =
+        json['serviceId']?.toString() ?? json['categoryId']?.toString() ?? '';
+    final rawServiceName =
+        json['serviceName']?.toString() ?? json['category']?.toString() ?? '';
+    final lamp1 = json['lamp1']?.toString() ?? (fallbackAttachments.isNotEmpty ? fallbackAttachments.first : '');
+    final lamp2 = json['lamp2']?.toString() ?? (fallbackAttachments.length > 1 ? fallbackAttachments[1] : '');
+
     return Ticket(
       id: json['id']?.toString() ?? '',
       ticketNumber: json['ticketNumber']?.toString() ?? '',
-      title: json['title']?.toString() ?? '',
-      description: json['description']?.toString() ?? '',
-      category: json['category']?.toString() ?? '',
-      categoryId: json['categoryId']?.toString() ?? '',
-      status: _statusFromString(json['status']?.toString() ?? ''),
+      ticketDate: parsedTicketDate,
+      username: json['username']?.toString() ?? '',
+      numberId: json['numberId']?.toString() ?? '',
+      name:
+          json['name']?.toString() ??
+          json['reporterName']?.toString() ??
+          '',
+      email: json['email']?.toString() ?? '',
+      entity: json['entity']?.toString() ?? '',
+      serviceId: rawServiceId,
+      serviceName: rawServiceName,
+      notes:
+          json['notes']?.toString() ??
+          json['description']?.toString() ??
+          '',
+      staffNotes: json['staffNotes']?.toString() ?? '',
       priority: _priorityFromString(json['priority']?.toString() ?? ''),
-      createdAt: createdAt,
-      reporter: json['reporterName']?.toString() ?? '',
-      isGuest: json['isGuest'] == true,
-      assignee: assignee,
-      attachments: attachments,
-      history: history,
-      comments: comments,
+      status: _statusFromString(json['status']?.toString() ?? ''),
+      isReject: json['isReject'] == true,
+      isAssign: json['isAssign'] == true,
+      isDone: json['isDone'] == true,
+      idStaff:
+          json['idStaff']?.toString() ??
+          json['assigneeId']?.toString() ??
+          '',
+      lamp1: lamp1,
+      lamp2: lamp2,
       surveyRequired: json['surveyRequired'] == true,
       surveyScore: (json['surveyScore'] as num?)?.toDouble() ?? 0,
     );
@@ -206,23 +267,33 @@ class TicketPage {
   }
 }
 
+String _firstLine(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return '';
+  }
+  return trimmed.split('\n').first.trim();
+}
+
 TicketStatus _statusFromString(String value) {
-  switch (value) {
-    case 'inProgress':
-      return TicketStatus.inProgress;
-    case 'resolved':
-      return TicketStatus.resolved;
+  switch (value.trim().toUpperCase()) {
+    case 'ASSIGN':
+      return TicketStatus.assign;
+    case 'DONE':
+      return TicketStatus.done;
+    case 'REJECT':
+      return TicketStatus.reject;
     default:
       return TicketStatus.waiting;
   }
 }
 
 TicketPriority _priorityFromString(String value) {
-  switch (value) {
-    case 'high':
-      return TicketPriority.high;
-    case 'low':
+  switch (value.trim().toUpperCase()) {
+    case 'LOW':
       return TicketPriority.low;
+    case 'HIGH':
+      return TicketPriority.high;
     default:
       return TicketPriority.medium;
   }
