@@ -29,6 +29,8 @@ class ApiEndpoints {
   static const String reports = '/reports';
   static const String reportsCategories = '/reports/categories';
   static const String reportsSummary = '/reports/summary';
+  static const String reportsSatisfactionOverview =
+      '/reports/satisfaction-overview';
   static const String reportsSatisfactionSummary =
       '/reports/satisfaction-summary';
   static const String reportsSatisfaction = '/reports/satisfaction';

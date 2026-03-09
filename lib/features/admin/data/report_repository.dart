@@ -68,6 +68,20 @@ class ReportRepository {
     return null;
   }
 
+  Future<SatisfactionOverviewReport?> fetchSatisfactionOverview({
+    String period = 'monthly',
+  }) async {
+    final response = await _client.get(
+      ApiEndpoints.reportsSatisfactionOverview,
+      query: {'period': period},
+    );
+    final data = response.data?['data'];
+    if (response.isSuccess && data is Map<String, dynamic>) {
+      return SatisfactionOverviewReport.fromJson(data);
+    }
+    return null;
+  }
+
   Future<List<ServiceSatisfaction>> fetchServiceSatisfactionSummary({
     String period = 'monthly',
     int periods = 6,

@@ -66,6 +66,10 @@ class AdminCohortPage extends ConsumerWidget {
                   );
                 }
 
+                final visibleEntityRows = _visibleEntityRows(
+                  report.entityComparisons,
+                );
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -87,7 +91,7 @@ class AdminCohortPage extends ConsumerWidget {
                       title: 'Perbandingan Cohort per Entitas',
                       subtitle:
                           'Kelompok dibandingkan berdasarkan entitas pengguna pada survei pertama.',
-                      rows: report.entityComparisons,
+                      rows: visibleEntityRows,
                       bucketLabels: report.bucketLabels,
                       emptyMessage:
                           'Belum ada perbandingan entitas yang dapat ditampilkan.',
@@ -127,34 +131,92 @@ class _OverviewSection extends StatelessWidget {
     };
     final summaryText =
         'Cohort diambil dari ${report.lookbackPeriods} $unitLabel terakhir dengan horizon ${report.bucketCount} bucket. Semua bucket dihitung relatif terhadap survei pertama pengguna.';
+    final insightItems = _buildInsightOverviewItems(report);
+    final scoreItems = _buildScoreOverviewItems(report);
+    final trendItems = _buildEntityTrendOverviewItems(report);
 
     return _SectionCard(
       title: 'Overview Diagnostik',
       subtitle: summaryText,
-      child: report.insights.isEmpty
+      child: insightItems.isEmpty && scoreItems.isEmpty && trendItems.isEmpty
           ? const Text(
               'Belum ada insight diagnostik yang cukup untuk periode ini.',
               style: TextStyle(color: AppTheme.textMuted),
             )
           : LayoutBuilder(
               builder: (context, constraints) {
-                const spacing = 12.0;
-                final columns = _overviewColumnCount(constraints.maxWidth);
-                final cardWidth =
+                const spacing = 16.0;
+                final visibleItemCounts = [
+                  if (insightItems.isNotEmpty) insightItems.length,
+                  if (scoreItems.isNotEmpty) scoreItems.length,
+                  if (trendItems.isNotEmpty) trendItems.length,
+                ];
+                final visiblePanelCount = visibleItemCounts.length;
+                final columns = _overviewPanelColumnCount(
+                  constraints.maxWidth,
+                  visiblePanelCount,
+                );
+                final shouldBalancePanelHeight =
+                    columns >= 3 ||
+                    (columns == 2 && visiblePanelCount == 2);
+                final panelHeight = shouldBalancePanelHeight
+                    ? _overviewPanelHeight(visibleItemCounts)
+                    : null;
+                final panels = <Widget>[
+                  if (insightItems.isNotEmpty)
+                    _OverviewPanel(
+                      title: 'Insight Cohort',
+                      items: insightItems,
+                      accent: AppTheme.navy,
+                      fillHeight: panelHeight != null,
+                    ),
+                  if (scoreItems.isNotEmpty)
+                    _OverviewPanel(
+                      title: 'Skor dan Entitas',
+                      items: scoreItems,
+                      accent: const Color(0xFF0F766E),
+                      fillHeight: panelHeight != null,
+                    ),
+                  if (trendItems.isNotEmpty)
+                    _OverviewPanel(
+                      title: 'Kecenderungan Entitas',
+                      items: trendItems,
+                      accent: const Color(0xFFB45309),
+                      fillHeight: panelHeight != null,
+                    ),
+                ];
+
+                if (columns == 1) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var i = 0; i < panels.length; i++) ...[
+                        if (i > 0) const SizedBox(height: spacing),
+                        panels[i],
+                      ],
+                    ],
+                  );
+                }
+
+                final panelWidth =
                     (constraints.maxWidth - (spacing * (columns - 1))) /
                     columns;
 
                 return Wrap(
                   spacing: spacing,
                   runSpacing: spacing,
-                  children: report.insights
-                      .map(
-                        (insight) => SizedBox(
-                          width: cardWidth,
-                          child: _InsightCard(insight: insight),
+                  children: [
+                    for (var i = 0; i < panels.length; i++)
+                      SizedBox(
+                        width: columns == 2 && panels.length == 3 && i == 2
+                            ? constraints.maxWidth
+                            : panelWidth,
+                        child: _OverviewPanelFrame(
+                          height: panelHeight,
+                          child: panels[i],
                         ),
-                      )
-                      .toList(),
+                      ),
+                  ],
                 );
               },
             ),
@@ -162,74 +224,250 @@ class _OverviewSection extends StatelessWidget {
   }
 }
 
-class _InsightCard extends StatelessWidget {
-  const _InsightCard({required this.insight});
+class _OverviewPanel extends StatelessWidget {
+  const _OverviewPanel({
+    required this.title,
+    required this.items,
+    required this.accent,
+    this.fillHeight = false,
+  });
 
-  final CohortDiagnosticInsight insight;
+  final String title;
+  final List<_OverviewMetricItem> items;
+  final Color accent;
+  final bool fillHeight;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 148,
-      child: Container(
-      padding: const EdgeInsets.all(14),
+    return Container(
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppTheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            insight.title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            insight.value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.navy,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            insight.detail,
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppTheme.textMuted,
-              height: 1.35,
-            ),
-          ),
+          const SizedBox(height: 10),
+          if (fillHeight)
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < items.length; i++)
+                      _OverviewMetricEntry(
+                        item: items[i],
+                        accent: accent,
+                        showDivider: i > 0,
+                      ),
+                  ],
+                ),
+              ),
+            )
+          else
+            for (var i = 0; i < items.length; i++)
+              _OverviewMetricEntry(
+                item: items[i],
+                accent: accent,
+                showDivider: i > 0,
+              ),
         ],
-      ),
       ),
     );
   }
 }
 
-int _overviewColumnCount(double width) {
-  if (width >= 1500) {
-    return 5;
+class _OverviewPanelFrame extends StatelessWidget {
+  const _OverviewPanelFrame({
+    required this.child,
+    this.height,
+  });
+
+  final Widget child;
+  final double? height;
+
+  @override
+  Widget build(BuildContext context) {
+    if (height == null) {
+      return child;
+    }
+
+    return SizedBox(
+      height: height,
+      child: child,
+    );
   }
-  if (width >= 1180) {
-    return 4;
+}
+
+class _OverviewMetricEntry extends StatelessWidget {
+  const _OverviewMetricEntry({
+    required this.item,
+    required this.accent,
+    required this.showDivider,
+  });
+
+  final _OverviewMetricItem item;
+  final Color accent;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (showDivider)
+          Divider(
+            height: 1,
+            color: AppTheme.outline.withValues(alpha: 0.9),
+          ),
+        _OverviewMetricRow(
+          item: item,
+          accent: accent,
+        ),
+      ],
+    );
   }
-  if (width >= 860) {
+}
+
+class _OverviewMetricRow extends StatelessWidget {
+  const _OverviewMetricRow({
+    required this.item,
+    required this.accent,
+  });
+
+  final _OverviewMetricItem item;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: _overviewBaseRowVerticalPadding),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 4,
+            height: 52,
+            margin: const EdgeInsets.only(top: 2),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.detail,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.textMuted,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 88, maxWidth: 120),
+            child: Text(
+              item.value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: accent,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewMetricItem {
+  const _OverviewMetricItem({
+    required this.title,
+    required this.value,
+    required this.detail,
+  });
+
+  final String title;
+  final String value;
+  final String detail;
+}
+
+const double _overviewBaseRowVerticalPadding = 14.0;
+const double _overviewPanelHeaderHeight = 52.0;
+const double _overviewPanelBaseItemHeight = 96.0;
+const double _overviewPanelDividerHeight = 1.0;
+const double _overviewPanelSafetyBuffer = 16.0;
+
+int _overviewPanelColumnCount(double width, int panelCount) {
+  if (panelCount <= 1) {
+    return 1;
+  }
+  if (width >= 1380 && panelCount >= 3) {
     return 3;
   }
-  if (width >= 560) {
+  if (width >= 820) {
     return 2;
   }
   return 1;
+}
+
+int _maxOverviewItemCount(List<int> itemCounts) {
+  return itemCounts.fold<int>(0, (max, count) => count > max ? count : max);
+}
+
+double _overviewPanelHeight(List<int> itemCounts) {
+  final maxItems = _maxOverviewItemCount(itemCounts);
+  if (maxItems <= 0) {
+    return 0;
+  }
+
+  return _overviewPanelHeaderHeight +
+      (maxItems * _overviewPanelBaseItemHeight) +
+      ((maxItems - 1) * _overviewPanelDividerHeight) +
+      _overviewPanelSafetyBuffer;
 }
 
 class _RetentionHeatmapSection extends StatelessWidget {
@@ -581,6 +819,212 @@ class _SectionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+List<_OverviewMetricItem> _buildInsightOverviewItems(
+  CohortAnalysisReport report,
+) {
+  return report.insights
+      .map(
+        (insight) => _OverviewMetricItem(
+          title: insight.title,
+          value: insight.value,
+          detail: insight.detail,
+        ),
+      )
+      .toList();
+}
+
+List<_OverviewMetricItem> _buildScoreOverviewItems(
+  CohortAnalysisReport report,
+) {
+  final overview = report.satisfactionOverview;
+  if (overview == null) {
+    return const [];
+  }
+
+  final periodLabel = _formatCohortOverviewDateRange(
+    overview.start,
+    overview.end,
+  );
+
+  return [
+    _buildScoreOverviewItem(
+      title: 'Kategori Skor Tertinggi',
+      item: overview.categoryHighest,
+      periodLabel: periodLabel,
+    ),
+    _buildScoreOverviewItem(
+      title: 'Kategori Skor Terendah',
+      item: overview.categoryLowest,
+      periodLabel: periodLabel,
+    ),
+    if (_visibleEntityOverviewItem(overview.entityHighest) case final visible?)
+      _buildScoreOverviewItem(
+        title: 'Entitas Skor Tertinggi',
+        item: visible,
+        periodLabel: periodLabel,
+      ),
+    if (_visibleEntityOverviewItem(overview.entityLowest) case final visible?)
+      _buildScoreOverviewItem(
+        title: 'Entitas Skor Terendah',
+        item: visible,
+        periodLabel: periodLabel,
+      ),
+  ];
+}
+
+_OverviewMetricItem _buildScoreOverviewItem({
+  required String title,
+  required SatisfactionOverviewItem? item,
+  required String periodLabel,
+}) {
+  if (item == null) {
+    return _OverviewMetricItem(
+      title: title,
+      value: '-',
+      detail: 'Belum ada respons survei pada periode $periodLabel.',
+    );
+  }
+
+  return _OverviewMetricItem(
+    title: title,
+    value: '${formatScoreFive(item.avgScore)} / 5',
+    detail:
+        '${item.label} memiliki rata-rata ${formatScoreFive(item.avgScore)} dari ${item.responses} respons pada periode $periodLabel.',
+  );
+}
+
+SatisfactionOverviewItem? _visibleEntityOverviewItem(
+  SatisfactionOverviewItem? item,
+) {
+  if (item == null || !_isVisibleEntity(item.label)) {
+    return null;
+  }
+  return item;
+}
+
+List<CohortAnalysisRow> _visibleEntityRows(List<CohortAnalysisRow> rows) {
+  final filtered = rows.where((row) => _isVisibleEntity(row.label)).toList();
+  filtered.sort(
+    (a, b) => _entityOrder(a.label).compareTo(_entityOrder(b.label)),
+  );
+  return filtered;
+}
+
+List<_OverviewMetricItem> _buildEntityTrendOverviewItems(
+  CohortAnalysisReport report,
+) {
+  final overview = report.satisfactionOverview;
+  if (overview == null) {
+    return const [];
+  }
+
+  final periodLabel = _formatCohortOverviewDateRange(
+    overview.start,
+    overview.end,
+  );
+  final preferences = <String, SatisfactionEntityPreference>{};
+  for (final preference in overview.entityPreferences) {
+    if (_isVisibleEntity(preference.entity)) {
+      preferences[_normalizeEntity(preference.entity)] = preference;
+    }
+  }
+
+  return const ['MAHASISWA', 'DOSEN', 'TENDIK'].map((entity) {
+    final preference = preferences[entity];
+    final entityLabel = _entityTitleLabel(entity);
+
+    if (preference == null ||
+        preference.category.trim().isEmpty ||
+        preference.responses <= 0) {
+      return _OverviewMetricItem(
+        title: 'Kecenderungan $entityLabel',
+        value: '-',
+        detail:
+            'Belum ada kecenderungan layanan yang cukup untuk $entityLabel pada periode $periodLabel.',
+      );
+    }
+
+    return _OverviewMetricItem(
+      title: 'Kecenderungan $entityLabel',
+      value: preference.category,
+      detail:
+          '$entityLabel paling banyak membuat tiket pada layanan ${preference.category}, sebanyak ${preference.responses} respons (${preference.share.toStringAsFixed(1)}%) pada periode $periodLabel.',
+    );
+  }).toList();
+}
+
+bool _isVisibleEntity(String value) {
+  switch (_normalizeEntity(value)) {
+    case 'MAHASISWA':
+    case 'DOSEN':
+    case 'TENDIK':
+      return true;
+    default:
+      return false;
+  }
+}
+
+String _normalizeEntity(String value) => value.trim().toUpperCase();
+
+int _entityOrder(String value) {
+  switch (_normalizeEntity(value)) {
+    case 'MAHASISWA':
+      return 0;
+    case 'DOSEN':
+      return 1;
+    case 'TENDIK':
+      return 2;
+    default:
+      return 99;
+  }
+}
+
+String _entityTitleLabel(String value) {
+  switch (_normalizeEntity(value)) {
+    case 'MAHASISWA':
+      return 'Mahasiswa';
+    case 'DOSEN':
+      return 'Dosen';
+    case 'TENDIK':
+      return 'Tendik';
+    default:
+      return value;
+  }
+}
+
+String _formatCohortOverviewDateRange(DateTime start, DateTime end) {
+  final safeEnd = end.subtract(const Duration(microseconds: 1));
+  final startText = _formatCohortOverviewDate(start);
+  final endText = _formatCohortOverviewDate(safeEnd);
+  if (startText == endText) {
+    return startText;
+  }
+  return '$startText - $endText';
+}
+
+String _formatCohortOverviewDate(DateTime value) {
+  final day = value.day.toString().padLeft(2, '0');
+  return '$day ${_cohortOverviewMonthShort(value.month)} ${value.year}';
+}
+
+String _cohortOverviewMonthShort(int month) {
+  const months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+  ];
+  return months[month - 1];
 }
 
 String _formatDropOff(double? value) {

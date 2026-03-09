@@ -224,65 +224,123 @@ class _AdminReportsPageState extends ConsumerState<AdminReportsPage> {
             ),
           ),
           const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.outline),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Text(
-                      'Indeks Kepuasan Layanan',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const Spacer(),
-                    PeriodDropdown(
-                      value: indexPeriod,
-                      onChanged: (value) {
-                        ref
-                                .read(
-                                  reportsSatisfactionIndexPeriodProvider
-                                      .notifier,
-                                )
-                                .state =
-                            value;
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Nilai kepuasan tiap kategori dinormalisasi ke skala 100.',
-                  style: TextStyle(color: AppTheme.textMuted),
-                ),
-                const SizedBox(height: 12),
-                satisfactionSummaryAsync.when(
-                  data: (rows) {
-                    if (rows.isEmpty) {
-                      return const Text(
-                        'Belum ada data kepuasan per kategori.',
-                        style: TextStyle(color: AppTheme.textMuted),
-                      );
-                    }
-                    return _SatisfactionIndexTable(rows: rows);
-                  },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, _) => Text(
-                    'Gagal memuat indeks kepuasan: $error',
-                    style: const TextStyle(color: AppTheme.textMuted),
+          satisfactionSummaryAsync.when(
+            data: (rows) {
+              if (rows.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.outline),
                   ),
-                ),
-              ],
+                  child: const Text(
+                    'Belum ada data kepuasan per kategori.',
+                    style: TextStyle(color: AppTheme.textMuted),
+                  ),
+                );
+              }
+              return _SatisfactionIndexSection(
+                rows: rows,
+                period: indexPeriod,
+                onPeriodChanged: (value) {
+                  ref
+                          .read(
+                            reportsSatisfactionIndexPeriodProvider.notifier,
+                          )
+                          .state =
+                      value;
+                },
+              );
+            },
+            loading: () => Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.outline),
+              ),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            error: (error, _) => Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.outline),
+              ),
+              child: Text(
+                'Gagal memuat indeks kepuasan: $error',
+                style: const TextStyle(color: AppTheme.textMuted),
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SatisfactionIndexSection extends StatelessWidget {
+  const _SatisfactionIndexSection({
+    required this.rows,
+    required this.period,
+    required this.onPeriodChanged,
+  });
+
+  final List<ServiceSatisfaction> rows;
+  final String period;
+  final ValueChanged<String> onPeriodChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = _SatisfactionIndexSummary.fromRows(rows);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = constraints.maxWidth < 980;
+        final sharedHeight = _satisfactionIndexPanelHeight(rows.length);
+
+        if (stacked) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _SatisfactionIndexOverviewCard(summary: summary),
+              const SizedBox(height: 16),
+              _SatisfactionIndexTableCard(
+                rows: rows,
+                period: period,
+                onPeriodChanged: onPeriodChanged,
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 250,
+              height: sharedHeight,
+              child: _SatisfactionIndexOverviewCard(
+                summary: summary,
+                fillHeight: true,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: SizedBox(
+                height: sharedHeight,
+                child: _SatisfactionIndexTableCard(
+                  rows: rows,
+                  period: period,
+                  onPeriodChanged: onPeriodChanged,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -294,16 +352,6 @@ class _SatisfactionIndexTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalResponses = rows.fold<int>(0, (sum, row) => sum + row.responses);
-    final totalWeightedScore = rows.fold<double>(
-      0,
-      (sum, row) => sum + (row.avgScore * row.responses),
-    );
-    final totalAverage = totalResponses == 0
-        ? 0.0
-        : totalWeightedScore / totalResponses;
-    final totalIndex = _toIndex100(totalAverage);
-
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -311,6 +359,9 @@ class _SatisfactionIndexTable extends StatelessWidget {
           constraints: BoxConstraints(minWidth: constraints.maxWidth),
           child: DataTable(
             headingRowColor: WidgetStateProperty.all(AppTheme.surface),
+            headingRowHeight: _satisfactionIndexHeadingRowHeight,
+            dataRowMinHeight: _satisfactionIndexDataRowHeight,
+            dataRowMaxHeight: _satisfactionIndexDataRowHeight,
             columns: const [
               DataColumn(
                 label: _ReportHeaderLabel('Kategori Layanan', width: 220),
@@ -339,48 +390,12 @@ class _SatisfactionIndexTable extends StatelessWidget {
                     ),
                     DataCell(
                       _ReportCellLabel(
-                        _formatIndex(_toIndex100(row.avgScore)),
+                        _formatIndex(_reportIndexTo100(row.avgScore)),
                         width: 120,
                       ),
                     ),
                   ],
                 ),
-              ),
-              DataRow(
-                color: WidgetStateProperty.all(
-                  AppTheme.surface.withValues(alpha: 0.75),
-                ),
-                cells: [
-                  const DataCell(
-                    _ReportCellLabel(
-                      'Indeks Kepuasan Total',
-                      width: 220,
-                      alignLeft: true,
-                      isBold: true,
-                    ),
-                  ),
-                  DataCell(
-                    _ReportCellLabel(
-                      totalResponses.toString(),
-                      width: 80,
-                      isBold: true,
-                    ),
-                  ),
-                  DataCell(
-                    _ReportCellLabel(
-                      formatScoreFive(totalAverage),
-                      width: 120,
-                      isBold: true,
-                    ),
-                  ),
-                  DataCell(
-                    _ReportCellLabel(
-                      _formatIndex(totalIndex),
-                      width: 120,
-                      isBold: true,
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -388,17 +403,237 @@ class _SatisfactionIndexTable extends StatelessWidget {
       ),
     );
   }
+}
 
-  double _toIndex100(double score) {
-    if (score <= 0) {
-      return 0;
+class _SatisfactionIndexOverviewCard extends StatelessWidget {
+  const _SatisfactionIndexOverviewCard({
+    required this.summary,
+    this.fillHeight = false,
+  });
+
+  final _SatisfactionIndexSummary summary;
+  final bool fillHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.outline),
+      ),
+      child: Column(
+        mainAxisSize: fillHeight ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Ringkasan Indeks Global',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ),
+          if (fillHeight) const Spacer() else const SizedBox(height: 18),
+          SizedBox(
+            width: 150,
+            height: 150,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 128,
+                  height: 128,
+                  child: CircularProgressIndicator(
+                    value: summary.index / 100,
+                    strokeWidth: 9,
+                    backgroundColor: AppTheme.surface,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      summary.statusColor,
+                    ),
+                    strokeCap: StrokeCap.round,
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      summary.indexLabel,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      summary.qualityLabel,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: summary.statusColor,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (fillHeight) const Spacer() else const SizedBox(height: 14),
+          Text(
+            summary.caption,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppTheme.textMuted,
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+          if (fillHeight) const SizedBox(height: 2),
+        ],
+      ),
+    );
+  }
+}
+
+class _SatisfactionIndexTableCard extends StatelessWidget {
+  const _SatisfactionIndexTableCard({
+    required this.rows,
+    required this.period,
+    required this.onPeriodChanged,
+  });
+
+  final List<ServiceSatisfaction> rows;
+  final String period;
+  final ValueChanged<String> onPeriodChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Evaluasi Berdasarkan Kategori',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const Spacer(),
+              PeriodDropdown(
+                value: period,
+                onChanged: onPeriodChanged,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Nilai kepuasan tiap kategori dinormalisasi ke skala 100.',
+            style: TextStyle(color: AppTheme.textMuted),
+          ),
+          const SizedBox(height: 12),
+          _SatisfactionIndexTable(rows: rows),
+        ],
+      ),
+    );
+  }
+}
+
+class _SatisfactionIndexSummary {
+  const _SatisfactionIndexSummary({
+    required this.index,
+    required this.responses,
+  });
+
+  final double index;
+  final int responses;
+
+  String get indexLabel => index.toStringAsFixed(2);
+
+  String get serviceGrade {
+    if (index >= 88.31) {
+      return 'A';
     }
-    return (score * 20).clamp(0, 100).toDouble();
+    if (index >= 76.61) {
+      return 'B';
+    }
+    if (index >= 65.00) {
+      return 'C';
+    }
+    return 'D';
   }
 
-  String _formatIndex(double score) {
-    return score.toStringAsFixed(2);
+  String get qualityLabel {
+    if (index >= 88.31) {
+      return 'SANGAT BAIK';
+    }
+    if (index >= 76.61) {
+      return 'BAIK';
+    }
+    if (index >= 65.00) {
+      return 'KURANG BAIK';
+    }
+    return 'TIDAK BAIK';
   }
+
+  Color get statusColor {
+    if (index >= 88.31) {
+      return AppTheme.success;
+    }
+    if (index >= 76.61) {
+      return AppTheme.navy;
+    }
+    if (index >= 65.00) {
+      return AppTheme.warning;
+    }
+    return AppTheme.danger;
+  }
+
+  String get caption {
+    return 'Indeks ini menunjukkan mutu pelayanan $serviceGrade dengan kategori $qualityLabel.\nTotal responden: $responses.';
+  }
+
+  factory _SatisfactionIndexSummary.fromRows(List<ServiceSatisfaction> rows) {
+    final totalResponses = rows.fold<int>(0, (sum, row) => sum + row.responses);
+    final totalWeightedScore = rows.fold<double>(
+      0,
+      (sum, row) => sum + (row.avgScore * row.responses),
+    );
+    final totalAverage = totalResponses == 0
+        ? 0.0
+        : totalWeightedScore / totalResponses;
+    return _SatisfactionIndexSummary(
+      index: _reportIndexTo100(totalAverage),
+      responses: totalResponses,
+    );
+  }
+}
+
+const double _satisfactionIndexHeadingRowHeight = 52.0;
+const double _satisfactionIndexDataRowHeight = 48.0;
+const double _satisfactionIndexCardVerticalPadding = 32.0;
+const double _satisfactionIndexCardHeaderHeight = 36.0;
+const double _satisfactionIndexCardDescriptionHeight = 20.0;
+const double _satisfactionIndexCardSpacing = 20.0;
+const double _satisfactionIndexCardSafetyBuffer = 12.0;
+
+double _satisfactionIndexPanelHeight(int rowCount) {
+  return _satisfactionIndexCardVerticalPadding +
+      _satisfactionIndexCardHeaderHeight +
+      _satisfactionIndexCardDescriptionHeight +
+      _satisfactionIndexCardSpacing +
+      _satisfactionIndexHeadingRowHeight +
+      (rowCount * _satisfactionIndexDataRowHeight) +
+      _satisfactionIndexCardSafetyBuffer;
 }
 
 class _SelectDropdown extends StatelessWidget {
@@ -541,7 +776,6 @@ class _ReportCellLabel extends StatelessWidget {
     this.text, {
     required this.width,
     this.alignLeft = false,
-    this.isBold = false,
     this.maxLines,
     this.overflow,
   });
@@ -549,7 +783,6 @@ class _ReportCellLabel extends StatelessWidget {
   final String text;
   final double width;
   final bool alignLeft;
-  final bool isBold;
   final int? maxLines;
   final TextOverflow? overflow;
 
@@ -564,9 +797,7 @@ class _ReportCellLabel extends StatelessWidget {
           textAlign: alignLeft ? TextAlign.left : TextAlign.center,
           maxLines: maxLines,
           overflow: overflow,
-          style: TextStyle(
-            fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w400),
         ),
       ),
     );
@@ -590,4 +821,15 @@ String _questionTypeLabel(String type) {
     default:
       return 'Likert';
   }
+}
+
+double _reportIndexTo100(double score) {
+  if (score <= 0) {
+    return 0;
+  }
+  return (score * 20).clamp(0, 100).toDouble();
+}
+
+String _formatIndex(double score) {
+  return score.toStringAsFixed(2);
 }

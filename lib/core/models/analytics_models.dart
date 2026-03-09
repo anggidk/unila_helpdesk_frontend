@@ -79,6 +79,7 @@ class CohortAnalysisReport {
     required this.start,
     required this.end,
     required this.bucketLabels,
+    required this.satisfactionOverview,
     required this.overall,
     required this.serviceComparisons,
     required this.entityComparisons,
@@ -91,6 +92,7 @@ class CohortAnalysisReport {
   final DateTime start;
   final DateTime end;
   final List<String> bucketLabels;
+  final SatisfactionOverviewReport? satisfactionOverview;
   final List<CohortAnalysisRow> overall;
   final List<CohortAnalysisRow> serviceComparisons;
   final List<CohortAnalysisRow> entityComparisons;
@@ -127,6 +129,12 @@ class CohortAnalysisReport {
           DateTime.tryParse(json['start']?.toString() ?? '') ?? DateTime.now(),
       end: DateTime.tryParse(json['end']?.toString() ?? '') ?? DateTime.now(),
       bucketLabels: bucketLabels,
+      satisfactionOverview: json['satisfactionOverview']
+              is Map<String, dynamic>
+          ? SatisfactionOverviewReport.fromJson(
+              json['satisfactionOverview'] as Map<String, dynamic>,
+            )
+          : null,
       overall: overall,
       serviceComparisons: serviceComparisons,
       entityComparisons: entityComparisons,
@@ -195,6 +203,96 @@ class ServiceSatisfaction {
       avgScore: double.tryParse(json['avgScore']?.toString() ?? '') ?? 0,
       responses: int.tryParse(json['responses']?.toString() ?? '') ?? 0,
       percentage: double.tryParse(json['percentage']?.toString() ?? '') ?? 0,
+    );
+  }
+}
+
+class SatisfactionOverviewItem {
+  const SatisfactionOverviewItem({
+    required this.label,
+    required this.avgScore,
+    required this.responses,
+  });
+
+  final String label;
+  final double avgScore;
+  final int responses;
+
+  factory SatisfactionOverviewItem.fromJson(Map<String, dynamic> json) {
+    return SatisfactionOverviewItem(
+      label: json['label']?.toString() ?? '',
+      avgScore: double.tryParse(json['avgScore']?.toString() ?? '') ?? 0,
+      responses: int.tryParse(json['responses']?.toString() ?? '') ?? 0,
+    );
+  }
+}
+
+class SatisfactionEntityPreference {
+  const SatisfactionEntityPreference({
+    required this.entity,
+    required this.category,
+    required this.responses,
+    required this.share,
+  });
+
+  final String entity;
+  final String category;
+  final int responses;
+  final double share;
+
+  factory SatisfactionEntityPreference.fromJson(Map<String, dynamic> json) {
+    return SatisfactionEntityPreference(
+      entity: json['entity']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      responses: int.tryParse(json['responses']?.toString() ?? '') ?? 0,
+      share: double.tryParse(json['share']?.toString() ?? '') ?? 0,
+    );
+  }
+}
+
+class SatisfactionOverviewReport {
+  const SatisfactionOverviewReport({
+    required this.period,
+    required this.start,
+    required this.end,
+    required this.categoryHighest,
+    required this.categoryLowest,
+    required this.entityHighest,
+    required this.entityLowest,
+    required this.entityPreferences,
+  });
+
+  final String period;
+  final DateTime start;
+  final DateTime end;
+  final SatisfactionOverviewItem? categoryHighest;
+  final SatisfactionOverviewItem? categoryLowest;
+  final SatisfactionOverviewItem? entityHighest;
+  final SatisfactionOverviewItem? entityLowest;
+  final List<SatisfactionEntityPreference> entityPreferences;
+
+  factory SatisfactionOverviewReport.fromJson(Map<String, dynamic> json) {
+    SatisfactionOverviewItem? readItem(String key) {
+      final value = json[key];
+      if (value is Map<String, dynamic>) {
+        return SatisfactionOverviewItem.fromJson(value);
+      }
+      return null;
+    }
+
+    return SatisfactionOverviewReport(
+      period: json['period']?.toString() ?? '',
+      start:
+          DateTime.tryParse(json['start']?.toString() ?? '') ?? DateTime.now(),
+      end: DateTime.tryParse(json['end']?.toString() ?? '') ?? DateTime.now(),
+      categoryHighest: readItem('categoryHighest'),
+      categoryLowest: readItem('categoryLowest'),
+      entityHighest: readItem('entityHighest'),
+      entityLowest: readItem('entityLowest'),
+      entityPreferences: (json['entityPreferences'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map(SatisfactionEntityPreference.fromJson)
+          .toList(),
     );
   }
 }
