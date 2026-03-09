@@ -97,7 +97,10 @@ class _AdminShellState extends ConsumerState<AdminShell> {
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
             width: isExpanded ? 240 : 84,
-            decoration: const BoxDecoration(color: AppTheme.unilaBlack),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(right: BorderSide(color: AppTheme.outline)),
+            ),
             child: ClipRect(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -137,7 +140,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                                           Text(
                                             'Admin UNILA',
                                             style: TextStyle(
-                                              color: Colors.white,
+                                              color: AppTheme.textPrimary,
                                               fontWeight: FontWeight.w700,
                                             ),
                                             maxLines: 1,
@@ -147,7 +150,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                                           Text(
                                             'Sistem Helpdesk',
                                             style: TextStyle(
-                                              color: Colors.white70,
+                                              color: AppTheme.textMuted,
                                             ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -326,13 +329,13 @@ class _NavItem extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: selected
-                      ? Colors.white.withValues(alpha: 0.1)
+                      ? AppTheme.navy.withValues(alpha: 0.10)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   icon,
-                  color: selected ? AppTheme.accentYellow : Colors.white70,
+                  color: selected ? AppTheme.navy : AppTheme.textMuted,
                 ),
               ),
             ),
@@ -346,17 +349,18 @@ class _NavItem extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
       leading: Icon(
         icon,
-        color: selected ? AppTheme.accentYellow : Colors.white70,
+        color: selected ? AppTheme.navy : AppTheme.textMuted,
       ),
       title: Text(
         label,
         style: TextStyle(
-          color: selected ? Colors.white : Colors.white70,
+          color: selected ? AppTheme.navy : AppTheme.textMuted,
           fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
         ),
       ),
       selected: selected,
-      selectedTileColor: Colors.white.withValues(alpha: 0.08),
+      selectedTileColor: AppTheme.navy.withValues(alpha: 0.08),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
 }
@@ -399,8 +403,12 @@ class _ProfileSection extends StatelessWidget {
             child: Center(
               child: CircleAvatar(
                 radius: 20,
-                backgroundColor: Colors.white24,
-                child: const Icon(Icons.person, color: Colors.white, size: 20),
+                backgroundColor: AppTheme.surface,
+                child: const Icon(
+                  Icons.person,
+                  color: AppTheme.navy,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -417,8 +425,8 @@ class _ProfileSection extends StatelessWidget {
             child: Row(
               children: [
                 const CircleAvatar(
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.person, color: Colors.white),
+                  backgroundColor: AppTheme.surface,
+                  child: Icon(Icons.person, color: AppTheme.navy),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -428,20 +436,20 @@ class _ProfileSection extends StatelessWidget {
                       Text(
                         adminUser?.name ?? '',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppTheme.textPrimary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
                         adminUser?.email ?? '',
-                        style: const TextStyle(color: Colors.white70),
+                        style: const TextStyle(color: AppTheme.textMuted),
                       ),
                     ],
                   ),
                 ),
                 Icon(
                   showMenu ? Icons.expand_less : Icons.expand_more,
-                  color: Colors.white70,
+                  color: AppTheme.textMuted,
                 ),
               ],
             ),
@@ -454,8 +462,8 @@ class _ProfileSection extends StatelessWidget {
               width: double.infinity,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+                  foregroundColor: AppTheme.navy,
+                  side: const BorderSide(color: AppTheme.outline),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 onPressed: onLogout,
