@@ -19,18 +19,26 @@ self.addEventListener("notificationclick", (event) => {
 
   const data = event.notification?.data || {};
   const fcmMessage = data.FCM_MSG || {};
+  const link =
+    data.link ||
+    fcmMessage?.fcmOptions?.link ||
+    "";
   const ticketId =
     data.ticketId ||
     data.ticket_id ||
     fcmMessage?.data?.ticket_id ||
     "";
-  const targetUrl = ticketId
+  const targetPath = ticketId
     ? `/#/notifications?ticketId=${encodeURIComponent(ticketId)}`
     : "/#/notifications";
+  const targetUrl = link || new URL(targetPath, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
+        if (!client.url.startsWith(self.location.origin)) {
+          continue;
+        }
         if ("navigate" in client) {
           return client.navigate(targetUrl).then(() => client.focus());
         }

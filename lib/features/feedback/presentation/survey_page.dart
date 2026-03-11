@@ -29,16 +29,20 @@ class SurveyPage extends ConsumerWidget {
     final errors = ref.watch(surveyErrorsProvider);
     final isSubmitting = ref.watch(surveySubmittingProvider);
     final questions = template.questions;
-    final progress = questions.isEmpty
+    final requiredQuestions = questions.where(_isRequiredSurveyQuestion).toList();
+    final answeredRequiredCount = requiredQuestions
+        .where((question) => _hasSurveyAnswer(answers[question.id], question))
+        .length;
+    final progress = requiredQuestions.isEmpty
         ? 0.0
-        : answers.length / questions.length;
+        : answeredRequiredCount / requiredQuestions.length;
     return Scaffold(
       appBar: UserTopAppBar(titleText: 'Survei Kepuasan'),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            'Langkah ${answers.length} dari ${questions.length}',
+            'Langkah $answeredRequiredCount dari ${requiredQuestions.length}',
             style: const TextStyle(color: AppTheme.textMuted),
           ),
           const SizedBox(height: 8),
@@ -106,12 +110,9 @@ class SurveyPage extends ConsumerWidget {
                   ? null
                   : () async {
                       final nextErrors = <String, String>{};
-                      for (final question in questions) {
+                      for (final question in requiredQuestions) {
                         final value = answers[question.id];
-                        final isEmptyText =
-                            question.type == SurveyQuestionType.text &&
-                            (value == null || value.toString().trim().isEmpty);
-                        if (value == null || isEmptyText) {
+                        if (!_hasSurveyAnswer(value, question)) {
                           nextErrors[question.id] = 'Jawaban wajib diisi.';
                         }
                       }
@@ -209,10 +210,11 @@ class _SurveyQuestionCard extends StatelessWidget {
               ),
               children: [
                 TextSpan(text: '$index. ${question.text}'),
-                const TextSpan(
-                  text: ' *',
-                  style: TextStyle(color: AppTheme.danger),
-                ),
+                if (_isRequiredSurveyQuestion(question))
+                  const TextSpan(
+                    text: ' *',
+                    style: TextStyle(color: AppTheme.danger),
+                  ),
               ],
             ),
           ),
@@ -270,7 +272,9 @@ class _SurveyQuestionCard extends StatelessWidget {
           if (question.type == SurveyQuestionType.text)
             TextField(
               maxLines: 3,
-              decoration: const InputDecoration(hintText: 'Tulis jawaban Anda'),
+              decoration: const InputDecoration(
+                hintText: 'Tulis jawaban Anda (opsional)',
+              ),
               onChanged: (val) => onChanged(val),
             ),
           if (errorText != null)
@@ -285,6 +289,20 @@ class _SurveyQuestionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+bool _isRequiredSurveyQuestion(SurveyQuestion question) {
+  return question.type != SurveyQuestionType.text;
+}
+
+bool _hasSurveyAnswer(dynamic value, SurveyQuestion question) {
+  if (value == null) {
+    return false;
+  }
+  if (question.type == SurveyQuestionType.text) {
+    return value.toString().trim().isNotEmpty;
+  }
+  return true;
 }
 
 class _LikertOption {

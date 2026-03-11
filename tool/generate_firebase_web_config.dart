@@ -22,7 +22,36 @@ void main() {
     'self.FIREBASE_WEB_CONFIG = ${jsonEncode(config)};\n',
   );
 
+  final runtimeEnv = File('assets/config/runtime.env');
+  runtimeEnv.parent.createSync(recursive: true);
+  runtimeEnv.writeAsStringSync(_buildRuntimeEnv(values));
+
   stdout.writeln('Generated ${output.path}');
+  stdout.writeln('Generated ${runtimeEnv.path}');
+}
+
+String _buildRuntimeEnv(Map<String, String> values) {
+  const keys = <String>[
+    'ENVIRONMENT',
+    'FIREBASE_WEB_API_KEY',
+    'FIREBASE_WEB_APP_ID',
+    'FIREBASE_WEB_MESSAGING_SENDER_ID',
+    'FIREBASE_WEB_PROJECT_ID',
+    'FIREBASE_WEB_AUTH_DOMAIN',
+    'FIREBASE_WEB_STORAGE_BUCKET',
+    'FIREBASE_WEB_MEASUREMENT_ID',
+    'FIREBASE_WEB_VAPID_KEY',
+  ];
+
+  final buffer = StringBuffer();
+  for (final key in keys) {
+    final value = _optional(key, values);
+    if (value == null || value.isEmpty) {
+      continue;
+    }
+    buffer.writeln('$key=$value');
+  }
+  return buffer.toString();
 }
 
 String _required(String key, Map<String, String> values) {

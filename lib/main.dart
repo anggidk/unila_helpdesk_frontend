@@ -8,11 +8,7 @@ import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (_) {
-    // Tetap jalan dengan fallback String.fromEnvironment/default.
-  }
+  await _loadRuntimeEnv();
   initializeSharedApiClient();
   final token = await TokenStorage().readToken();
   if (token != null && token.isNotEmpty) {
@@ -24,4 +20,15 @@ Future<void> main() async {
       child: HelpdeskApp(),
     ),
   );
+}
+
+Future<void> _loadRuntimeEnv() async {
+  for (final fileName in ['assets/config/runtime.env', '.env']) {
+    try {
+      await dotenv.load(fileName: fileName);
+      return;
+    } catch (_) {
+      // Coba fallback berikutnya.
+    }
+  }
 }

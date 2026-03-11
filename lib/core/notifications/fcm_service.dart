@@ -297,7 +297,7 @@ class FcmService {
     }
     if (!_hasWebVapidKey()) {
       throw StateError(
-        'FIREBASE_WEB_VAPID_KEY belum di-set untuk notifikasi web.',
+        'FIREBASE_WEB_VAPID_KEY belum tersedia di build web. Jalankan dart run tool/generate_firebase_web_config.dart lalu build dan deploy ulang.',
       );
     }
   }
