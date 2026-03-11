@@ -71,9 +71,9 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       return;
     }
     if (_entity == null || _entity!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entitas wajib dipilih')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Entitas wajib dipilih')));
       return;
     }
 
@@ -110,7 +110,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
             ),
           ),
         );
-        context.pushNamed(AppRouteNames.ticketDetail, extra: createdTicket);
+        context.goNamed(AppRouteNames.ticketDetail, extra: createdTicket);
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
@@ -391,7 +391,9 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const RequiredLabel(text: 'Lampiran 1 dan Lampiran 2 wajib'),
+                      const RequiredLabel(
+                        text: 'Lampiran 1 dan Lampiran 2 wajib',
+                      ),
                       const SizedBox(height: 8),
                       AttachmentTile(
                         title:
