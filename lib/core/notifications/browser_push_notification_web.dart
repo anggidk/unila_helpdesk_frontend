@@ -2,6 +2,8 @@ import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
 
+const _unilaLogoPath = 'assets/assets/logo/Logo_unila.png';
+
 Future<void> showBrowserNotification({
   required String title,
   required String body,
@@ -15,8 +17,8 @@ Future<void> showBrowserNotification({
     web.NotificationOptions(
       body: body,
       tag: ticketId ?? 'helpdesk-notification',
-      icon: 'icons/Icon-192.png',
-      badge: 'icons/Icon-192.png',
+      icon: _unilaLogoPath,
+      badge: _unilaLogoPath,
       requireInteraction: true,
     ),
   );
