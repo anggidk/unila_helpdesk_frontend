@@ -10,6 +10,7 @@ import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TicketDetailPage extends ConsumerStatefulWidget {
   const TicketDetailPage({super.key, required this.ticket});
@@ -84,8 +85,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            response.error?.message ??
-                                'Gagal menghapus tiket.',
+                            response.error?.message ?? 'Gagal menghapus tiket.',
                           ),
                         ),
                       );
@@ -182,10 +182,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
               ),
         actions: [
           if (!canGoBack)
-            TextButton(
-              onPressed: _finishOrBack,
-              child: const Text('Selesai'),
-            ),
+            TextButton(onPressed: _finishOrBack, child: const Text('Selesai')),
           if (canEdit)
             PopupMenuButton<String>(
               onSelected: _handleMenu,
@@ -288,7 +285,11 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
-                Text(ticket.staffNotes.isEmpty ? 'Belum ada catatan staff.' : ticket.staffNotes),
+                Text(
+                  ticket.staffNotes.isEmpty
+                      ? 'Belum ada catatan staff.'
+                      : ticket.staffNotes,
+                ),
                 const SizedBox(height: 16),
                 const Text(
                   'Lampiran',
@@ -303,18 +304,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                 ...ticket.attachments.map(
                   (item) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(item),
-                    ),
+                    child: _AttachmentItem(value: item),
                   ),
                 ),
               ],
@@ -342,6 +332,62 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Widget untuk menampilkan satu lampiran tiket.
+/// Mendukung dua format:
+///   - Baru: "{namafile}|data:{mime};base64,{data}" → tombol download
+///   - Lama: nama file/path biasa → teks saja
+class _AttachmentItem extends StatelessWidget {
+  const _AttachmentItem({required this.value});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final sepIndex = value.indexOf('|data:');
+    final isDataUri = sepIndex != -1;
+    final displayName = isDataUri ? value.substring(0, sepIndex) : value;
+    final dataUri = isDataUri ? value.substring(sepIndex + 1) : null;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: isDataUri
+          ? InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () async {
+                final uri = Uri.parse(dataUri!);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.attach_file, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(displayName, overflow: TextOverflow.ellipsis),
+                    ),
+                    const Icon(Icons.download, size: 16),
+                  ],
+                ),
+              ),
+            )
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Text(displayName),
+            ),
     );
   }
 }

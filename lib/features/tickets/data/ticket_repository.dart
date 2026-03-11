@@ -1,12 +1,11 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_endpoints.dart';
 import 'package:unila_helpdesk_frontend/core/network/query_params.dart';
-import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 
 class TicketRepository {
   TicketRepository({ApiClient? client}) : _client = client ?? sharedApiClient;
@@ -44,12 +43,12 @@ class TicketRepository {
       query: query,
       start: start,
       end: end,
-      extra: {
-        'status': status?.trim().toUpperCase(),
-        'categoryId': categoryId,
-      },
+      extra: {'status': status?.trim().toUpperCase(), 'categoryId': categoryId},
     );
-    final response = await _client.get(ApiEndpoints.ticketsPaged, query: params);
+    final response = await _client.get(
+      ApiEndpoints.ticketsPaged,
+      query: params,
+    );
     final data = response.data?['data'];
     if (response.isSuccess && data is Map<String, dynamic>) {
       return TicketPage.fromJson(data);
@@ -93,41 +92,33 @@ class TicketRepository {
     return _client.post('${ApiEndpoints.ticketById(id)}/delete');
   }
 
+  /// Mengonversi file ke base64 data URI dan menyimpannya langsung di DB
+  /// tanpa perlu storage eksternal. Format: "{namafile}|data:{mime};base64,{data}"
   Future<String> uploadAttachment({
     required String filename,
     required Uint8List bytes,
   }) async {
-    final uri = _client.buildUri(ApiEndpoints.uploads);
-    final request = http.MultipartRequest('POST', uri);
-    final headers = <String, String>{
-      'X-Client-Type': kIsWeb ? 'web' : 'mobile',
+    final mimeType = _mimeFromFilename(filename);
+    final encoded = base64Encode(bytes);
+    return '$filename|data:$mimeType;base64,$encoded';
+  }
+
+  static String _mimeFromFilename(String filename) {
+    final ext = filename.toLowerCase().split('.').last;
+    const map = <String, String>{
+      'pdf': 'application/pdf',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'doc': 'application/msword',
+      'docx':
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx':
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     };
-    final token = await TokenStorage().readToken();
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
-    }
-    request.headers.addAll(headers);
-    request.files.add(
-      http.MultipartFile.fromBytes('file', bytes, filename: filename),
-    );
-    final streamed = await request.send();
-    final body = await streamed.stream.bytesToString();
-    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
-      throw Exception('Upload gagal (${streamed.statusCode})');
-    }
-    final decoded = jsonDecode(body);
-    final data = decoded['data'];
-    if (data is Map<String, dynamic>) {
-      final path = data['path']?.toString() ?? '';
-      if (path.isNotEmpty) {
-        return path;
-      }
-      final url = data['url']?.toString() ?? '';
-      if (url.isNotEmpty) {
-        return url;
-      }
-    }
-    throw Exception('Upload gagal: respons tidak valid');
+    return map[ext] ?? 'application/octet-stream';
   }
 }
 
