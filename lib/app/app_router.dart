@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
+import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
+import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 import 'package:unila_helpdesk_frontend/features/admin/presentation/admin_shell.dart';
 import 'package:unila_helpdesk_frontend/features/auth/presentation/boot_page.dart';
 import 'package:unila_helpdesk_frontend/features/auth/presentation/login_page.dart';
@@ -49,6 +52,13 @@ class SurveyPayload {
   final SurveyTemplate template;
 }
 
+enum _RouteAccess {
+  public,
+  loggedOutOnly,
+  registeredOnly,
+  adminOnly,
+}
+
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.boot,
   routes: [
@@ -60,7 +70,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.login,
       name: AppRouteNames.login,
-      builder: (context, state) => const LoginPage(),
+      builder: (context, state) => const _RouteGuard(
+        access: _RouteAccess.loggedOutOnly,
+        child: LoginPage(),
+      ),
     ),
     GoRoute(
       path: AppRoutes.guestTracking,
@@ -75,31 +88,46 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.userShell,
       name: AppRouteNames.userShell,
-      builder: (context, state) => const UserShell(),
+      builder: (context, state) => const _RouteGuard(
+        access: _RouteAccess.registeredOnly,
+        child: UserShell(),
+      ),
     ),
     GoRoute(
       path: AppRoutes.admin,
       name: AppRouteNames.admin,
-      builder: (context, state) => const AdminShell(),
+      builder: (context, state) => const _RouteGuard(
+        access: _RouteAccess.adminOnly,
+        child: AdminShell(),
+      ),
     ),
     GoRoute(
       path: AppRoutes.notifications,
       name: AppRouteNames.notifications,
-      builder: (context, state) => NotificationsPage(
-        initialTicketId: state.uri.queryParameters['ticketId'],
+      builder: (context, state) => _RouteGuard(
+        access: _RouteAccess.registeredOnly,
+        child: NotificationsPage(
+          initialTicketId: state.uri.queryParameters['ticketId'],
+        ),
       ),
     ),
     GoRoute(
       path: AppRoutes.tickets,
       name: AppRouteNames.tickets,
-      builder: (context, state) => const TicketListPage(),
+      builder: (context, state) => const _RouteGuard(
+        access: _RouteAccess.registeredOnly,
+        child: TicketListPage(),
+      ),
     ),
     GoRoute(
       path: AppRoutes.ticketForm,
       name: AppRouteNames.ticketForm,
       builder: (context, state) {
         final existing = state.extra is Ticket ? state.extra as Ticket : null;
-        return TicketFormPage(existing: existing);
+        return _RouteGuard(
+          access: _RouteAccess.registeredOnly,
+          child: TicketFormPage(existing: existing),
+        );
       },
     ),
     GoRoute(
@@ -110,7 +138,10 @@ final GoRouter appRouter = GoRouter(
         if (ticket == null) {
           return const _MissingDataPage(message: 'Data tiket tidak ditemukan.');
         }
-        return TicketDetailPage(ticket: ticket);
+        return _RouteGuard(
+          access: _RouteAccess.registeredOnly,
+          child: TicketDetailPage(ticket: ticket),
+        );
       },
     ),
     GoRoute(
@@ -125,11 +156,89 @@ final GoRouter appRouter = GoRouter(
             message: 'Data survey tidak ditemukan.',
           );
         }
-        return SurveyPage(ticket: payload.ticket, template: payload.template);
+        return _RouteGuard(
+          access: _RouteAccess.registeredOnly,
+          child: SurveyPage(ticket: payload.ticket, template: payload.template),
+        );
       },
     ),
   ],
 );
+
+class _RouteGuard extends StatefulWidget {
+  const _RouteGuard({required this.access, required this.child});
+
+  final _RouteAccess access;
+  final Widget child;
+
+  @override
+  State<_RouteGuard> createState() => _RouteGuardState();
+}
+
+class _RouteGuardState extends State<_RouteGuard> {
+  bool _checking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resolveAccess());
+  }
+
+  Future<void> _resolveAccess() async {
+    final token = await TokenStorage().readToken();
+    final user = await TokenStorage().readUser();
+    if (!mounted) return;
+
+    final hasSession = token != null && token.isNotEmpty && user != null;
+    sharedApiClient.setAuthToken(hasSession ? token : null);
+
+    final redirectName = _redirectFor(user, hasSession);
+    if (redirectName != null) {
+      context.goNamed(redirectName);
+      return;
+    }
+
+    setState(() => _checking = false);
+  }
+
+  String? _redirectFor(UserProfile? user, bool hasSession) {
+    switch (widget.access) {
+      case _RouteAccess.public:
+        return null;
+      case _RouteAccess.loggedOutOnly:
+        if (!hasSession || user == null) return null;
+        return user.role == UserRole.admin
+            ? AppRouteNames.admin
+            : AppRouteNames.userShell;
+      case _RouteAccess.registeredOnly:
+        if (!hasSession || user == null) {
+          return AppRouteNames.login;
+        }
+        if (user.role == UserRole.admin) {
+          return AppRouteNames.admin;
+        }
+        return null;
+      case _RouteAccess.adminOnly:
+        if (!hasSession || user == null) {
+          return AppRouteNames.login;
+        }
+        if (user.role != UserRole.admin) {
+          return AppRouteNames.userShell;
+        }
+        return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checking) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return widget.child;
+  }
+}
 
 class _MissingDataPage extends StatelessWidget {
   const _MissingDataPage({required this.message});
