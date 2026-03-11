@@ -92,5 +92,16 @@
       }
     });
   </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('firebase-messaging-sw.js', {
+          scope: '/firebase-cloud-messaging-push-scope',
+        }).catch(function (error) {
+          console.warn('Firebase messaging service worker gagal didaftarkan.', error);
+        });
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async=""></script>
 </body></html>

@@ -85,7 +85,9 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.notifications,
       name: AppRouteNames.notifications,
-      builder: (context, state) => const NotificationsPage(),
+      builder: (context, state) => NotificationsPage(
+        initialTicketId: state.uri.queryParameters['ticketId'],
+      ),
     ),
     GoRoute(
       path: AppRoutes.tickets,
@@ -115,9 +117,13 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.survey,
       name: AppRouteNames.survey,
       builder: (context, state) {
-        final payload = state.extra is SurveyPayload ? state.extra as SurveyPayload : null;
+        final payload = state.extra is SurveyPayload
+            ? state.extra as SurveyPayload
+            : null;
         if (payload == null) {
-          return const _MissingDataPage(message: 'Data survey tidak ditemukan.');
+          return const _MissingDataPage(
+            message: 'Data survey tidak ditemukan.',
+          );
         }
         return SurveyPage(ticket: payload.ticket, template: payload.template);
       },

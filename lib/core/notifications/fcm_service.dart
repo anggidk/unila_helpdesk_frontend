@@ -1,6 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:unila_helpdesk_frontend/core/notifications/browser_push_notification.dart'
+    as browser_push_notification;
+import 'package:unila_helpdesk_frontend/firebase_options.dart';
 import 'package:unila_helpdesk_frontend/core/navigation/ticket_navigation.dart';
 import 'package:unila_helpdesk_frontend/core/notifications/notification_settings_storage.dart';
 import 'package:unila_helpdesk_frontend/features/notifications/data/notification_repository.dart';
@@ -14,7 +19,9 @@ final FlutterLocalNotificationsPlugin _localNotifications =
 
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   }
 }
 
@@ -22,20 +29,41 @@ class FcmService {
   static bool _initialized = false;
   static bool _navigationReady = false;
   static bool _pushEnabled = true;
+  static bool _messagingSupported = true;
   static String? _pendingTicketId;
 
   static Future<void> initialize() async {
     if (_initialized) return;
     try {
       if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp();
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint('FCM initialize skipped: $error');
+      _initialized = true;
       return;
     }
 
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    await _setupLocalNotifications();
+    if (kIsWeb) {
+      try {
+        _messagingSupported = await FirebaseMessaging.instance.isSupported();
+      } catch (error) {
+        debugPrint('FCM web unsupported: $error');
+        _messagingSupported = false;
+      }
+    }
+
+    if (!_messagingSupported) {
+      _initialized = true;
+      return;
+    }
+
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      await _setupLocalNotifications();
+    }
     await _requestPermissions();
     await _loadPushSetting();
     if (_pushEnabled) {
@@ -73,12 +101,15 @@ class FcmService {
     if (!_initialized) {
       await initialize();
     }
-    return _pushEnabled;
+    return _pushEnabled && _messagingSupported && _hasWebVapidKey();
   }
 
   static Future<void> setPushEnabled(bool enabled) async {
     if (!_initialized) {
       await initialize();
+    }
+    if (enabled) {
+      _ensurePushReadyForCurrentPlatform();
     }
     _pushEnabled = enabled;
     await NotificationSettingsStorage().savePushEnabled(enabled);
@@ -96,16 +127,17 @@ class FcmService {
       await initialize();
       return;
     }
-    if (!_pushEnabled) return;
-    final token = await FirebaseMessaging.instance.getToken();
+    if (!_pushEnabled || !_messagingSupported) return;
+    final token = await _readToken();
     if (token == null || token.isEmpty) return;
     await _sendToken(token);
   }
 
   static Future<void> unregisterCurrentToken() async {
+    if (!_messagingSupported) return;
     String? token;
     try {
-      token = await FirebaseMessaging.instance.getToken();
+      token = await _readToken();
       if (token != null && token.isNotEmpty) {
         await NotificationRepository().unregisterFcmToken(token);
       }
@@ -121,23 +153,27 @@ class FcmService {
   }
 
   static Future<void> _requestPermissions() async {
+    if (!_messagingSupported) return;
     await FirebaseMessaging.instance.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
-    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await FirebaseMessaging.instance
+        .setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidPlugin?.requestNotificationsPermission();
   }
 
   static Future<void> _setupLocalNotifications() async {
+    if (kIsWeb) return;
     const initializationSettings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     );
@@ -157,12 +193,14 @@ class FcmService {
     );
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidPlugin?.createNotificationChannel(channel);
   }
 
   static Future<void> _registerToken() async {
-    final token = await FirebaseMessaging.instance.getToken();
+    if (!_messagingSupported) return;
+    final token = await _readToken();
     if (token == null || token.isEmpty) return;
     await _sendToken(token);
   }
@@ -185,13 +223,24 @@ class FcmService {
     if (!_pushEnabled) return;
     final notification = message.notification;
     final ticketId = message.data['ticket_id']?.toString();
-    final title = notification?.title ?? message.data['title']?.toString() ?? 'Helpdesk';
+    final title =
+        notification?.title ?? message.data['title']?.toString() ?? 'Helpdesk';
     final body =
         notification?.body ??
         message.data['body']?.toString() ??
         (ticketId == null || ticketId.isEmpty
             ? 'Ada pembaruan notifikasi.'
             : 'Ada pembaruan pada tiket $ticketId.');
+
+    if (kIsWeb) {
+      await browser_push_notification.showBrowserNotification(
+        title: title,
+        body: body,
+        ticketId: ticketId,
+        onTapTicket: _handleTicketNavigation,
+      );
+      return;
+    }
 
     const androidDetails = AndroidNotificationDetails(
       fcmChannelId,
@@ -231,5 +280,49 @@ class FcmService {
 
   static Future<void> _loadPushSetting() async {
     _pushEnabled = await NotificationSettingsStorage().readPushEnabled();
+  }
+
+  static Future<String?> _readToken() async {
+    try {
+      if (kIsWeb) {
+        final vapidKey = _webVapidKey;
+        if (vapidKey == null) {
+          debugPrint('FCM web disabled: FIREBASE_WEB_VAPID_KEY belum di-set.');
+          return null;
+        }
+        return FirebaseMessaging.instance.getToken(vapidKey: vapidKey);
+      }
+      return FirebaseMessaging.instance.getToken();
+    } catch (error) {
+      debugPrint('FCM getToken failed: $error');
+      return null;
+    }
+  }
+
+  static void _ensurePushReadyForCurrentPlatform() {
+    if (!_messagingSupported) {
+      throw StateError('Browser ini tidak mendukung notifikasi push.');
+    }
+    if (!_hasWebVapidKey()) {
+      throw StateError(
+        'FIREBASE_WEB_VAPID_KEY belum di-set untuk notifikasi web.',
+      );
+    }
+  }
+
+  static bool _hasWebVapidKey() => !kIsWeb || _webVapidKey != null;
+
+  static String? get _webVapidKey {
+    const defineValue = String.fromEnvironment('FIREBASE_WEB_VAPID_KEY');
+    if (defineValue.isNotEmpty) {
+      return defineValue.trim();
+    }
+    try {
+      final value = (dotenv.env['FIREBASE_WEB_VAPID_KEY'] ?? '').trim();
+      if (value.isEmpty) return null;
+      return value;
+    } catch (_) {
+      return null;
+    }
   }
 }

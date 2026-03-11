@@ -15,10 +15,51 @@ final notificationsFcmUpdatingProvider = StateProvider.autoDispose<bool>(
 );
 
 class NotificationsPage extends ConsumerWidget {
-  const NotificationsPage({super.key});
+  const NotificationsPage({super.key, this.initialTicketId});
+
+  final String? initialTicketId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return _NotificationsView(initialTicketId: initialTicketId);
+  }
+}
+
+class _NotificationsView extends ConsumerStatefulWidget {
+  const _NotificationsView({this.initialTicketId});
+
+  final String? initialTicketId;
+
+  @override
+  ConsumerState<_NotificationsView> createState() => _NotificationsViewState();
+}
+
+class _NotificationsViewState extends ConsumerState<_NotificationsView> {
+  bool _initialTicketHandled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tryOpenInitialTicket();
+  }
+
+  void _tryOpenInitialTicket() {
+    final ticketId = widget.initialTicketId?.trim() ?? '';
+    if (_initialTicketHandled || ticketId.isEmpty) return;
+    _initialTicketHandled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final opened = await openTicketDetailById(ticketId);
+      if (!mounted || opened) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tiket tidak ditemukan atau akses ditolak.'),
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final notificationsAsync = ref.watch(notificationsProvider);
     final notifications = notificationsAsync.value ?? [];
     final fcmEnabledAsync = ref.watch(notificationsFcmEnabledProvider);
@@ -41,7 +82,9 @@ class NotificationsPage extends ConsumerWidget {
               onChanged: (fcmEnabledAsync.isLoading || isUpdating)
                   ? null
                   : (value) async {
-                      ref.read(notificationsFcmUpdatingProvider.notifier).state =
+                      ref
+                              .read(notificationsFcmUpdatingProvider.notifier)
+                              .state =
                           true;
                       try {
                         await FcmService.setPushEnabled(value);
@@ -57,12 +100,15 @@ class NotificationsPage extends ConsumerWidget {
                             ),
                           );
                         }
-                      } catch (_) {
+                      } catch (error) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                'Gagal mengubah pengaturan notifikasi.',
+                                error.toString().replaceFirst(
+                                  'Bad state: ',
+                                  '',
+                                ),
                               ),
                             ),
                           );
@@ -70,8 +116,11 @@ class NotificationsPage extends ConsumerWidget {
                       } finally {
                         if (context.mounted) {
                           ref
-                              .read(notificationsFcmUpdatingProvider.notifier)
-                              .state = false;
+                                  .read(
+                                    notificationsFcmUpdatingProvider.notifier,
+                                  )
+                                  .state =
+                              false;
                         }
                       }
                     },
@@ -90,85 +139,78 @@ class NotificationsPage extends ConsumerWidget {
                 style: const TextStyle(color: AppTheme.textMuted),
               ),
             ),
-          ...notifications.map(
-            (notification) {
-              final canOpenTicket = notification.ticketId.isNotEmpty;
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: notification.isRead
-                      ? Colors.white
-                      : AppTheme.accentBlue.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.outline),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: canOpenTicket
-                      ? () async {
-                          final opened = await openTicketDetailById(
-                            notification.ticketId,
+          ...notifications.map((notification) {
+            final canOpenTicket = notification.ticketId.isNotEmpty;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: notification.isRead
+                    ? Colors.white
+                    : AppTheme.accentBlue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.outline),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: canOpenTicket
+                    ? () async {
+                        final opened = await openTicketDetailById(
+                          notification.ticketId,
+                        );
+                        if (!opened && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Tiket tidak ditemukan atau akses ditolak.',
+                              ),
+                            ),
                           );
-                          if (!opened && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Tiket tidak ditemukan atau akses ditolak.',
-                                ),
-                              ),
-                            );
-                          }
                         }
-                      : null,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                notification.title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                      }
+                    : null,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              notification.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                notification.message,
-                                style: const TextStyle(
-                                  color: AppTheme.textMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                formatDateTime(notification.timestamp),
-                                style: const TextStyle(
-                                  color: AppTheme.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              notification.message,
+                              style: const TextStyle(color: AppTheme.textMuted),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              formatDateTime(notification.timestamp),
+                              style: const TextStyle(color: AppTheme.textMuted),
+                            ),
+                          ],
                         ),
-                        if (canOpenTicket) ...[
-                          const SizedBox(width: 12),
-                          const Icon(
-                            Icons.chevron_right,
-                            color: AppTheme.textMuted,
-                          ),
-                        ],
+                      ),
+                      if (canOpenTicket) ...[
+                        const SizedBox(width: 12),
+                        const Icon(
+                          Icons.chevron_right,
+                          color: AppTheme.textMuted,
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          }),
         ],
       ),
     );
   }
 }
-
