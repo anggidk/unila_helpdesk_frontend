@@ -3,9 +3,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:unila_helpdesk_frontend/core/config/firebase_web_config.dart';
 import 'package:unila_helpdesk_frontend/core/notifications/browser_push_notification.dart'
     as browser_push_notification;
-import 'package:unila_helpdesk_frontend/firebase_options.dart';
 import 'package:unila_helpdesk_frontend/core/navigation/ticket_navigation.dart';
 import 'package:unila_helpdesk_frontend/core/notifications/notification_settings_storage.dart';
 import 'package:unila_helpdesk_frontend/features/notifications/data/notification_repository.dart';
@@ -18,11 +18,7 @@ final FlutterLocalNotificationsPlugin _localNotifications =
     FlutterLocalNotificationsPlugin();
 
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
+  await _ensureFirebaseInitialized();
 }
 
 class FcmService {
@@ -35,11 +31,7 @@ class FcmService {
   static Future<void> initialize() async {
     if (_initialized) return;
     try {
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-      }
+      await _ensureFirebaseInitialized();
     } catch (error) {
       debugPrint('FCM initialize skipped: $error');
       _initialized = true;
@@ -325,4 +317,15 @@ class FcmService {
       return null;
     }
   }
+}
+
+Future<void> _ensureFirebaseInitialized() async {
+  if (Firebase.apps.isNotEmpty) return;
+
+  if (kIsWeb) {
+    await Firebase.initializeApp(options: FirebaseWebConfig.options);
+    return;
+  }
+
+  await Firebase.initializeApp();
 }

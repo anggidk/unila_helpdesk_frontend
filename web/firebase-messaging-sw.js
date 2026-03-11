@@ -1,15 +1,12 @@
 importScripts("https://www.gstatic.com/firebasejs/11.9.1/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/11.9.1/firebase-messaging-compat.js");
+importScripts("/firebase-web-config.js");
 
-firebase.initializeApp({
-  apiKey: "AIzaSyBy4sE8Xy26wvZZfiSRwPmwgpNAGWWOzNM",
-  appId: "1:1063618731673:web:e9871b789bba454efba208",
-  messagingSenderId: "1063618731673",
-  projectId: "helpdesk-unila",
-  authDomain: "helpdesk-unila.firebaseapp.com",
-  storageBucket: "helpdesk-unila.firebasestorage.app",
-  measurementId: "G-KKWL63MHFC",
-});
+if (!self.FIREBASE_WEB_CONFIG) {
+  throw new Error("firebase-web-config.js belum tersedia.");
+}
+
+firebase.initializeApp(self.FIREBASE_WEB_CONFIG);
 
 const messaging = firebase.messaging();
 
