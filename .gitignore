@@ -49,6 +49,7 @@ app.*.map.json
 .env
 .env.*
 !.env.example
+web/firebase-web-config.js
 
 # Firebase config files (sensitive data)
 **/google-services.json
