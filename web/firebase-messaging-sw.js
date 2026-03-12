@@ -12,6 +12,26 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   console.log("helpdesk background message", payload);
+  const data = payload?.data || {};
+  const title = data.title || payload?.notification?.title || "Helpdesk";
+  const body = data.body || payload?.notification?.body || "Ada pembaruan notifikasi.";
+  const ticketId = data.ticketId || data.ticket_id || "";
+  const link =
+    data.link ||
+    payload?.fcmOptions?.link ||
+    "";
+
+  self.registration.showNotification(title, {
+    body,
+    icon: "/assets/assets/logo/Logo_unila.png",
+    badge: "/assets/assets/logo/Logo_unila.png",
+    tag: ticketId ? `ticket-${ticketId}` : "helpdesk-notification",
+    data: {
+      ticketId,
+      ticket_id: ticketId,
+      link,
+    },
+  });
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -40,10 +60,16 @@ self.addEventListener("notificationclick", (event) => {
           continue;
         }
         if ("navigate" in client) {
-          return client.navigate(targetUrl).then(() => client.focus());
+          return client
+            .navigate(targetUrl)
+            .then(() => ("focus" in client ? client.focus() : undefined))
+            .catch(() => (clients.openWindow ? clients.openWindow(targetUrl) : undefined));
         }
         if ("focus" in client) {
-          return client.focus();
+          return client
+            .focus()
+            .then(() => client)
+            .catch(() => (clients.openWindow ? clients.openWindow(targetUrl) : undefined));
         }
       }
       if (clients.openWindow) {
