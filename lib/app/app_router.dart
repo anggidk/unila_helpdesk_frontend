@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
@@ -185,14 +186,18 @@ class _RouteGuardState extends State<_RouteGuard> {
   }
 
   Future<void> _resolveAccess() async {
+    final hasSession = await TokenStorage().hasActiveSession(
+      requireStoredExpiry: kIsWeb,
+    );
     final token = await TokenStorage().readToken();
     final user = await TokenStorage().readUser();
     if (!mounted) return;
 
-    final hasSession = token != null && token.isNotEmpty && user != null;
-    sharedApiClient.setAuthToken(hasSession ? token : null);
+    final hasResolvedSession =
+        hasSession && token != null && token.isNotEmpty && user != null;
+    sharedApiClient.setAuthToken(hasResolvedSession ? token : null);
 
-    final redirectName = _redirectFor(user, hasSession);
+    final redirectName = _redirectFor(user, hasResolvedSession);
     if (redirectName != null) {
       context.goNamed(redirectName);
       return;

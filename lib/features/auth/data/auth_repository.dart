@@ -42,7 +42,11 @@ class AuthRepository {
     }
     return AuthSession(
       token: token,
+      expiresAt: DateTime.tryParse(data['expiresAt']?.toString() ?? ''),
       refreshToken: refreshToken,
+      refreshExpiresAt: DateTime.tryParse(
+        data['refreshExpiresAt']?.toString() ?? '',
+      ),
       user: UserProfile.fromJson(userJson),
     );
   }
@@ -70,11 +74,15 @@ class AuthRepository {
 class AuthSession {
   const AuthSession({
     required this.token,
+    required this.expiresAt,
     required this.refreshToken,
+    required this.refreshExpiresAt,
     required this.user,
   });
 
   final String token;
+  final DateTime? expiresAt;
   final String refreshToken;
+  final DateTime? refreshExpiresAt;
   final UserProfile user;
 }

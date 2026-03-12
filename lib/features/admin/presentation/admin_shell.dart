@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,6 +50,12 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       ref.read(currentUserProvider.notifier).state = null;
     }
 
+    if (kIsWeb) {
+      await storage.clearRefreshToken();
+      _isSyncingProfile = false;
+      return;
+    }
+
     final refreshToken = await storage.readRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
       _isSyncingProfile = false;
@@ -61,9 +68,11 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       );
       if (session.token.isNotEmpty) {
         await storage.saveToken(session.token);
+        await storage.saveTokenExpiresAt(session.expiresAt);
       }
       if (session.refreshToken.isNotEmpty) {
         await storage.saveRefreshToken(session.refreshToken);
+        await storage.saveRefreshTokenExpiresAt(session.refreshExpiresAt);
       }
       await storage.saveUser(session.user);
       if (!mounted) return;

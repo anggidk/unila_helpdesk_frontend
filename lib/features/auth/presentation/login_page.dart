@@ -53,8 +53,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (session.token.isNotEmpty) {
         await TokenStorage().saveToken(session.token);
       }
-      if (session.refreshToken.isNotEmpty) {
+      await TokenStorage().saveTokenExpiresAt(session.expiresAt);
+      if (!kIsWeb && session.refreshToken.isNotEmpty) {
         await TokenStorage().saveRefreshToken(session.refreshToken);
+        await TokenStorage().saveRefreshTokenExpiresAt(
+          session.refreshExpiresAt,
+        );
+      } else {
+        await TokenStorage().clearRefreshToken();
       }
       final user = session.user;
       await TokenStorage().saveUser(user);

@@ -129,6 +129,10 @@ class ApiClient {
         if (refreshed) {
           return _sendJson(request, retryOnUnauthorized: false);
         }
+        if (kIsWeb) {
+          await TokenStorage().clearToken();
+          setAuthToken(null);
+        }
       }
       return _parseResponse(response);
     } catch (error) {
@@ -137,6 +141,10 @@ class ApiClient {
   }
 
   Future<bool> _refreshAccessToken() async {
+    if (kIsWeb) {
+      await TokenStorage().clearRefreshToken();
+      return false;
+    }
     if (_refreshCompleter != null) {
       return _refreshCompleter!.future;
     }
@@ -169,9 +177,15 @@ class ApiClient {
       if (newToken.isNotEmpty) {
         setAuthToken(newToken);
         await TokenStorage().saveToken(newToken);
+        await TokenStorage().saveTokenExpiresAt(
+          DateTime.tryParse(data['expiresAt']?.toString() ?? ''),
+        );
       }
       if (newRefreshToken.isNotEmpty) {
         await TokenStorage().saveRefreshToken(newRefreshToken);
+        await TokenStorage().saveRefreshTokenExpiresAt(
+          DateTime.tryParse(data['refreshExpiresAt']?.toString() ?? ''),
+        );
       }
       if (userJson is Map<String, dynamic>) {
         await TokenStorage().saveUser(UserProfile.fromJson(userJson));
