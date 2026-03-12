@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:unila_helpdesk_frontend/app/app_keys.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 
@@ -12,7 +11,6 @@ class HelpdeskApp extends StatelessWidget {
       title: 'Helpdesk Unila',
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
-      scaffoldMessengerKey: appScaffoldMessengerKey,
       routerConfig: appRouter,
     );
   }

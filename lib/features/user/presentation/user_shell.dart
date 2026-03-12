@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,14 +39,11 @@ class _UserShellState extends ConsumerState<UserShell> {
     if (ref.read(currentUserProvider) != null) return;
     setState(() => _restoring = true);
 
-    final hasSession = await TokenStorage().hasActiveSession(
-      requireStoredExpiry: kIsWeb,
-    );
     final token = await TokenStorage().readToken();
     final user = await TokenStorage().readUser();
     if (!mounted) return;
 
-    if (!hasSession || token == null || token.isEmpty || user == null) {
+    if (token == null || token.isEmpty || user == null) {
       setState(() => _restoring = false);
       context.goNamed(AppRouteNames.login);
       return;

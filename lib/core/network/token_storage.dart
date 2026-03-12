@@ -9,9 +9,7 @@ class TokenStorage {
       : _storage = storage ?? const FlutterSecureStorage();
 
   static const _tokenKey = 'auth_token';
-  static const _tokenExpiresAtKey = 'auth_token_expires_at';
   static const _refreshTokenKey = 'refresh_token';
-  static const _refreshTokenExpiresAtKey = 'refresh_token_expires_at';
   static const _userKey = 'auth_user';
 
   final FlutterSecureStorage _storage;
@@ -34,22 +32,6 @@ class TokenStorage {
       );
     }
     return token;
-  }
-
-  Future<DateTime?> readTokenExpiresAt() async {
-    final raw = await _storage.read(key: _tokenExpiresAtKey);
-    if (raw == null || raw.isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(raw)?.toUtc();
-  }
-
-  Future<DateTime?> readRefreshTokenExpiresAt() async {
-    final raw = await _storage.read(key: _refreshTokenExpiresAtKey);
-    if (raw == null || raw.isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(raw)?.toUtc();
   }
 
   Future<UserProfile?> readUser() async {
@@ -78,22 +60,7 @@ class TokenStorage {
     }
   }
 
-  Future<void> saveTokenExpiresAt(DateTime? expiresAt) async {
-    if (expiresAt == null) {
-      await _storage.delete(key: _tokenExpiresAtKey);
-      return;
-    }
-    await _storage.write(
-      key: _tokenExpiresAtKey,
-      value: expiresAt.toUtc().toIso8601String(),
-    );
-  }
-
   Future<void> saveRefreshToken(String token) async {
-    if (token.isEmpty) {
-      await clearRefreshToken();
-      return;
-    }
     await _storage.write(
       key: _refreshTokenKey,
       value: token,
@@ -101,22 +68,6 @@ class TokenStorage {
     if (kDebugMode) {
       debugPrint('[TokenStorage] save refresh token: len ${token.length}');
     }
-  }
-
-  Future<void> saveRefreshTokenExpiresAt(DateTime? expiresAt) async {
-    if (expiresAt == null) {
-      await _storage.delete(key: _refreshTokenExpiresAtKey);
-      return;
-    }
-    await _storage.write(
-      key: _refreshTokenExpiresAtKey,
-      value: expiresAt.toUtc().toIso8601String(),
-    );
-  }
-
-  Future<void> clearRefreshToken() async {
-    await _storage.delete(key: _refreshTokenKey);
-    await _storage.delete(key: _refreshTokenExpiresAtKey);
   }
 
   Future<void> saveUser(UserProfile user) async {
@@ -132,35 +83,10 @@ class TokenStorage {
 
   Future<void> clearToken() async {
     await _storage.delete(key: _tokenKey);
-    await _storage.delete(key: _tokenExpiresAtKey);
     await _storage.delete(key: _refreshTokenKey);
-    await _storage.delete(key: _refreshTokenExpiresAtKey);
     await _storage.delete(key: _userKey);
     if (kDebugMode) {
       debugPrint('[TokenStorage] clear tokens');
     }
-  }
-
-  Future<bool> hasActiveSession({bool requireStoredExpiry = false}) async {
-    final token = await readToken();
-    final user = await readUser();
-    if (token == null || token.isEmpty || user == null) {
-      return false;
-    }
-
-    final expiresAt = await readTokenExpiresAt();
-    if (expiresAt == null) {
-      if (requireStoredExpiry) {
-        await clearToken();
-        return false;
-      }
-      return true;
-    }
-
-    if (DateTime.now().toUtc().isAfter(expiresAt)) {
-      await clearToken();
-      return false;
-    }
-    return true;
   }
 }
