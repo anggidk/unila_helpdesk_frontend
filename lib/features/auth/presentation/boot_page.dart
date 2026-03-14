@@ -45,7 +45,11 @@ class _BootPageState extends ConsumerState<BootPage> {
       ref.read(adminUserProvider.notifier).state = null;
       ref.read(currentUserProvider.notifier).state = user;
     }
-    await FcmService.syncToken();
+    try {
+      await FcmService.syncToken();
+    } catch (error) {
+      debugPrint('FCM syncToken skipped on bootstrap: $error');
+    }
     ref.invalidate(ticketsProvider);
     ref.invalidate(notificationsProvider);
     if (!mounted) return;

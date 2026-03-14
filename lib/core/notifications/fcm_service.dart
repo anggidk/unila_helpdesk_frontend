@@ -56,9 +56,9 @@ class FcmService {
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       await _setupLocalNotifications();
     }
-    await _requestPermissions();
     await _loadPushSetting();
     if (_pushEnabled) {
+      await _requestPermissions();
       await _registerToken();
     } else {
       await FirebaseMessaging.instance.setAutoInitEnabled(false);
@@ -115,14 +115,18 @@ class FcmService {
   }
 
   static Future<void> syncToken() async {
-    if (!_initialized) {
-      await initialize();
-      return;
+    try {
+      if (!_initialized) {
+        await initialize();
+        return;
+      }
+      if (!_pushEnabled || !_messagingSupported) return;
+      final token = await _readToken();
+      if (token == null || token.isEmpty) return;
+      await _sendToken(token);
+    } catch (error) {
+      debugPrint('FCM syncToken failed: $error');
     }
-    if (!_pushEnabled || !_messagingSupported) return;
-    final token = await _readToken();
-    if (token == null || token.isEmpty) return;
-    await _sendToken(token);
   }
 
   static Future<void> unregisterCurrentToken() async {
@@ -146,22 +150,35 @@ class FcmService {
 
   static Future<void> _requestPermissions() async {
     if (!_messagingSupported) return;
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-    await FirebaseMessaging.instance
-        .setForegroundNotificationPresentationOptions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
+    try {
+      await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (error) {
+      debugPrint('FCM requestPermission failed: $error');
+      return;
+    }
+    try {
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+    } catch (error) {
+      debugPrint('FCM foreground presentation options failed: $error');
+    }
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
-    await androidPlugin?.requestNotificationsPermission();
+    try {
+      await androidPlugin?.requestNotificationsPermission();
+    } catch (error) {
+      debugPrint('Android notification permission request failed: $error');
+    }
   }
 
   static Future<void> _setupLocalNotifications() async {

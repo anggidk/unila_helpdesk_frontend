@@ -23,17 +23,40 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  String? _usernameAuthError;
+  String? _passwordAuthError;
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameController.addListener(_handleCredentialInputChanged);
+    _passwordController.addListener(_handleCredentialInputChanged);
+  }
 
   @override
   void dispose() {
+    _usernameController.removeListener(_handleCredentialInputChanged);
+    _passwordController.removeListener(_handleCredentialInputChanged);
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  void _handleCredentialInputChanged() {
+    if (_usernameAuthError == null && _passwordAuthError == null) return;
+    setState(() {
+      _usernameAuthError = null;
+      _passwordAuthError = null;
+    });
+  }
+
   Future<void> _signIn() async {
     if (_isLoading) return;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _usernameAuthError = null;
+      _passwordAuthError = null;
+    });
     // Validasi form
     if (!_formKey.currentState!.validate()) {
       setState(() => _isLoading = false);
@@ -74,7 +97,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ref.read(currentUserProvider.notifier).state = user;
       }
 
-      await FcmService.syncToken();
+      try {
+        await FcmService.syncToken();
+      } catch (error) {
+        debugPrint('FCM syncToken skipped after login: $error');
+      }
 
       if (!mounted) return;
       if (user.role == UserRole.admin) {
@@ -86,14 +113,39 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ref.invalidate(notificationsProvider);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      final message = _extractErrorMessage(error);
+      if (_isCredentialError(message)) {
+        setState(() {
+          _usernameAuthError = 'Username atau password salah';
+          _passwordAuthError = 'Username atau password salah';
+        });
+        _formKey.currentState?.validate();
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
     }
 
     if (mounted) {
       setState(() => _isLoading = false);
     }
+  }
+
+  String _extractErrorMessage(Object error) {
+    final text = error.toString().trim();
+    if (text.startsWith('Exception:')) {
+      return text.replaceFirst('Exception:', '').trim();
+    }
+    return text;
+  }
+
+  bool _isCredentialError(String message) {
+    final value = message.toLowerCase();
+    return value.contains('username atau password salah') ||
+        value.contains('invalid credentials') ||
+        value.contains('unauthorized') ||
+        value.contains('401');
   }
 
   @override
@@ -202,6 +254,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                           value.trim().isEmpty) {
                                         return 'Username tidak boleh kosong';
                                       }
+                                      if (_usernameAuthError != null) {
+                                        return _usernameAuthError;
+                                      }
                                       return null;
                                     },
                                   ),
@@ -220,6 +275,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                       if (value == null ||
                                           value.trim().isEmpty) {
                                         return 'Password tidak boleh kosong';
+                                      }
+                                      if (_passwordAuthError != null) {
+                                        return _passwordAuthError;
                                       }
                                       return null;
                                     },
