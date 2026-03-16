@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/analytics_models.dart';
+import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/period_dropdown.dart';
 
@@ -94,11 +95,16 @@ class AdminCohortPage extends ConsumerWidget {
                   showEmptyRows: showEmptyRows,
                 );
                 final bucketCount = _resolvedBucketCount(report);
+                final excludedServiceLabelKeys = serviceCategoriesAsync
+                    .maybeWhen(
+                      data: _buildExcludedServiceCategoryKeys,
+                      orElse: () => _defaultExcludedCohortServiceLabelKeys,
+                    );
                 final expectedServiceLabels = serviceCategoriesAsync.maybeWhen(
-                  data: (items) => items
-                      .map((item) => item.name.trim())
-                      .where((name) => name.isNotEmpty)
-                      .toList(growable: false),
+                  data: (items) => _buildIncludedServiceCategoryLabels(
+                    items,
+                    excludedServiceLabelKeys: excludedServiceLabelKeys,
+                  ),
                   orElse: () => const <String>[],
                 );
                 final serviceRows = _resolvedServiceRows(
@@ -106,6 +112,7 @@ class AdminCohortPage extends ConsumerWidget {
                   showEmptyRows: showEmptyRows,
                   bucketCount: bucketCount,
                   expectedLabels: expectedServiceLabels,
+                  excludedLabelKeys: excludedServiceLabelKeys,
                 );
                 final visibleEntityRows = _resolvedEntityRows(
                   rows: report.entityComparisons,
@@ -927,8 +934,15 @@ List<CohortAnalysisRow> _resolvedServiceRows({
   required bool showEmptyRows,
   required int bucketCount,
   required List<String> expectedLabels,
+  required Set<String> excludedLabelKeys,
 }) {
   final normalizedRows = rows
+      .where(
+        (row) => !_isExcludedCohortServiceLabel(
+          row.label,
+          excludedLabelKeys: excludedLabelKeys,
+        ),
+      )
       .map((row) => _withBucketCount(row, bucketCount))
       .toList(growable: false);
 
@@ -1060,6 +1074,77 @@ bool _isVisibleEntity(String value) {
 String _normalizeCohortLabelKey(String value) => value.trim().toUpperCase();
 
 String _normalizeEntity(String value) => value.trim().toUpperCase();
+
+const Set<String> _defaultExcludedCohortServiceLabelKeys = {
+  'LUPA PASSWORD SSO',
+  'REGISTRASI SSO',
+  'EMAIL RESMI UNILA',
+};
+
+Set<String> _buildExcludedServiceCategoryKeys(List<ServiceCategory> items) {
+  final excluded = <String>{..._defaultExcludedCohortServiceLabelKeys};
+  for (final item in items) {
+    final key = _normalizeCohortLabelKey(item.name);
+    if (key.isEmpty) {
+      continue;
+    }
+    if (item.guestAllowed || _isGuestOnlyServiceCategoryName(key)) {
+      excluded.add(key);
+    }
+  }
+  return excluded;
+}
+
+List<String> _buildIncludedServiceCategoryLabels(
+  List<ServiceCategory> items, {
+  required Set<String> excludedServiceLabelKeys,
+}) {
+  final labels = <String>[];
+  final seen = <String>{};
+  for (final item in items) {
+    final label = item.name.trim();
+    final key = _normalizeCohortLabelKey(label);
+    if (label.isEmpty || key.isEmpty || seen.contains(key)) {
+      continue;
+    }
+    if (_isExcludedCohortServiceLabel(
+      label,
+      excludedLabelKeys: excludedServiceLabelKeys,
+    )) {
+      continue;
+    }
+    seen.add(key);
+    labels.add(label);
+  }
+  return labels;
+}
+
+bool _isExcludedCohortServiceLabel(
+  String label, {
+  required Set<String> excludedLabelKeys,
+}) {
+  final key = _normalizeCohortLabelKey(label);
+  if (key.isEmpty) {
+    return false;
+  }
+  if (excludedLabelKeys.contains(key)) {
+    return true;
+  }
+  return _isGuestOnlyServiceCategoryName(key);
+}
+
+bool _isGuestOnlyServiceCategoryName(String normalizedLabel) {
+  if (normalizedLabel.contains('LUPA PASSWORD SSO')) {
+    return true;
+  }
+  if (normalizedLabel.contains('REGISTRASI SSO')) {
+    return true;
+  }
+  if (normalizedLabel.contains('EMAIL RESMI UNILA')) {
+    return true;
+  }
+  return false;
+}
 
 int _entityOrder(String value) {
   switch (_normalizeEntity(value)) {
