@@ -12,6 +12,7 @@ class AdminCohortPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedPeriod = ref.watch(cohortPeriodProvider);
+    final showEmptyRows = ref.watch(cohortShowEmptyRowsProvider);
     final reportAsync = ref.watch(cohortReportProvider);
 
     return SingleChildScrollView(
@@ -51,10 +52,31 @@ class AdminCohortPage extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Tampilkan cohort kosong',
+                    style: TextStyle(color: AppTheme.textMuted),
+                  ),
+                  const SizedBox(width: 8),
+                  Switch(
+                    value: showEmptyRows,
+                    onChanged: (value) {
+                      ref.read(cohortShowEmptyRowsProvider.notifier).state =
+                          value;
+                    },
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
             reportAsync.when(
               data: (report) {
-                if (report == null || report.overall.isEmpty) {
+                if (report == null) {
                   return _SectionCard(
                     title: 'Analisis Belum Tersedia',
                     subtitle:
@@ -66,25 +88,42 @@ class AdminCohortPage extends ConsumerWidget {
                   );
                 }
 
-                final visibleEntityRows = _visibleEntityRows(
-                  report.entityComparisons,
+                final overallRows = _resolvedOverallRows(
+                  report: report,
+                  showEmptyRows: showEmptyRows,
                 );
+                final serviceRows = _filterCohortRows(
+                  report.serviceComparisons,
+                  showEmptyRows: showEmptyRows,
+                );
+                final visibleEntityRows = _filterCohortRows(
+                  _visibleEntityRows(report.entityComparisons),
+                  showEmptyRows: showEmptyRows,
+                );
+                final overallEmptyMessage = showEmptyRows
+                    ? 'Belum ada data cohort pada periode ini.'
+                    : 'Semua cohort kosong sedang disembunyikan. Aktifkan "Tampilkan cohort kosong" untuk melihatnya.';
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _OverviewSection(report: report),
                     const SizedBox(height: 20),
-                    _RetentionHeatmapSection(report: report),
+                    _RetentionHeatmapSection(
+                      bucketLabels: report.bucketLabels,
+                      rows: overallRows,
+                      emptyMessage: overallEmptyMessage,
+                    ),
                     const SizedBox(height: 20),
                     _ComparisonSection(
                       title: 'Perbandingan Cohort per Layanan',
                       subtitle:
                           'Kelompok dibandingkan berdasarkan layanan pada survei pertama pengguna.',
-                      rows: report.serviceComparisons,
+                      rows: serviceRows,
                       bucketLabels: report.bucketLabels,
-                      emptyMessage:
-                          'Belum ada perbandingan layanan yang dapat ditampilkan.',
+                      emptyMessage: showEmptyRows
+                          ? 'Belum ada perbandingan layanan yang dapat ditampilkan.'
+                          : 'Semua layanan kosong sedang disembunyikan.',
                     ),
                     const SizedBox(height: 20),
                     _ComparisonSection(
@@ -93,8 +132,9 @@ class AdminCohortPage extends ConsumerWidget {
                           'Kelompok dibandingkan berdasarkan entitas pengguna pada survei pertama.',
                       rows: visibleEntityRows,
                       bucketLabels: report.bucketLabels,
-                      emptyMessage:
-                          'Belum ada perbandingan entitas yang dapat ditampilkan.',
+                      emptyMessage: showEmptyRows
+                          ? 'Belum ada perbandingan entitas yang dapat ditampilkan.'
+                          : 'Semua entitas kosong sedang disembunyikan.',
                     ),
                   ],
                 );
@@ -157,8 +197,7 @@ class _OverviewSection extends StatelessWidget {
                   visiblePanelCount,
                 );
                 final shouldBalancePanelHeight =
-                    columns >= 3 ||
-                    (columns == 2 && visiblePanelCount == 2);
+                    columns >= 3 || (columns == 2 && visiblePanelCount == 2);
                 final panelHeight = shouldBalancePanelHeight
                     ? _overviewPanelHeight(visibleItemCounts)
                     : null;
@@ -301,10 +340,7 @@ class _OverviewPanel extends StatelessWidget {
 }
 
 class _OverviewPanelFrame extends StatelessWidget {
-  const _OverviewPanelFrame({
-    required this.child,
-    this.height,
-  });
+  const _OverviewPanelFrame({required this.child, this.height});
 
   final Widget child;
   final double? height;
@@ -315,10 +351,7 @@ class _OverviewPanelFrame extends StatelessWidget {
       return child;
     }
 
-    return SizedBox(
-      height: height,
-      child: child,
-    );
+    return SizedBox(height: height, child: child);
   }
 }
 
@@ -339,24 +372,15 @@ class _OverviewMetricEntry extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showDivider)
-          Divider(
-            height: 1,
-            color: AppTheme.outline.withValues(alpha: 0.9),
-          ),
-        _OverviewMetricRow(
-          item: item,
-          accent: accent,
-        ),
+          Divider(height: 1, color: AppTheme.outline.withValues(alpha: 0.9)),
+        _OverviewMetricRow(item: item, accent: accent),
       ],
     );
   }
 }
 
 class _OverviewMetricRow extends StatelessWidget {
-  const _OverviewMetricRow({
-    required this.item,
-    required this.accent,
-  });
+  const _OverviewMetricRow({required this.item, required this.accent});
 
   final _OverviewMetricItem item;
   final Color accent;
@@ -364,7 +388,9 @@ class _OverviewMetricRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: _overviewBaseRowVerticalPadding),
+      padding: const EdgeInsets.symmetric(
+        vertical: _overviewBaseRowVerticalPadding,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -471,9 +497,15 @@ double _overviewPanelHeight(List<int> itemCounts) {
 }
 
 class _RetentionHeatmapSection extends StatelessWidget {
-  const _RetentionHeatmapSection({required this.report});
+  const _RetentionHeatmapSection({
+    required this.bucketLabels,
+    required this.rows,
+    required this.emptyMessage,
+  });
 
-  final CohortAnalysisReport report;
+  final List<String> bucketLabels;
+  final List<CohortAnalysisRow> rows;
+  final String emptyMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -481,61 +513,57 @@ class _RetentionHeatmapSection extends StatelessWidget {
       title: 'Heatmap Retensi Cohort',
       subtitle:
           'Baris menunjukkan cohort berdasarkan survei pertama. Kolom D/W/M/Y menunjukkan umur cohort relatif.',
-      child: _HorizontalTableFrame(
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(const Color(0xFFF3F5F7)),
-          dataTextStyle: _compactCellStyle,
-          headingTextStyle: _compactHeaderStyle,
-          columnSpacing: 10,
-          horizontalMargin: 10,
-          dividerThickness: 0.5,
-          headingRowHeight: 36,
-          dataRowMinHeight: 42,
-          dataRowMaxHeight: 42,
-          columns: [
-            const DataColumn(
-              label: _HeaderLabel(
-                'Cohort',
-                width: 112,
-              ),
-            ),
-            const DataColumn(
-              label: _HeaderLabel(
-                'Users',
-                width: 52,
-              ),
-            ),
-            ...report.bucketLabels.map(
-              (label) => DataColumn(
-                label: _HeaderLabel(
-                  label,
-                  width: 58,
+      child: rows.isEmpty
+          ? Text(
+              emptyMessage,
+              style: const TextStyle(color: AppTheme.textMuted),
+            )
+          : _HorizontalTableFrame(
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(
+                  const Color(0xFFF3F5F7),
                 ),
+                dataTextStyle: _compactCellStyle,
+                headingTextStyle: _compactHeaderStyle,
+                columnSpacing: 10,
+                horizontalMargin: 10,
+                dividerThickness: 0.5,
+                headingRowHeight: 36,
+                dataRowMinHeight: 42,
+                dataRowMaxHeight: 42,
+                columns: [
+                  const DataColumn(label: _HeaderLabel('Cohort', width: 112)),
+                  const DataColumn(label: _HeaderLabel('Users', width: 52)),
+                  ...bucketLabels.map(
+                    (label) =>
+                        DataColumn(label: _HeaderLabel(label, width: 58)),
+                  ),
+                  const DataColumn(label: _HeaderLabel('Δ Rating', width: 72)),
+                ],
+                rows: rows.map((row) {
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        _TableCellLabel(row.label, width: 112, alignLeft: true),
+                      ),
+                      DataCell(
+                        _TableCellLabel(row.users.toString(), width: 52),
+                      ),
+                      ...row.buckets.map(
+                        (bucket) =>
+                            DataCell(_RetentionHeatCell(metric: bucket)),
+                      ),
+                      DataCell(
+                        _TableCellLabel(
+                          _formatSignedScore(row.scoreDelta),
+                          width: 72,
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
               ),
             ),
-            const DataColumn(
-              label: _HeaderLabel(
-                'Δ Rating',
-                width: 72,
-              ),
-            ),
-          ],
-          rows: report.overall.map((row) {
-            return DataRow(
-              cells: [
-                DataCell(_TableCellLabel(row.label, width: 112, alignLeft: true)),
-                DataCell(_TableCellLabel(row.users.toString(), width: 52)),
-                ...row.buckets.map(
-                  (bucket) => DataCell(_RetentionHeatCell(metric: bucket)),
-                ),
-                DataCell(
-                  _TableCellLabel(_formatSignedScore(row.scoreDelta), width: 72),
-                ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
     );
   }
 }
@@ -567,7 +595,9 @@ class _ComparisonSection extends StatelessWidget {
             )
           : _HorizontalTableFrame(
               child: DataTable(
-                headingRowColor: WidgetStateProperty.all(const Color(0xFFF3F5F7)),
+                headingRowColor: WidgetStateProperty.all(
+                  const Color(0xFFF3F5F7),
+                ),
                 dataTextStyle: _compactCellStyle,
                 headingTextStyle: _compactHeaderStyle,
                 columnSpacing: 10,
@@ -577,38 +607,14 @@ class _ComparisonSection extends StatelessWidget {
                 dataRowMinHeight: 42,
                 dataRowMaxHeight: 42,
                 columns: [
-                  const DataColumn(
-                    label: _HeaderLabel(
-                      'Kelompok',
-                      width: 112,
-                    ),
-                  ),
-                  const DataColumn(
-                    label: _HeaderLabel(
-                      'Users',
-                      width: 52,
-                    ),
-                  ),
+                  const DataColumn(label: _HeaderLabel('Kelompok', width: 112)),
+                  const DataColumn(label: _HeaderLabel('Users', width: 52)),
                   ...bucketLabels.map(
-                    (label) => DataColumn(
-                      label: _HeaderLabel(
-                        label,
-                        width: 58,
-                      ),
-                    ),
+                    (label) =>
+                        DataColumn(label: _HeaderLabel(label, width: 58)),
                   ),
-                  const DataColumn(
-                    label: _HeaderLabel(
-                      'Drop-off',
-                      width: 78,
-                    ),
-                  ),
-                  const DataColumn(
-                    label: _HeaderLabel(
-                      'Δ Rating',
-                      width: 72,
-                    ),
-                  ),
+                  const DataColumn(label: _HeaderLabel('Drop-off', width: 78)),
+                  const DataColumn(label: _HeaderLabel('Δ Rating', width: 72)),
                 ],
                 rows: rows.map((row) {
                   return DataRow(
@@ -616,9 +622,12 @@ class _ComparisonSection extends StatelessWidget {
                       DataCell(
                         _TableCellLabel(row.label, width: 112, alignLeft: true),
                       ),
-                      DataCell(_TableCellLabel(row.users.toString(), width: 52)),
+                      DataCell(
+                        _TableCellLabel(row.users.toString(), width: 52),
+                      ),
                       ...row.buckets.map(
-                        (bucket) => DataCell(_RetentionHeatCell(metric: bucket)),
+                        (bucket) =>
+                            DataCell(_RetentionHeatCell(metric: bucket)),
                       ),
                       DataCell(
                         _TableCellLabel(_formatDropOff(row.dropOff), width: 78),
@@ -691,22 +700,17 @@ class _RetentionHeatCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (metric.retention == null) {
-      return const Text(
-        '-',
-        style: TextStyle(color: AppTheme.textMuted),
-      );
+      return const Text('-', style: TextStyle(color: AppTheme.textMuted));
     }
 
     final retention = metric.retention!.clamp(0, 100).toDouble();
     final alpha = (0.15 + (retention / 100 * 0.75)).clamp(0.15, 0.9);
-    final textColor =
-        alpha > 0.45 ? Colors.white : AppTheme.textPrimary;
+    final textColor = alpha > 0.45 ? Colors.white : AppTheme.textPrimary;
     final tooltip = [
       'Retensi: ${retention.toStringAsFixed(1)}%',
       if (metric.activeUsers != null && metric.eligibleUsers != null)
         'Aktif: ${metric.activeUsers}/${metric.eligibleUsers}',
-      if (metric.avgScore != null)
-        'Skor: ${formatScoreFive(metric.avgScore)}',
+      if (metric.avgScore != null) 'Skor: ${formatScoreFive(metric.avgScore)}',
     ].join('\n');
 
     return Tooltip(
@@ -804,15 +808,9 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: const TextStyle(color: AppTheme.textMuted),
-          ),
+          Text(subtitle, style: const TextStyle(color: AppTheme.textMuted)),
           const SizedBox(height: 12),
           child,
         ],
@@ -1055,3 +1053,176 @@ const TextStyle _compactCellStyle = TextStyle(
   fontSize: 13,
   color: AppTheme.textPrimary,
 );
+
+List<CohortAnalysisRow> _resolvedOverallRows({
+  required CohortAnalysisReport report,
+  required bool showEmptyRows,
+}) {
+  if (!showEmptyRows) {
+    return _filterCohortRows(report.overall, showEmptyRows: false);
+  }
+  if (report.overall.isNotEmpty) {
+    return report.overall;
+  }
+  return _buildEmptyOverallRows(report);
+}
+
+List<CohortAnalysisRow> _filterCohortRows(
+  List<CohortAnalysisRow> rows, {
+  required bool showEmptyRows,
+}) {
+  if (showEmptyRows) {
+    return rows;
+  }
+  return rows.where((row) => !_isEmptyCohortRow(row)).toList();
+}
+
+bool _isEmptyCohortRow(CohortAnalysisRow row) {
+  if (row.users > 0) {
+    return false;
+  }
+  if (row.dropOff != null || row.scoreDelta != null) {
+    return false;
+  }
+  for (final bucket in row.buckets) {
+    if (!_isEmptyBucketMetric(bucket)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _isEmptyBucketMetric(CohortBucketMetric metric) {
+  if (metric.retention != null || metric.avgScore != null) {
+    return false;
+  }
+  if ((metric.eligibleUsers ?? 0) > 0) {
+    return false;
+  }
+  if ((metric.activeUsers ?? 0) > 0) {
+    return false;
+  }
+  return true;
+}
+
+List<CohortAnalysisRow> _buildEmptyOverallRows(CohortAnalysisReport report) {
+  final rowsCount = report.lookbackPeriods > 0 ? report.lookbackPeriods : 1;
+  final bucketCount = _resolvedBucketCount(report);
+  final emptyBuckets = List<CohortBucketMetric>.generate(
+    bucketCount,
+    (_) => const CohortBucketMetric(
+      eligibleUsers: 0,
+      activeUsers: 0,
+      retention: null,
+      avgScore: null,
+    ),
+    growable: false,
+  );
+
+  return List<CohortAnalysisRow>.generate(rowsCount, (index) {
+    final anchor = _addPeriod(report.start, report.period, index);
+    return CohortAnalysisRow(
+      label: _formatCohortAnchorLabel(anchor, report.period),
+      users: 0,
+      buckets: List<CohortBucketMetric>.from(emptyBuckets, growable: false),
+      dropOff: null,
+      scoreDelta: null,
+    );
+  }, growable: false);
+}
+
+int _resolvedBucketCount(CohortAnalysisReport report) {
+  final fromLabels = report.bucketLabels.length;
+  final fromReport = report.bucketCount > 0 ? report.bucketCount : 0;
+  final resolved = fromLabels > fromReport ? fromLabels : fromReport;
+  return resolved > 0 ? resolved : 1;
+}
+
+DateTime _addPeriod(DateTime value, String period, int count) {
+  final normalized = period.trim().toLowerCase();
+  switch (normalized) {
+    case 'daily':
+      return value.add(Duration(days: count));
+    case 'weekly':
+      return value.add(Duration(days: count * 7));
+    case 'yearly':
+      return _cohortDateFromSeed(
+        seed: value,
+        year: value.year + count,
+        month: value.month,
+        day: value.day,
+      );
+    default:
+      return _cohortDateFromSeed(
+        seed: value,
+        year: value.year,
+        month: value.month + count,
+        day: value.day,
+      );
+  }
+}
+
+DateTime _cohortDateFromSeed({
+  required DateTime seed,
+  required int year,
+  required int month,
+  required int day,
+}) {
+  if (seed.isUtc) {
+    return DateTime.utc(
+      year,
+      month,
+      day,
+      seed.hour,
+      seed.minute,
+      seed.second,
+      seed.millisecond,
+      seed.microsecond,
+    );
+  }
+  return DateTime(
+    year,
+    month,
+    day,
+    seed.hour,
+    seed.minute,
+    seed.second,
+    seed.millisecond,
+    seed.microsecond,
+  );
+}
+
+String _formatCohortAnchorLabel(DateTime value, String period) {
+  final normalized = period.trim().toLowerCase();
+  switch (normalized) {
+    case 'daily':
+      return '${value.day.toString().padLeft(2, '0')} ${_cohortMonthShort(value.month)} ${value.year}';
+    case 'weekly':
+      return 'Week of ${value.day.toString().padLeft(2, '0')} ${_cohortMonthShort(value.month)} ${value.year}';
+    case 'yearly':
+      return value.year.toString();
+    default:
+      return '${_cohortMonthShort(value.month)} ${value.year}';
+  }
+}
+
+String _cohortMonthShort(int month) {
+  const months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  if (month < 1 || month > months.length) {
+    return '-';
+  }
+  return months[month - 1];
+}

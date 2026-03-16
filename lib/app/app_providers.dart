@@ -42,6 +42,7 @@ final adminUserProvider = StateProvider<UserProfile?>((ref) => null);
 final currentUserProvider = StateProvider<UserProfile?>((ref) => null);
 final cohortPeriodProvider = StateProvider<String>((ref) => 'daily');
 final cohortAnalysisProvider = StateProvider<String>((ref) => 'retention');
+final cohortShowEmptyRowsProvider = StateProvider<bool>((ref) => false);
 final reportsPeriodProvider = StateProvider<String>((ref) => 'monthly');
 final reportsSatisfactionIndexPeriodProvider = StateProvider<String>(
   (ref) => 'monthly',
