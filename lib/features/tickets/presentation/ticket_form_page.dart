@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/utils/file_picker_utils.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/app_feedback_snackbar.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/attachment_tile.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/form_widgets.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
@@ -36,15 +38,22 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
   @override
   void initState() {
     super.initState();
-    _notesController = TextEditingController(text: widget.existing?.notes ?? '');
-    _lamp1 = widget.existing?.lamp1.isNotEmpty == true ? widget.existing!.lamp1 : null;
-    _lamp1Name = widget.existing?.lamp1.isNotEmpty == true ? widget.existing!.lamp1 : null;
+    _notesController = TextEditingController(
+      text: widget.existing?.notes ?? '',
+    );
+    _lamp1 = widget.existing?.lamp1.isNotEmpty == true
+        ? widget.existing!.lamp1
+        : null;
+    _lamp1Name = widget.existing?.lamp1.isNotEmpty == true
+        ? widget.existing!.lamp1
+        : null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(ticketFormPriorityProvider.notifier).state =
           widget.existing?.priority ?? TicketPriority.medium;
-      ref.read(ticketFormSelectedCategoryProvider.notifier).state =
-          widget.existing?.serviceId.isNotEmpty == true
+      ref
+          .read(ticketFormSelectedCategoryProvider.notifier)
+          .state = widget.existing?.serviceId.isNotEmpty == true
           ? widget.existing!.serviceId
           : widget.existing?.categoryId;
     });
@@ -65,9 +74,11 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     final selectedCategory = ref.read(ticketFormSelectedCategoryProvider);
     final selectedPriority = ref.read(ticketFormPriorityProvider);
     if (selectedCategory == null || selectedCategory.isEmpty) {
-      ScaffoldMessenger.of(
+      showAppFeedbackSnackBar(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Layanan wajib dipilih')));
+        message: 'Layanan wajib dipilih.',
+        tone: AppFeedbackTone.warning,
+      );
       return;
     }
 
@@ -84,25 +95,31 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
           ? await repo.createTicket(draft)
           : await repo.updateTicket(id: widget.existing!.id, draft: draft);
       if (!response.isSuccess) {
-        throw Exception(response.error?.message ?? 'Gagal menyimpan tiket');
+        if (!mounted) return;
+        showAppFeedbackSnackBar(
+          context,
+          message: _ticketSubmitErrorMessage(response.error),
+          tone: AppFeedbackTone.error,
+        );
+        return;
       }
       if (!mounted) return;
       ref.invalidate(ticketsProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.existing == null
-                ? 'Tiket berhasil dikirim.'
-                : 'Tiket berhasil diperbarui.',
-          ),
-        ),
+      showAppFeedbackSnackBar(
+        context,
+        message: widget.existing == null
+            ? 'Tiket berhasil dikirim.'
+            : 'Tiket berhasil diperbarui.',
+        tone: AppFeedbackTone.success,
       );
       context.pop(true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      showAppFeedbackSnackBar(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+        message: _normalizeUnexpectedError(error),
+        tone: AppFeedbackTone.error,
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -128,14 +145,76 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
       });
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      showAppFeedbackSnackBar(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+        message: 'Upload lampiran gagal. Silakan coba lagi.',
+        tone: AppFeedbackTone.error,
+      );
     } finally {
       if (mounted) {
         setState(() => _isUploading = false);
       }
     }
+  }
+
+  String _ticketSubmitErrorMessage(ApiError? error) {
+    final status = error?.statusCode;
+    final message = _cleanErrorText(error?.message ?? '');
+    final lower = message.toLowerCase();
+
+    if (_isNetworkError(lower)) {
+      return 'Tidak dapat terhubung ke server. Periksa koneksi internet lalu coba lagi.';
+    }
+    if (status == 401 || status == 403 || lower.contains('unauthorized')) {
+      return 'Sesi login berakhir. Silakan login ulang.';
+    }
+    if (status == 413 ||
+        lower.contains('too large') ||
+        lower.contains('ukuran file')) {
+      return 'Ukuran lampiran terlalu besar. Gunakan file yang lebih kecil.';
+    }
+    if (status == 422 ||
+        lower.contains('validation') ||
+        lower.contains('wajib') ||
+        lower.contains('invalid')) {
+      return 'Data tiket belum valid. Periksa kembali isian form.';
+    }
+    if (status == 404) {
+      return 'Layanan tidak ditemukan. Muat ulang halaman lalu coba lagi.';
+    }
+    if (status != null && status >= 500) {
+      return 'Server sedang bermasalah. Coba beberapa saat lagi.';
+    }
+    return 'Tiket gagal dikirim. Periksa data lalu coba lagi.';
+  }
+
+  String _normalizeUnexpectedError(Object error) {
+    final cleaned = _cleanErrorText(error.toString());
+    final lower = cleaned.toLowerCase();
+    if (_isNetworkError(lower)) {
+      return 'Tidak dapat terhubung ke server. Periksa koneksi internet lalu coba lagi.';
+    }
+    return 'Tiket gagal dikirim. Silakan coba lagi.';
+  }
+
+  String _cleanErrorText(String value) {
+    var text = value.trim();
+    if (text.startsWith('Exception:')) {
+      text = text.replaceFirst('Exception:', '').trim();
+    }
+    if (text.startsWith('ClientException:')) {
+      text = text.replaceFirst('ClientException:', '').trim();
+    }
+    return text;
+  }
+
+  bool _isNetworkError(String message) {
+    return message.contains('failed host lookup') ||
+        message.contains('socketexception') ||
+        message.contains('connection reset') ||
+        message.contains('timed out') ||
+        message.contains('failed to fetch') ||
+        message.contains('network');
   }
 
   @override
@@ -172,7 +251,9 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                 const SizedBox(height: 8),
                 ...buildCategoryLoadIndicators(
                   isLoading: categoriesAsync.isLoading,
-                  error: categoriesAsync.hasError ? categoriesAsync.error : null,
+                  error: categoriesAsync.hasError
+                      ? categoriesAsync.error
+                      : null,
                 ),
                 DropdownButtonFormField<String>(
                   initialValue: selectedCategory,
@@ -185,7 +266,9 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                       )
                       .toList(),
                   onChanged: (value) =>
-                      ref.read(ticketFormSelectedCategoryProvider.notifier).state =
+                      ref
+                              .read(ticketFormSelectedCategoryProvider.notifier)
+                              .state =
                           value,
                   decoration: const InputDecoration(
                     hintText: 'Pilih layanan internal',
@@ -219,7 +302,8 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                 PrioritySelector(
                   selected: selectedPriority,
                   onChanged: (priority) {
-                    ref.read(ticketFormPriorityProvider.notifier).state = priority;
+                    ref.read(ticketFormPriorityProvider.notifier).state =
+                        priority;
                   },
                 ),
                 const SizedBox(height: 16),

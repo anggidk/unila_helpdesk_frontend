@@ -5,7 +5,9 @@ import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/utils/file_picker_utils.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/app_feedback_snackbar.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/attachment_tile.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/form_widgets.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/info_banner.dart';
@@ -65,15 +67,19 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
 
     final selectedCategory = ref.read(guestTicketSelectedCategoryProvider);
     if (selectedCategory == null || selectedCategory.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Jenis layanan wajib dipilih')),
+      showAppFeedbackSnackBar(
+        context,
+        message: 'Jenis layanan wajib dipilih.',
+        tone: AppFeedbackTone.warning,
       );
       return;
     }
     if (_entity == null || _entity!.isEmpty) {
-      ScaffoldMessenger.of(
+      showAppFeedbackSnackBar(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Entitas wajib dipilih')));
+        message: 'Entitas wajib dipilih.',
+        tone: AppFeedbackTone.warning,
+      );
       return;
     }
 
@@ -93,9 +99,13 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
         ),
       );
       if (!response.isSuccess) {
-        throw Exception(
-          response.error?.message ?? 'Gagal mengirim laporan tamu',
+        if (!mounted) return;
+        showAppFeedbackSnackBar(
+          context,
+          message: _guestTicketSubmitErrorMessage(response.error),
+          tone: AppFeedbackTone.error,
         );
+        return;
       }
       final payload = response.data?['data'];
       final createdTicket = payload is Map<String, dynamic>
@@ -103,24 +113,28 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
           : null;
       if (!mounted) return;
       if (createdTicket != null && createdTicket.id.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
+        showAppFeedbackSnackBar(
+          context,
+          message:
               'Laporan tamu berhasil dikirim. Nomor tiket: ${createdTicket.displayNumber}',
-            ),
-          ),
+          tone: AppFeedbackTone.success,
+          duration: const Duration(seconds: 4),
         );
         context.goNamed(AppRouteNames.ticketDetail, extra: createdTicket);
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Laporan tamu berhasil dikirim.')),
+      showAppFeedbackSnackBar(
+        context,
+        message: 'Laporan tamu berhasil dikirim.',
+        tone: AppFeedbackTone.success,
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      showAppFeedbackSnackBar(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+        message: _normalizeUnexpectedError(error),
+        tone: AppFeedbackTone.error,
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -161,9 +175,11 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       });
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      showAppFeedbackSnackBar(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+        message: _normalizeUnexpectedError(error),
+        tone: AppFeedbackTone.error,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -175,6 +191,60 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
         });
       }
     }
+  }
+
+  String _guestTicketSubmitErrorMessage(ApiError? error) {
+    final status = error?.statusCode;
+    final message = _cleanErrorText(error?.message ?? '');
+    final lower = message.toLowerCase();
+
+    if (_isNetworkError(lower)) {
+      return 'Tidak dapat terhubung ke server. Periksa koneksi internet lalu coba lagi.';
+    }
+    if (status == 413 ||
+        lower.contains('too large') ||
+        lower.contains('ukuran file')) {
+      return 'Ukuran lampiran terlalu besar. Gunakan file yang lebih kecil.';
+    }
+    if (status == 422 ||
+        lower.contains('validation') ||
+        lower.contains('wajib') ||
+        lower.contains('invalid')) {
+      return 'Data tiket belum valid. Periksa kembali isian form.';
+    }
+    if (status != null && status >= 500) {
+      return 'Server sedang bermasalah. Coba beberapa saat lagi.';
+    }
+    return 'Laporan tamu gagal dikirim. Periksa data lalu coba lagi.';
+  }
+
+  String _normalizeUnexpectedError(Object error) {
+    final cleaned = _cleanErrorText(error.toString());
+    final lower = cleaned.toLowerCase();
+    if (_isNetworkError(lower)) {
+      return 'Tidak dapat terhubung ke server. Periksa koneksi internet lalu coba lagi.';
+    }
+    return 'Terjadi kesalahan. Silakan coba lagi.';
+  }
+
+  String _cleanErrorText(String value) {
+    var text = value.trim();
+    if (text.startsWith('Exception:')) {
+      text = text.replaceFirst('Exception:', '').trim();
+    }
+    if (text.startsWith('ClientException:')) {
+      text = text.replaceFirst('ClientException:', '').trim();
+    }
+    return text;
+  }
+
+  bool _isNetworkError(String message) {
+    return message.contains('failed host lookup') ||
+        message.contains('socketexception') ||
+        message.contains('connection reset') ||
+        message.contains('timed out') ||
+        message.contains('failed to fetch') ||
+        message.contains('network');
   }
 
   @override

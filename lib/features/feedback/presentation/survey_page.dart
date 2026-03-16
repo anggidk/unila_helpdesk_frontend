@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
+import 'package:unila_helpdesk_frontend/core/widgets/app_feedback_snackbar.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
 
@@ -29,7 +31,9 @@ class SurveyPage extends ConsumerWidget {
     final errors = ref.watch(surveyErrorsProvider);
     final isSubmitting = ref.watch(surveySubmittingProvider);
     final questions = template.questions;
-    final requiredQuestions = questions.where(_isRequiredSurveyQuestion).toList();
+    final requiredQuestions = questions
+        .where(_isRequiredSurveyQuestion)
+        .toList();
     final answeredRequiredCount = requiredQuestions
         .where((question) => _hasSurveyAnswer(answers[question.id], question))
         .length;
@@ -120,10 +124,10 @@ class SurveyPage extends ConsumerWidget {
                       if (nextErrors.isNotEmpty) {
                         ref.read(surveyErrorsProvider.notifier).state =
                             nextErrors;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Mohon lengkapi semua jawaban.'),
-                          ),
+                        showAppFeedbackSnackBar(
+                          context,
+                          message: 'Mohon lengkapi semua jawaban wajib.',
+                          tone: AppFeedbackTone.warning,
                         );
                         return;
                       }
@@ -135,21 +139,27 @@ class SurveyPage extends ConsumerWidget {
                           answers: answers,
                         );
                         if (!response.isSuccess) {
-                          throw Exception(
-                            response.error?.message ?? 'Gagal mengirim survei',
+                          if (!context.mounted) return;
+                          showAppFeedbackSnackBar(
+                            context,
+                            message: _surveySubmitErrorMessage(response.error),
+                            tone: AppFeedbackTone.error,
                           );
+                          return;
                         }
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Survei berhasil dikirim.'),
-                          ),
+                        showAppFeedbackSnackBar(
+                          context,
+                          message: 'Survei berhasil dikirim.',
+                          tone: AppFeedbackTone.success,
                         );
                         Navigator.of(context).pop(true);
                       } catch (error) {
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(error.toString())),
+                        showAppFeedbackSnackBar(
+                          context,
+                          message: _normalizeUnexpectedError(error),
+                          tone: AppFeedbackTone.error,
                         );
                       } finally {
                         ref.read(surveySubmittingProvider.notifier).state =
@@ -299,10 +309,78 @@ bool _hasSurveyAnswer(dynamic value, SurveyQuestion question) {
   if (value == null) {
     return false;
   }
+
   if (question.type == SurveyQuestionType.text) {
     return value.toString().trim().isNotEmpty;
   }
   return true;
+}
+
+String _surveySubmitErrorMessage(ApiError? error) {
+  final status = error?.statusCode;
+  final message = _cleanErrorText(error?.message ?? '');
+  final lower = message.toLowerCase();
+
+  if (_isNetworkError(lower)) {
+    return 'Tidak dapat terhubung ke server. Periksa koneksi internet lalu coba lagi.';
+  }
+  if (status == 401 || status == 403 || lower.contains('unauthorized')) {
+    return 'Sesi login berakhir. Silakan login ulang.';
+  }
+  if (lower.contains('belum done') ||
+      lower.contains('ticket belum done') ||
+      lower.contains('status done')) {
+    return 'Tiket belum selesai. Survei hanya bisa diisi jika status tiket DONE.';
+  }
+  if (lower.contains('template') && lower.contains('belum')) {
+    return 'Template survei belum tersedia untuk tiket ini.';
+  }
+  if (lower.contains('already') ||
+      (lower.contains('sudah') && lower.contains('survei'))) {
+    return 'Survei untuk tiket ini sudah pernah dikirim.';
+  }
+  if (status == 404 || lower.contains('not found')) {
+    return 'Data tiket/survei tidak ditemukan. Muat ulang lalu coba lagi.';
+  }
+  if (status == 422 ||
+      lower.contains('validation') ||
+      lower.contains('jawaban') ||
+      lower.contains('wajib')) {
+    return 'Jawaban survei belum valid. Periksa kembali isian Anda.';
+  }
+  if (status != null && status >= 500) {
+    return 'Server sedang bermasalah. Coba beberapa saat lagi.';
+  }
+  return 'Survei gagal dikirim. Periksa jawaban lalu coba lagi.';
+}
+
+String _normalizeUnexpectedError(Object error) {
+  final cleaned = _cleanErrorText(error.toString());
+  final lower = cleaned.toLowerCase();
+  if (_isNetworkError(lower)) {
+    return 'Tidak dapat terhubung ke server. Periksa koneksi internet lalu coba lagi.';
+  }
+  return 'Survei gagal dikirim. Silakan coba lagi.';
+}
+
+String _cleanErrorText(String value) {
+  var text = value.trim();
+  if (text.startsWith('Exception:')) {
+    text = text.replaceFirst('Exception:', '').trim();
+  }
+  if (text.startsWith('ClientException:')) {
+    text = text.replaceFirst('ClientException:', '').trim();
+  }
+  return text;
+}
+
+bool _isNetworkError(String message) {
+  return message.contains('failed host lookup') ||
+      message.contains('socketexception') ||
+      message.contains('connection reset') ||
+      message.contains('timed out') ||
+      message.contains('failed to fetch') ||
+      message.contains('network');
 }
 
 class _LikertOption {
