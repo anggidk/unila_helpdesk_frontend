@@ -14,6 +14,7 @@ class AdminCohortPage extends ConsumerWidget {
     final selectedPeriod = ref.watch(cohortPeriodProvider);
     final showEmptyRows = ref.watch(cohortShowEmptyRowsProvider);
     final reportAsync = ref.watch(cohortReportProvider);
+    final serviceCategoriesAsync = ref.watch(serviceCategoriesProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -92,12 +93,23 @@ class AdminCohortPage extends ConsumerWidget {
                   report: report,
                   showEmptyRows: showEmptyRows,
                 );
-                final serviceRows = _filterCohortRows(
-                  report.serviceComparisons,
-                  showEmptyRows: showEmptyRows,
+                final bucketCount = _resolvedBucketCount(report);
+                final expectedServiceLabels = serviceCategoriesAsync.maybeWhen(
+                  data: (items) => items
+                      .map((item) => item.name.trim())
+                      .where((name) => name.isNotEmpty)
+                      .toList(growable: false),
+                  orElse: () => const <String>[],
                 );
-                final visibleEntityRows = _filterCohortRows(
-                  _visibleEntityRows(report.entityComparisons),
+                final serviceRows = _resolvedServiceRows(
+                  rows: report.serviceComparisons,
+                  showEmptyRows: showEmptyRows,
+                  bucketCount: bucketCount,
+                  expectedLabels: expectedServiceLabels,
+                );
+                final visibleEntityRows = _resolvedEntityRows(
+                  rows: report.entityComparisons,
+                  bucketCount: bucketCount,
                   showEmptyRows: showEmptyRows,
                 );
                 final overallEmptyMessage = showEmptyRows
@@ -910,6 +922,87 @@ List<CohortAnalysisRow> _visibleEntityRows(List<CohortAnalysisRow> rows) {
   return filtered;
 }
 
+List<CohortAnalysisRow> _resolvedServiceRows({
+  required List<CohortAnalysisRow> rows,
+  required bool showEmptyRows,
+  required int bucketCount,
+  required List<String> expectedLabels,
+}) {
+  final normalizedRows = rows
+      .map((row) => _withBucketCount(row, bucketCount))
+      .toList(growable: false);
+
+  if (!showEmptyRows) {
+    return _filterCohortRows(normalizedRows, showEmptyRows: false);
+  }
+  if (expectedLabels.isEmpty) {
+    return normalizedRows;
+  }
+
+  final rowByKey = <String, CohortAnalysisRow>{};
+  for (final row in normalizedRows) {
+    final key = _normalizeCohortLabelKey(row.label);
+    if (key.isEmpty || rowByKey.containsKey(key)) {
+      continue;
+    }
+    rowByKey[key] = row;
+  }
+
+  final merged = <CohortAnalysisRow>[];
+  final expectedKeys = <String>{};
+  for (final label in expectedLabels) {
+    final trimmed = label.trim();
+    final key = _normalizeCohortLabelKey(trimmed);
+    if (trimmed.isEmpty || key.isEmpty || expectedKeys.contains(key)) {
+      continue;
+    }
+    expectedKeys.add(key);
+    merged.add(
+      rowByKey[key] ??
+          _buildEmptyCohortRow(label: trimmed, bucketCount: bucketCount),
+    );
+  }
+
+  merged.addAll(
+    normalizedRows.where(
+      (row) => !expectedKeys.contains(_normalizeCohortLabelKey(row.label)),
+    ),
+  );
+  return merged;
+}
+
+List<CohortAnalysisRow> _resolvedEntityRows({
+  required List<CohortAnalysisRow> rows,
+  required int bucketCount,
+  required bool showEmptyRows,
+}) {
+  final visibleRows = _visibleEntityRows(
+    rows,
+  ).map((row) => _withBucketCount(row, bucketCount)).toList(growable: false);
+
+  if (!showEmptyRows) {
+    return _filterCohortRows(visibleRows, showEmptyRows: false);
+  }
+
+  const expectedEntityLabels = <String>['MAHASISWA', 'DOSEN', 'TENDIK'];
+  final rowByKey = <String, CohortAnalysisRow>{};
+  for (final row in visibleRows) {
+    final key = _normalizeEntity(row.label);
+    if (key.isEmpty || rowByKey.containsKey(key)) {
+      continue;
+    }
+    rowByKey[key] = row;
+  }
+
+  return expectedEntityLabels
+      .map(
+        (label) =>
+            rowByKey[label] ??
+            _buildEmptyCohortRow(label: label, bucketCount: bucketCount),
+      )
+      .toList(growable: false);
+}
+
 List<_OverviewMetricItem> _buildEntityTrendOverviewItems(
   CohortAnalysisReport report,
 ) {
@@ -963,6 +1056,8 @@ bool _isVisibleEntity(String value) {
       return false;
   }
 }
+
+String _normalizeCohortLabelKey(String value) => value.trim().toUpperCase();
 
 String _normalizeEntity(String value) => value.trim().toUpperCase();
 
@@ -1058,13 +1153,46 @@ List<CohortAnalysisRow> _resolvedOverallRows({
   required CohortAnalysisReport report,
   required bool showEmptyRows,
 }) {
-  if (!showEmptyRows) {
-    return _filterCohortRows(report.overall, showEmptyRows: false);
+  final rows = _buildOverallRowsWithPlaceholders(report);
+  if (showEmptyRows) {
+    return rows;
   }
-  if (report.overall.isNotEmpty) {
-    return report.overall;
+  return _filterCohortRows(rows, showEmptyRows: false);
+}
+
+List<CohortAnalysisRow> _buildOverallRowsWithPlaceholders(
+  CohortAnalysisReport report,
+) {
+  if (report.overall.isEmpty) {
+    return _buildEmptyOverallRows(report);
   }
-  return _buildEmptyOverallRows(report);
+  final rowsCount = report.lookbackPeriods > 0 ? report.lookbackPeriods : 1;
+  final bucketCount = _resolvedBucketCount(report);
+  final existingRows = <String, CohortAnalysisRow>{};
+  for (final row in report.overall) {
+    final key = row.label.trim();
+    if (!existingRows.containsKey(key)) {
+      existingRows[key] = _withBucketCount(row, bucketCount);
+    }
+  }
+
+  final matchedLabels = <String>{};
+  final generated = List<CohortAnalysisRow>.generate(rowsCount, (index) {
+    final anchor = _addPeriod(report.start, report.period, index);
+    final label = _formatCohortAnchorLabel(anchor, report.period);
+    final existing = existingRows[label];
+    if (existing != null) {
+      matchedLabels.add(label);
+      return existing;
+    }
+    return _buildEmptyCohortRow(label: label, bucketCount: bucketCount);
+  }, growable: true);
+
+  final extras = report.overall
+      .where((row) => !matchedLabels.contains(row.label.trim()))
+      .map((row) => _withBucketCount(row, bucketCount));
+  generated.addAll(extras);
+  return generated;
 }
 
 List<CohortAnalysisRow> _filterCohortRows(
@@ -1108,7 +1236,21 @@ bool _isEmptyBucketMetric(CohortBucketMetric metric) {
 List<CohortAnalysisRow> _buildEmptyOverallRows(CohortAnalysisReport report) {
   final rowsCount = report.lookbackPeriods > 0 ? report.lookbackPeriods : 1;
   final bucketCount = _resolvedBucketCount(report);
-  final emptyBuckets = List<CohortBucketMetric>.generate(
+
+  return List<CohortAnalysisRow>.generate(rowsCount, (index) {
+    final anchor = _addPeriod(report.start, report.period, index);
+    return _buildEmptyCohortRow(
+      label: _formatCohortAnchorLabel(anchor, report.period),
+      bucketCount: bucketCount,
+    );
+  }, growable: false);
+}
+
+CohortAnalysisRow _buildEmptyCohortRow({
+  required String label,
+  required int bucketCount,
+}) {
+  final buckets = List<CohortBucketMetric>.generate(
     bucketCount,
     (_) => const CohortBucketMetric(
       eligibleUsers: 0,
@@ -1118,17 +1260,13 @@ List<CohortAnalysisRow> _buildEmptyOverallRows(CohortAnalysisReport report) {
     ),
     growable: false,
   );
-
-  return List<CohortAnalysisRow>.generate(rowsCount, (index) {
-    final anchor = _addPeriod(report.start, report.period, index);
-    return CohortAnalysisRow(
-      label: _formatCohortAnchorLabel(anchor, report.period),
-      users: 0,
-      buckets: List<CohortBucketMetric>.from(emptyBuckets, growable: false),
-      dropOff: null,
-      scoreDelta: null,
-    );
-  }, growable: false);
+  return CohortAnalysisRow(
+    label: label,
+    users: 0,
+    buckets: buckets,
+    dropOff: null,
+    scoreDelta: null,
+  );
 }
 
 int _resolvedBucketCount(CohortAnalysisReport report) {
@@ -1136,6 +1274,30 @@ int _resolvedBucketCount(CohortAnalysisReport report) {
   final fromReport = report.bucketCount > 0 ? report.bucketCount : 0;
   final resolved = fromLabels > fromReport ? fromLabels : fromReport;
   return resolved > 0 ? resolved : 1;
+}
+
+CohortAnalysisRow _withBucketCount(CohortAnalysisRow row, int bucketCount) {
+  if (row.buckets.length == bucketCount) {
+    return row;
+  }
+  final padded = List<CohortBucketMetric>.generate(bucketCount, (index) {
+    if (index < row.buckets.length) {
+      return row.buckets[index];
+    }
+    return const CohortBucketMetric(
+      eligibleUsers: 0,
+      activeUsers: 0,
+      retention: null,
+      avgScore: null,
+    );
+  }, growable: false);
+  return CohortAnalysisRow(
+    label: row.label,
+    users: row.users,
+    buckets: padded,
+    dropOff: row.dropOff,
+    scoreDelta: row.scoreDelta,
+  );
 }
 
 DateTime _addPeriod(DateTime value, String period, int count) {

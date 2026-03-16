@@ -138,7 +138,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Admin UNILA',
+                                            'Admin Helpdesk',
                                             style: TextStyle(
                                               color: AppTheme.textPrimary,
                                               fontWeight: FontWeight.w700,
@@ -148,7 +148,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                                             softWrap: false,
                                           ),
                                           Text(
-                                            'Sistem Helpdesk',
+                                            'TIK Universitas Lampung',
                                             style: TextStyle(
                                               color: AppTheme.textMuted,
                                             ),
@@ -347,10 +347,7 @@ class _NavItem extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      leading: Icon(
-        icon,
-        color: selected ? AppTheme.navy : AppTheme.textMuted,
-      ),
+      leading: Icon(icon, color: selected ? AppTheme.navy : AppTheme.textMuted),
       title: Text(
         label,
         style: TextStyle(
@@ -404,11 +401,7 @@ class _ProfileSection extends StatelessWidget {
               child: CircleAvatar(
                 radius: 20,
                 backgroundColor: AppTheme.surface,
-                child: const Icon(
-                  Icons.person,
-                  color: AppTheme.navy,
-                  size: 20,
-                ),
+                child: const Icon(Icons.person, color: AppTheme.navy, size: 20),
               ),
             ),
           ),
