@@ -7,6 +7,7 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/utils/file_picker_utils.dart';
+import 'package:unila_helpdesk_frontend/core/utils/input_validation.dart';
 import 'package:unila_helpdesk_frontend/core/utils/snackbar_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/attachment_tile.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/form_widgets.dart';
@@ -87,12 +88,12 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     try {
       final response = await TicketRepository().createGuestTicket(
         draft: GuestTicketDraft(
-          name: _nameController.text.trim(),
-          numberId: _numberIdController.text.trim(),
-          email: _emailController.text.trim(),
+          name: sanitizeTextInput(_nameController.text),
+          numberId: sanitizeTextInput(_numberIdController.text),
+          email: sanitizeTextInput(_emailController.text),
           entity: _entity!,
           serviceId: selectedCategory,
-          notes: _notesController.text.trim(),
+          notes: sanitizeTextInput(_notesController.text),
           priority: ref.read(guestTicketPriorityProvider),
           lamp1: _lamp1!,
           lamp2: _lamp2!,
@@ -341,7 +342,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                           hintText: 'Masukkan nama lengkap',
                         ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
+                          if (!hasMeaningfulText(value)) {
                             return 'Nama lengkap wajib diisi';
                           }
                           return null;
@@ -398,7 +399,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                               'No KTM (Mahasiswa) / NIP / NIK / SK Pengangkatan',
                         ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
+                          if (!hasMeaningfulText(value)) {
                             return 'No identitas wajib diisi';
                           }
                           return null;
@@ -422,10 +423,10 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                           prefixIcon: Icon(Icons.mail_outline),
                         ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
+                          if (!hasMeaningfulText(value)) {
                             return 'Email aktif wajib diisi';
                           }
-                          if (!value.contains('@')) {
+                          if (!sanitizeTextInput(value ?? '').contains('@')) {
                             return 'Email tidak valid';
                           }
                           return null;
@@ -450,7 +451,7 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
                               'Jelaskan kendala yang Anda alami secara detail.',
                         ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
+                          if (!hasMeaningfulText(value)) {
                             return 'Deskripsi masalah wajib diisi';
                           }
                           return null;

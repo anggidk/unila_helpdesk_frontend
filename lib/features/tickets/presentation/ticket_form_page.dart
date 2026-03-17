@@ -7,6 +7,7 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/utils/file_picker_utils.dart';
+import 'package:unila_helpdesk_frontend/core/utils/input_validation.dart';
 import 'package:unila_helpdesk_frontend/core/utils/snackbar_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/attachment_tile.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/form_widgets.dart';
@@ -115,7 +116,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     try {
       final draft = TicketDraft(
         serviceId: selectedCategory,
-        notes: _notesController.text.trim(),
+        notes: sanitizeTextInput(_notesController.text),
         priority: selectedPriority,
         lamp1: _lamp1,
       );
@@ -326,7 +327,7 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
                     hintText: 'Jelaskan masalah yang Anda alami secara detail.',
                   ),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    if (!hasMeaningfulText(value)) {
                       return 'Deskripsi masalah wajib diisi';
                     }
                     return null;
