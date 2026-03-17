@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,6 +32,7 @@ class TicketFormPage extends ConsumerStatefulWidget {
 class _TicketFormPageState extends ConsumerState<TicketFormPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _notesController;
+  Timer? _categoryReloadTimer;
   bool _isSubmitting = false;
   bool _isUploading = false;
   String? _lamp1;
@@ -61,8 +64,34 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
 
   @override
   void dispose() {
+    _categoryReloadTimer?.cancel();
     _notesController.dispose();
     super.dispose();
+  }
+
+  void _syncCategoryAutoReload(AsyncValue<List<ServiceCategory>> snapshot) {
+    final shouldRetry =
+        !snapshot.isLoading && (snapshot.valueOrNull?.isEmpty ?? true);
+    if (!shouldRetry) {
+      _categoryReloadTimer?.cancel();
+      _categoryReloadTimer = null;
+      return;
+    }
+
+    _categoryReloadTimer ??= Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!mounted) return;
+      final latest = ref.read(serviceCategoriesProvider);
+      if (latest.isLoading) {
+        return;
+      }
+      final hasData = (latest.valueOrNull?.isNotEmpty ?? false);
+      if (hasData) {
+        _categoryReloadTimer?.cancel();
+        _categoryReloadTimer = null;
+        return;
+      }
+      ref.invalidate(serviceCategoriesProvider);
+    });
   }
 
   Future<void> _submit() async {
@@ -223,6 +252,10 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(serviceCategoriesProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncCategoryAutoReload(categoriesAsync);
+    });
     final allCategories = categoriesAsync.value ?? <ServiceCategory>[];
     final categories = allCategories
         .where((category) => !category.guestAllowed)

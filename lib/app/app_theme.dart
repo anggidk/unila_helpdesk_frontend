@@ -107,10 +107,7 @@ class AppTheme {
         color: Colors.white,
         fontWeight: FontWeight.w600,
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: navy),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
     ),
   );

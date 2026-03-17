@@ -17,7 +17,7 @@ void showAppSnackBar(
       duration: duration,
       backgroundColor: switch (tone) {
         AppSnackTone.success => AppTheme.success,
-        AppSnackTone.error => AppTheme.warning,
+        AppSnackTone.error => AppTheme.danger,
         AppSnackTone.warning => AppTheme.warning,
         AppSnackTone.info => AppTheme.navy,
       },
