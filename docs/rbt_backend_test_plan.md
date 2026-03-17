@@ -1,39 +1,45 @@
-# Dokumen Pengujian Backend Berbasis RBT (Struktur Per Modul)
+# Dokumen Pengujian Backend Berbasis RBT
 
-Tanggal: 18 Februari 2026  
+Tanggal: 12 Maret 2026  
 Sistem: Unila Helpdesk Backend (`..\unila_helpdesk_backend`)  
-Strategi: `Tahap 1 RBT per modul -> Tahap 2 RBT fungsi pure pada modul terkait -> penentuan whitebox unit vs blackbox/UAT`
+Strategi: `Tahap 1 RBT per modul -> Tahap 2 RBT fungsi pure pada modul prioritas -> whitebox unit test terpilih -> blackbox dan UAT`
 
 ## 1. Tujuan Dokumen
 
-Dokumen ini disusun supaya narasi skripsi jelas:
+Dokumen ini dipakai sebagai baseline pengujian backend yang sinkron dengan codebase saat ini. Tujuannya:
 
-1. Semua fungsi backend tetap dianalisis.
-2. Analisis awal dilakukan per modul (bukan langsung loncat ke pure function).
-3. Di modul yang memiliki pure function, dilakukan pemecahan analisis sampai level fungsi.
-4. Hanya fungsi `pure + High risk` yang dipilih untuk unit testing whitebox.
+1. Menetapkan jumlah fungsi backend produksi yang benar.
+2. Menyelaraskan analisis RBT dengan struktur modul backend yang aktif.
+3. Menetapkan target objek whitebox unit test berdasarkan skor risiko.
+4. Menjadi acuan narasi metodologi, traceability, dan lampiran skripsi.
 
 ## 2. Sumber Data dan Traceability
 
-Sumber data fungsi diambil langsung dari kode:
+Inventaris fungsi produksi diambil langsung dari kode backend:
 
 ```powershell
-rg -n "^func " internal
+rg -n --glob '!**/*_test.go' '^func ' ..\unila_helpdesk_backend\internal
 ```
 
-Hasil inventaris:
+Hasil inventaris saat ini:
 
-1. Total fungsi: `244`.
-2. Total file: `33`.
-3. Semua fungsi tercantum pada Lampiran A (per file, nama fungsi, dan line).
+1. Total fungsi produksi: `294`.
+2. Total file produksi: `34`.
+
+Catatan metodologis:
+
+1. Dokumen ini sengaja memakai `fungsi produksi` saja sebagai objek RBT formal.
+2. Jika `*_test.go` ikut dihitung, total berubah menjadi `314` fungsi pada `40` file.
+3. Baseline dokumen ini mengasumsikan `belum ada file testing`, sehingga coverage test tidak dipakai untuk mengubah skor.
+4. Angka `244` pada dokumen lama sudah tidak sesuai dengan repo sekarang.
 
 ## 3. Metode RBT
 
-Parameter:
+Parameter yang dipakai:
 
-- `Impact (I)` skala 1-5.
-- `Likelihood (L)` skala 1-5.
-- `Risk Score = I x L`.
+- `Impact (I)` skala 1-5
+- `Likelihood (L)` skala 1-5
+- `Risk Score = I x L`
 
 Klasifikasi:
 
@@ -43,223 +49,242 @@ Klasifikasi:
 
 Aturan level pengujian:
 
-1. `Pure + High` -> `Whitebox Unit Test`.
-2. `Pure + Medium/Low` -> `Blackbox + UAT`.
-3. `Non-pure` -> `Blackbox + UAT`.
+1. `Pure + High` -> `Whitebox Unit Test` wajib.
+2. `Pure + Medium` -> `Whitebox Unit Test` dipilih bila langsung mempengaruhi aturan bisnis/perhitungan modul High.
+3. `Pure + Low` -> `Blackbox + UAT`.
+4. `Non-pure` -> `Blackbox + UAT`.
+
+Prinsip penilaian jujur yang dipakai:
+
+1. Skor tidak dinaikkan atau diturunkan untuk menyesuaikan jumlah test yang sudah ada.
+2. Fungsi sederhana yang deterministik (misal wrapper hash/formatter) diberi `Likelihood` rendah walaupun berada di modul kritis.
+3. Rekap dipisah antara `hasil scoring` dan `status implementasi test`, supaya gap terlihat jelas.
+
+Definisi `pure function` yang dipakai:
+
+1. Deterministik dari input.
+2. Tidak akses DB, network, file, random, UUID, atau context HTTP.
+3. Tidak menghasilkan side effect.
+4. Dapat diuji langsung tanpa mock eksternal.
 
 ## 4. Tahap 1 - RBT Per Modul
 
-| Modul | Cakupan File (Ringkas) | Jumlah Fungsi | I | L | Skor | Level | Strategi Uji Dominan |
+| Modul | Cakupan File | Jumlah Fungsi | I | L | Skor | Level | Strategi Dominan |
 |---|---|---:|---:|---:|---:|---|---|
 | Auth & Session | `service/auth`, `handler/auth`, `middleware/auth`, `repo/user`, `repo/refresh` | 27 | 5 | 4 | 20 | High | Blackbox + UAT, plus drill-down pure |
-| Ticket & Attachment | `service/ticket`, `handler/ticket`, `repo/ticket`, `repo/attachment`, `handler/upload` | 59 | 5 | 4 | 20 | High | Blackbox + UAT, plus drill-down pure |
-| Survey & Scoring | `service/survey`, `service/score_utils`, `handler/survey`, `repo/survey` | 36 | 5 | 4 | 20 | High | Blackbox + UAT, plus drill-down pure |
-| Reporting & Export | `service/report`, `handler/report`, `repo/report` | 62 | 4 | 4 | 16 | High | Blackbox + UAT, plus drill-down pure |
-| Notification & FCM | `service/notification`, `handler/notification`, `repo/notification`, `fcm/client` | 21 | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| Category & Master Data | `service/category`, `handler/category`, `repo/category`, `service/seed` | 19 | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| Platform/Core | `config`, `db`, `util`, `handler/helpers`, `handler/response`, `middleware/cors`, `domain/dto` | 20 | 3 | 3 | 9 | Medium | Blackbox + UAT |
+| Ticket Lifecycle & Upload | `service/ticket`, `handler/ticket`, `handler/upload`, `repo/ticket` | 59 | 5 | 4 | 20 | High | Blackbox + UAT, plus drill-down pure |
+| Survey Management & Scoring | `service/survey`, `service/score_utils`, `handler/survey`, `repo/survey` | 38 | 5 | 4 | 20 | High | Blackbox + UAT, plus drill-down pure |
+| Reporting & Dashboard | `service/report`, `handler/report`, `repo/report` | 73 | 4 | 4 | 16 | High | Blackbox + UAT, plus drill-down pure |
+| Cohort Analytics | `service/cohort_analysis` | 29 | 4 | 3 | 12 | Medium | Blackbox + UAT, plus drill-down pure |
+| Notification & FCM | `service/notification`, `handler/notification`, `repo/notification`, `fcm/client` | 25 | 3 | 3 | 9 | Medium | Blackbox + UAT |
+| Category & Template Binding | `service/category`, `handler/category`, `repo/category`, `service/seed` | 20 | 3 | 3 | 9 | Medium | Blackbox + UAT |
+| Platform/Core | `config`, `db`, `domain`, `handler/helpers`, `handler/response`, `middleware/cors`, `util` | 23 | 3 | 3 | 9 | Medium | Blackbox + UAT |
 
 Kesimpulan Tahap 1:
 
-1. Modul prioritas tinggi: Auth, Ticket, Survey, Reporting.
-2. Modul medium tetap dianalisis penuh, tetapi tidak menjadi target unit test utama kecuali ada pure function dengan risiko High.
+1. Prioritas tertinggi ada pada `Auth`, `Ticket`, `Survey`, dan `Reporting`.
+2. `Cohort Analytics` diperlakukan sebagai modul medium terpisah dengan prioritas analisis fungsi pure yang mempengaruhi tren.
+3. Modul medium tetap dianalisis penuh, tetapi whitebox hanya diambil bila ada helper pure yang benar-benar kritis.
+4. Dengan struktur terpisah, modul terbesar adalah `Reporting & Dashboard` (`73` fungsi), sedangkan `Cohort Analytics` terukur sebagai domain analitik tersendiri (`29` fungsi).
 
-## 5. Tahap 2 - RBT Fungsi Pure Pada Modul Terkait
+## 5. Tahap 2 - Drill-Down Pure Per Modul (Asumsi Belum Ada Testing File)
 
-Definisi pure function yang dipakai:
+Asumsi pada dokumen ini:
 
-1. Deterministik dari input.
-2. Tidak akses DB/network/file/context HTTP.
-3. Tidak bergantung state runtime non-deterministik (`time.Now`, random, UUID langsung).
-4. Tidak punya side effect.
+1. Belum ada file unit test yang dilaksanakan.
+2. Skor murni berdasarkan dampak dan peluang defect, bukan berdasarkan coverage yang sudah ada.
+3. Keputusan whitebox di bawah ini adalah target implementasi, bukan status realisasi.
 
-## 5.1 Auth & Session (Pure Function)
+## 5.1 Auth & Session
 
-| Fungsi | Lokasi | I | L | Skor | Level | Keputusan |
+| Fungsi | Lokasi | I | L | Skor | Level | Keputusan RBT |
 |---|---|---:|---:|---:|---|---|
-| `ensureAdminAllowed` | `..\unila_helpdesk_backend\internal\service\auth_service.go:181` | 5 | 3 | 15 | High | Unit test |
-| `hashToken` | `..\unila_helpdesk_backend\internal\service\auth_service.go:212` | 5 | 3 | 15 | High | Unit test |
+| `ensureAdminAllowed` | `internal\service\auth_service.go:181` | 5 | 3 | 15 | High | Whitebox Unit (target) |
+| `hashToken` | `internal\service\auth_service.go:212` | 4 | 1 | 4 | Low | Blackbox + UAT |
 
-## 5.2 Ticket & Attachment (Pure Function)
+## 5.2 Ticket Lifecycle & Upload
 
-| Fungsi | Lokasi | I | L | Skor | Level | Keputusan |
+| Fungsi | Lokasi | I | L | Skor | Level | Keputusan RBT |
 |---|---|---:|---:|---:|---|---|
-| `normalizeInitialTicketStatus` | `..\unila_helpdesk_backend\internal\service\ticket_service.go:551` | 5 | 3 | 15 | High | Unit test |
-| `attachmentIDsFromRefs` | `..\unila_helpdesk_backend\internal\service\ticket_service.go:519` | 4 | 3 | 12 | Medium | Blackbox + UAT |
-| `isDuplicateTicketIdentifierError` | `..\unila_helpdesk_backend\internal\service\ticket_service.go:539` | 4 | 2 | 8 | Medium | Blackbox + UAT |
-| `statusLabel` | `..\unila_helpdesk_backend\internal\service\ticket_service.go:560` | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| `statusChangeNotification` | `..\unila_helpdesk_backend\internal\service\ticket_service.go:573` | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| `statusHistoryDescription` | `..\unila_helpdesk_backend\internal\service\ticket_service.go:592` | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| `ticketIDs` | `..\unila_helpdesk_backend\internal\service\ticket_service.go:618` | 2 | 2 | 4 | Low | Blackbox + UAT |
-| `scoreZero` | `..\unila_helpdesk_backend\internal\service\ticket_service.go:689` | 1 | 1 | 1 | Low | Blackbox + UAT |
-| `parseTicketStatus` | `..\unila_helpdesk_backend\internal\handler\ticket_handler.go:94` | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| `nullableTrimmed` | `..\unila_helpdesk_backend\internal\repository\ticket_repository.go:245` | 2 | 2 | 4 | Low | Blackbox + UAT |
+| `ticketOwnedByUser` | `internal\service\ticket_service.go:453` | 5 | 3 | 15 | High | Whitebox Unit (target) |
+| `surveyRequiredForTicket` | `internal\service\ticket_service.go:443` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `ticketIsGuest` | `internal\service\ticket_service.go:449` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `normalizePriority` | `internal\service\ticket_service.go:458` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `normalizeEntity` | `internal\service\ticket_service.go:469` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `normalizeInitialTicketStatus` | `internal\service\ticket_service.go:525` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `statusLabel` | `internal\service\ticket_service.go:534` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `statusChangeNotification` | `internal\service\ticket_service.go:549` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `isGuestServiceID` | `internal\service\ticket_service.go:581` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `ticketIDs` | `internal\service\ticket_service.go:590` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `parseTicketID` | `internal\service\ticket_service.go:598` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `cleanOptionalString` | `internal\service\ticket_service.go:658` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `stringOrEmpty` | `internal\service\ticket_service.go:666` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `scoreZero` | `internal\service\ticket_service.go:673` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `parseTicketStatus` | `internal\handler\ticket_handler.go:96` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `nullableTrimmed` | `internal\repository\ticket_repository.go:60` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `nullableStringValue` | `internal\repository\ticket_repository.go:71` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `ticketStatusFlags` | `internal\repository\ticket_repository.go:235` | 2 | 1 | 2 | Low | Blackbox + UAT |
 
-## 5.3 Survey & Scoring (Pure Function)
+## 5.3 Survey Management & Scoring
 
-| Fungsi | Lokasi | I | L | Skor | Level | Keputusan |
+| Fungsi | Lokasi | I | L | Skor | Level | Keputusan RBT |
 |---|---|---:|---:|---:|---|---|
-| `scoreFromQuestionValue` | `..\unila_helpdesk_backend\internal\service\score_utils.go:10` | 5 | 4 | 20 | High | Unit test |
-| `scoreFromYesNo` | `..\unila_helpdesk_backend\internal\service\score_utils.go:28` | 4 | 4 | 16 | High | Unit test |
-| `scoreFromScale` | `..\unila_helpdesk_backend\internal\service\score_utils.go:47` | 5 | 4 | 20 | High | Unit test |
-| `normalizeToFive` | `..\unila_helpdesk_backend\internal\service\score_utils.go:70` | 5 | 3 | 15 | High | Unit test |
-| `calculateSurveyScore` | `..\unila_helpdesk_backend\internal\service\survey_service.go:292` | 5 | 4 | 20 | High | Unit test |
-| `scoreToFivePoint` | `..\unila_helpdesk_backend\internal\service\score_utils.go:85` | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| `mapSurveyTemplate` | `..\unila_helpdesk_backend\internal\service\survey_service.go:269` | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| `mapSurveyTemplates` | `..\unila_helpdesk_backend\internal\service\survey_service.go:261` | 2 | 2 | 4 | Low | Blackbox + UAT |
+| `scoreFromQuestionValue` | `internal\service\score_utils.go:10` | 5 | 3 | 15 | High | Whitebox Unit (target) |
+| `scoreFromYesNo` | `internal\service\score_utils.go:28` | 3 | 3 | 9 | Medium | Whitebox Unit (target) |
+| `scoreFromScale` | `internal\service\score_utils.go:47` | 5 | 4 | 20 | High | Whitebox Unit (target) |
+| `normalizeToFive` | `internal\service\score_utils.go:70` | 5 | 3 | 15 | High | Whitebox Unit (target) |
+| `scoreToFivePoint` | `internal\service\score_utils.go:85` | 3 | 1 | 3 | Low | Blackbox + UAT |
+| `mapSurveyTemplates` | `internal\service\survey_service.go:263` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `mapSurveyTemplate` | `internal\service\survey_service.go:271` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `calculateSurveyScore` | `internal\service\survey_service.go:294` | 5 | 4 | 20 | High | Whitebox Unit (target) |
+| `shouldSkipSurveyAnswer` | `internal\service\survey_service.go:355` | 2 | 1 | 2 | Low | Blackbox + UAT |
 
-## 5.4 Reporting & Export (Pure Function)
+## 5.4 Reporting & Dashboard
 
-| Fungsi | Lokasi | I | L | Skor | Level | Keputusan |
+| Fungsi | Lokasi | I | L | Skor | Level | Keputusan RBT |
 |---|---|---:|---:|---:|---|---|
-| `scoreFromResponseItem` | `..\unila_helpdesk_backend\internal\service\report_service.go:696` | 5 | 3 | 15 | High | Unit test |
-| `periodRange` | `..\unila_helpdesk_backend\internal\service\report_service.go:621` | 4 | 3 | 12 | Medium | Blackbox + UAT |
-| `normalizePeriod` | `..\unila_helpdesk_backend\internal\service\report_service.go:107` | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| `periodStart` | `..\unila_helpdesk_backend\internal\service\report_service.go:120` | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| `addPeriods` | `..\unila_helpdesk_backend\internal\service\report_service.go:138` | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| `calculateCohortScores` | `..\unila_helpdesk_backend\internal\service\report_service.go:164` | 4 | 3 | 12 | Medium | Blackbox + UAT |
-| `buildAnswerPayload` | `..\unila_helpdesk_backend\internal\service\report_service.go:713` | 3 | 3 | 9 | Medium | Blackbox + UAT |
-| `formatCohortLabel` | `..\unila_helpdesk_backend\internal\service\report_service.go:151` | 2 | 2 | 4 | Low | Blackbox + UAT |
-| `surveyResponseIDs` | `..\unila_helpdesk_backend\internal\service\report_service.go:678` | 2 | 2 | 4 | Low | Blackbox + UAT |
-| `groupResponseItemsByResponseID` | `..\unila_helpdesk_backend\internal\service\report_service.go:686` | 2 | 2 | 4 | Low | Blackbox + UAT |
-| `nowInWIB` | `..\unila_helpdesk_backend\internal\service\report_service.go:632` | 2 | 2 | 4 | Low | Blackbox + UAT |
-| `sanitizeFilename` | `..\unila_helpdesk_backend\internal\handler\report_handler.go:223` | 2 | 2 | 4 | Low | Blackbox + UAT |
-| `formatAnswerValue` | `..\unila_helpdesk_backend\internal\handler\report_handler.go:231` | 2 | 2 | 4 | Low | Blackbox + UAT |
+| `periodStart` | `internal\service\report_service.go:52` | 4 | 3 | 12 | Medium | Whitebox Unit (target) |
+| `addPeriods` | `internal\service\report_service.go:70` | 3 | 3 | 9 | Medium | Whitebox Unit (target) |
+| `periodRange` | `internal\service\report_service.go:592` | 4 | 3 | 12 | Medium | Whitebox Unit (target) |
+| `rollingReportRange` | `internal\service\report_service.go:603` | 4 | 3 | 12 | Medium | Whitebox Unit (target) |
+| `scoreFromResponseItem` | `internal\service\report_service.go:796` | 5 | 4 | 20 | High | Whitebox Unit (target) |
+| `buildEntityPreferenceOverview` | `internal\service\report_service.go:711` | 3 | 3 | 9 | Medium | Whitebox Unit (target) |
+| `normalizePeriod` | `internal\service\report_service.go:39` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `calculateCohortScores` | `internal\service\report_service.go:136` | 2 | 2 | 4 | Low | Blackbox + UAT |
+| `pickSatisfactionOverviewItem` | `internal\service\report_service.go:674` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `isBetterSatisfactionOverviewItem` | `internal\service\report_service.go:691` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `surveyResponseIDs` | `internal\service\report_service.go:778` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `groupResponseItemsByResponseID` | `internal\service\report_service.go:786` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `buildAnswerPayload` | `internal\service\report_service.go:813` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `sanitizeFilename` | `internal\handler\report_handler.go:269` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `formatAnswerValue` | `internal\handler\report_handler.go:277` | 1 | 1 | 1 | Low | Blackbox + UAT |
 
-## 5.5 Modul Medium Lain Yang Memiliki Pure Function
+## 5.5 Cohort Analytics
 
-| Fungsi | Lokasi | I | L | Skor | Level | Keputusan |
+| Fungsi | Lokasi | I | L | Skor | Level | Keputusan RBT |
 |---|---|---:|---:|---:|---|---|
-| `toCategoryDTOs` | `..\unila_helpdesk_backend\internal\service\category_service.go:47` | 2 | 2 | 4 | Low | Blackbox + UAT |
-| `isInvalidTokenError` | `..\unila_helpdesk_backend\internal\fcm\client.go:133` | 3 | 2 | 6 | Low | Blackbox + UAT |
-| `CalcTotalPages` | `..\unila_helpdesk_backend\internal\util\pagination.go:4` | 2 | 3 | 6 | Low | Blackbox + UAT |
-| `quoteIdentifier` | `..\unila_helpdesk_backend\internal\db\db.go:74` | 2 | 2 | 4 | Low | Blackbox + UAT |
+| `periodDiff` | `internal\service\cohort_analysis_service.go:415` | 3 | 3 | 9 | Medium | Whitebox Unit (target) |
+| `buildCohortInsights` | `internal\service\cohort_analysis_service.go:468` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `bestRetentionRows` | `internal\service\cohort_analysis_service.go:527` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `largestDropOffRows` | `internal\service\cohort_analysis_service.go:562` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `mostStableRow` | `internal\service\cohort_analysis_service.go:593` | 2 | 2 | 4 | Low | Blackbox + UAT |
+| `strongestScoreShiftRow` | `internal\service\cohort_analysis_service.go:613` | 2 | 2 | 4 | Low | Blackbox + UAT |
+| `bucketRetention` | `internal\service\cohort_analysis_service.go:628` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `bucketRetentionValue` | `internal\service\cohort_analysis_service.go:635` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `retentionStability` | `internal\service\cohort_analysis_service.go:640` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `bucketDropOff` | `internal\service\cohort_analysis_service.go:439` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `bucketScoreDelta` | `internal\service\cohort_analysis_service.go:447` | 3 | 2 | 6 | Low | Blackbox + UAT |
+| `buildCohortBucketLabels` | `internal\service\cohort_analysis_service.go:397` | 1 | 1 | 1 | Low | Blackbox + UAT |
 
-## 6. Keputusan Final Level Pengujian
+## 5.6 Notification & FCM
 
-## 6.1 Fungsi Unit Whitebox (Pure + High)
-
-1. `ensureAdminAllowed`
-2. `hashToken`
-3. `normalizeInitialTicketStatus`
-4. `scoreFromQuestionValue`
-5. `scoreFromYesNo`
-6. `scoreFromScale`
-7. `normalizeToFive`
-8. `calculateSurveyScore`
-9. `scoreFromResponseItem`
-
-## 6.2 Rekap Keseluruhan
-
-1. Total fungsi dianalisis: `244`.
-2. Whitebox unit test: `9` fungsi.
-3. Blackbox + UAT: `235` fungsi.
-
-## 7. Rencana Pengujian (Sesuai Format Skripsi)
-
-## 7.1 Whitebox Unit Testing
-
-Objek uji: 9 fungsi pada Bab 6.1.  
-Fokus: branch valid/invalid, boundary value, dan determinisme hasil.
-
-## 7.2 Blackbox System Testing Berbasis RBT (Modul dan Input)
-
-Unit analisis blackbox adalah `modul sistem` dengan `kelas input valid/invalid`, bukan endpoint tunggal.
-Setiap system test dapat melibatkan beberapa endpoint dalam satu alur bisnis.
-
-Teknik desain kasus uji:
-
-1. `Equivalence partitioning` untuk memecah nilai valid/invalid.
-2. `Boundary value` untuk nilai batas penting (contoh: ukuran file, page/limit, periods).
-3. `Decision table` untuk menentukan kombinasi kondisi yang benar-benar dieksekusi.
-
-Skoring RBT blackbox:
-
-1. `Impact (I)` 1-5.
-2. `Likelihood (L)` 1-5.
-3. `Risk Score = I x L`.
-
-Aturan pembatasan jumlah rule decision table berdasarkan RBT:
-
-| Level Risiko | Skor | Smoke | Happy | Full |
-|---|---:|---|---|---|
-| High | 15-25 | 1 rule valid paling kritis | rule valid + invalid utama | seluruh rule modul |
-| Medium | 8-14 | opsional (jika modul kritis operasional) | rule valid utama + 1 invalid representatif | opsional pendalaman |
-| Low | 1-7 | tidak wajib | smoke-like validasi singkat | opsional pendalaman |
-
-Matriks modul untuk pembatasan kasus uji berbasis input:
-
-| Modul System Test | Kelas Input Yang Diuji | I | L | Skor | Prioritas | Paket Eksekusi |
+| Fungsi | Lokasi | I | L | Skor | Level | Keputusan RBT |
 |---|---|---:|---:|---:|---|---|
-| Auth & Session | username/password (valid, kosong, salah), role admin/non-admin, client channel (web/non-web), refresh token (valid/invalid/expired) | 5 | 4 | 20 | High | Smoke, Happy, Full |
-| Ticket Lifecycle | role pelapor (registered/guest/admin), kelengkapan field wajib, kategori guest/non-guest, ownership akses, status update | 5 | 4 | 20 | High | Smoke, Happy, Full |
-| Survey Lifecycle | role user, status tiket (resolved/non-resolved), ownership, kondisi duplicate submit | 5 | 4 | 20 | High | Smoke, Happy, Full |
-| Reporting & Export | role akses report, period (valid/invalid), periods (batas/nilai invalid), mode export/non-export | 4 | 4 | 16 | High | Smoke, Happy, Full |
-| Notification | token notifikasi (valid/invalid), register/unregister flow | 3 | 3 | 9 | Medium | Happy, Full |
-| Upload Attachment | ukuran file (<=5MB, >5MB), metadata file valid/invalid, keterhubungan lampiran ke alur tiket | 3 | 3 | 9 | Medium | Happy, Full |
-| Category Master | data kategori publik/guest, assign template oleh admin/non-admin | 2 | 3 | 6 | Low | Happy, Full |
+| `normalizeWebAppURL` | `internal\fcm\client.go:184` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `copyStringMap` | `internal\fcm\client.go:192` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `copyInterfaceMap` | `internal\fcm\client.go:203` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `isInvalidTokenError` | `internal\fcm\client.go:214` | 2 | 1 | 2 | Low | Blackbox + UAT |
 
-Paket eksekusi:
+## 5.7 Category & Template Binding
 
-1. `Smoke`: hanya rule valid paling kritis dari modul risiko High.
-2. `Happy`: seluruh alur utama (High) + invalid representatif pada Medium/Low.
-3. `Full`: seluruh rule decision table untuk modul High (modul Medium/Low dapat diperdalam bila diperlukan).
+| Fungsi | Lokasi | I | L | Skor | Level | Keputusan RBT |
+|---|---|---:|---:|---:|---|---|
+| `toCategoryDTOs` | `internal\service\category_service.go:53` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `serviceIsGuestAllowed` | `internal\repository\category_repository.go:17` | 2 | 1 | 2 | Low | Blackbox + UAT |
 
-Aturan eksekusi:
+## 5.8 Platform/Core
 
-1. Defect pada `Smoke` memblokir lanjut ke `Happy` dan `Full`.
-2. `Full` wajib dijalankan untuk modul High sebelum UAT final; modul Medium/Low minimal `Happy`.
-3. Seluruh modul diuji minimal pada skenario utama, sedangkan modul risiko tinggi diuji lebih mendalam melalui variasi rule decision table.
-4. Detail decision table per modul disimpan di `docs/blackbox_decision_table_test_cases.md`.
+| Fungsi | Lokasi | I | L | Skor | Level | Keputusan RBT |
+|---|---|---:|---:|---:|---|---|
+| `quoteIdentifier` | `internal\db\db.go:74` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `firstConcreteOrigin` | `internal\config\config.go:195` | 2 | 1 | 2 | Low | Blackbox + UAT |
+| `CalcTotalPages` | `internal\util\pagination.go:4` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `ToUserDTO` | `internal\domain\dto.go:258` | 1 | 1 | 1 | Low | Blackbox + UAT |
+| `TableName` | `internal\domain\models.go:96` | 1 | 1 | 1 | Low | Blackbox + UAT |
 
-## 7.3 UAT
+## 5.9 Ringkasan Drill-Down Pure
 
-Objek uji: alur end-to-end sistem final dengan aktor:
+1. Target whitebox berdasarkan RBT: `14` fungsi pure (`7 High`, `7 Medium`).
+2. Total fungsi pure level `Low` yang tetap dianalisis: `53`.
+3. Karena asumsi belum ada testing file, seluruh target whitebox pada tahap ini berstatus rencana.
+4. Semua fungsi non-target tetap diuji melalui blackbox system test dan UAT.
 
-1. Admin helpdesk.
-2. Pengguna terdaftar.
-3. Pengguna tamu.
+## 6. Rencana Unit Test (Asumsi Belum Ada File Testing)
 
-## 8. Narasi Siap Pakai Untuk Bab Metodologi Skripsi
+Rencana implementasi unit test disusun dari target whitebox pada Bagian 5:
 
-Contoh narasi:
+| Rencana File | Fungsi Target |
+|---|---|
+| `internal\service\auth_service_test.go` | `ensureAdminAllowed` |
+| `internal\service\ticket_service_test.go` | `ticketOwnedByUser` |
+| `internal\service\score_utils_test.go` | `scoreFromQuestionValue`, `scoreFromYesNo`, `scoreFromScale`, `normalizeToFive` |
+| `internal\service\survey_service_test.go` | `calculateSurveyScore` |
+| `internal\service\report_service_test.go` | `periodStart`, `addPeriods`, `periodRange`, `rollingReportRange`, `scoreFromResponseItem`, `buildEntityPreferenceOverview` |
+| `internal\service\cohort_analysis_service_test.go` | `periodDiff` |
 
-"Analisis risiko pengujian dilakukan dalam dua tahap. Tahap pertama adalah pemetaan risiko per modul backend untuk menentukan prioritas area uji. Tahap kedua adalah analisis detail pada fungsi-fungsi pure di modul terkait. Berdasarkan hasil RBT, fungsi dengan karakteristik pure dan level risiko tinggi dipilih sebagai objek unit testing whitebox. Pada sisi blackbox system test, RBT digunakan untuk membatasi kombinasi kasus uji berdasarkan kelas nilai input valid/invalid per modul melalui decision table, sehingga jumlah test case tetap terkontrol namun risiko utama tetap tercakup. Sebelum UAT final, modul berisiko tinggi wajib lulus paket Full, sedangkan modul medium/rendah minimal lulus paket Happy. Dengan pendekatan ini, seluruh fungsi sistem tetap tercakup dalam analisis, namun kedalaman teknik pengujian disesuaikan dengan tingkat risiko masing-masing fungsi."
+Catatan:
 
-## Lampiran A - Inventaris Semua Fungsi (244 Fungsi)
+1. Status saat ini diasumsikan `belum ada file test`.
+2. Angka target whitebox tetap `14` fungsi pure.
+3. Pelaksanaan test tidak mengubah skor risiko, hanya mengubah status coverage.
+
+## 7. Keputusan Final Level Pengujian
+
+Rekap formal (dengan asumsi belum ada file testing):
+
+1. Total fungsi produksi yang dianalisis: `294`.
+2. Target whitebox unit test: `14` fungsi pure (`7 High` + `7 Medium`).
+3. Whitebox yang sudah terlaksana: `0`.
+4. Whitebox yang belum terlaksana: `14`.
+5. Fungsi lain tetap berada pada domain `blackbox + UAT` dominan.
+
+Implikasi untuk dokumen skripsi:
+
+1. Angka RBT tetap berbasis risiko murni dan tidak bergantung pada coverage yang sudah dibuat.
+2. Status pengujian harus ditulis eksplisit sebagai `target` vs `terlaksana`.
+3. Detail system test blackbox tetap dirujuk ke `docs/blackbox_decision_table_test_cases.md`.
+
+## 8. Narasi Siap Pakai Untuk Metodologi
+
+Contoh narasi yang sinkron dengan asumsi ini:
+
+"Analisis pengujian backend dilakukan dengan pendekatan Risk-Based Testing (RBT) dua tahap. Tahap pertama memetakan seluruh 294 fungsi produksi backend ke dalam delapan modul utama untuk menentukan area berisiko tinggi. Modul Reporting dan Cohort Analytics dipisahkan agar risiko analitik tidak tercampur dengan risiko pelaporan operasional. Tahap kedua melakukan drill-down pada fungsi-fungsi pure per modul dengan skor IxL yang ditetapkan secara independen dari coverage test. Berdasarkan scoring tersebut, ditetapkan 14 fungsi pure sebagai target whitebox unit testing formal, terdiri atas 7 fungsi level High dan 7 fungsi level Medium. Pada baseline dokumen ini diasumsikan belum ada file testing, sehingga seluruh target whitebox masih berstatus rencana implementasi, sementara fungsi lain tetap diuji dengan blackbox system test dan UAT."
+
+## Lampiran A - Inventaris Fungsi Produksi (294 Fungsi)
 
 Format: `namaFungsi@line`.
 
-- `internal\config\config.go` (5): `Load@32`, `envRequiredString@135`, `envRequiredBool@143`, `envRequiredInt@158`, `envRequiredDuration@173`
-- `internal\db\db.go` (5): `Connect@16`, `EnsureDatabase@34`, `quoteIdentifier@74`, `AutoMigrate@78`, `MustAutoMigrate@84`
-- `internal\domain\dto.go` (1): `ToUserDTO@198`
-- `internal\fcm\client.go` (4): `NewClient@21`, `resolveCredentialOption@43`, `SendToTokens@63`, `isInvalidTokenError@133`
+- `internal\config\config.go` (7): `Load@33`, `envRequiredString@141`, `envOptionalString@149`, `envRequiredBool@153`, `envRequiredInt@168`, `envRequiredDuration@183`, `firstConcreteOrigin@195`
+- `internal\db\db.go` (5): `Connect@16`, `EnsureDatabase@34`, `quoteIdentifier@74`, `AutoMigrate@78`, `MustAutoMigrate@96`
+- `internal\domain\dto.go` (1): `ToUserDTO@258`
+- `internal\domain\models.go` (1): `TableName@96`
+- `internal\fcm\client.go` (8): `NewClient@23`, `resolveCredentialOption@49`, `SendToTokens@69`, `webNotificationLink@165`, `normalizeWebAppURL@184`, `copyStringMap@192`, `copyInterfaceMap@203`, `isInvalidTokenError@214`
 - `internal\handler\auth_handler.go` (5): `NewAuthHandler@25`, `RegisterRoutes@29`, `login@35`, `refreshToken@54`, `logout@73`
 - `internal\handler\category_handler.go` (6): `NewCategoryHandler@15`, `RegisterRoutes@19`, `RegisterAdminRoutes@24`, `listAll@28`, `listGuest@37`, `assignTemplate@50`
 - `internal\handler\helpers.go` (3): `parseOptionalTime@13`, `parsePageAndLimit@26`, `parsePositiveIntQuery@39`
 - `internal\handler\notification_handler.go` (5): `NewNotificationHandler@16`, `RegisterRoutes@20`, `listNotifications@26`, `registerFcm@40`, `unregisterFcm@58`
-- `internal\handler\report_handler.go` (15): `NewReportHandler@23`, `RegisterRoutes@27`, `dashboardSummary@40`, `serviceTrends@49`, `satisfactionSummary@79`, `cohortReport@89`, `surveySatisfaction@99`, `surveySatisfactionExport@111`, `templatesByCategory@170`, `surveyCategories@180`, `usageCohort@189`, `entityService@199`, `parsePeriodParams@209`, `sanitizeFilename@223`, `formatAnswerValue@231`
+- `internal\handler\report_handler.go` (17): `NewReportHandler@24`, `RegisterRoutes@31`, `dashboardSummary@45`, `serviceTrends@54`, `satisfactionSummary@84`, `satisfactionOverview@94`, `cohortReport@104`, `surveySatisfaction@114`, `surveySatisfactionExport@126`, `templatesByCategory@185`, `surveyCategories@195`, `usageCohort@204`, `entityService@214`, `parsePeriodParams@224`, `parseCohortParams@238`, `sanitizeFilename@269`, `formatAnswerValue@277`
 - `internal\handler\response.go` (3): `respondOK@9`, `respondCreated@13`, `respondError@17`
 - `internal\handler\survey_handler.go` (9): `NewSurveyHandler@18`, `RegisterRoutes@22`, `listTemplates@33`, `templateByCategory@42`, `createTemplate@52`, `updateTemplate@66`, `deleteTemplate@81`, `submitResponse@90`, `listResponses@112`
-- `internal\handler\ticket_handler.go` (11): `NewTicketHandler@19`, `RegisterRoutes@23`, `listTickets@34`, `listTicketsPaged@48`, `parseTicketStatus@94`, `searchTickets@106`, `getTicket@122`, `createTicket@137`, `createGuestTicket@156`, `updateTicket@170`, `deleteTicket@189`
-- `internal\handler\upload_handler.go` (4): `NewUploadHandler@22`, `RegisterRoutes@29`, `upload@34`, `download@87`
+- `internal\handler\ticket_handler.go` (11): `NewTicketHandler@21`, `RegisterRoutes@25`, `listTickets@36`, `listTicketsPaged@50`, `parseTicketStatus@96`, `searchTickets@110`, `getTicket@126`, `createTicket@141`, `createGuestTicket@160`, `updateTicket@175`, `deleteTicket@194`
+- `internal\handler\upload_handler.go` (3): `NewUploadHandler@16`, `RegisterRoutes@20`, `upload@27`
 - `internal\middleware\auth.go` (3): `AuthMiddleware@16`, `RequireRole@63`, `GetUser@79`
 - `internal\middleware\cors.go` (1): `CORSMiddleware@10`
-- `internal\repository\attachment_repository.go` (6): `NewAttachmentRepository@13`, `Create@17`, `FindByID@25`, `ListByTicketID@33`, `ListByTicketIDs@44`, `AttachToTicket@59`
-- `internal\repository\category_repository.go` (7): `NewCategoryRepository@17`, `List@21`, `FindByID@34`, `FindByName@47`, `Upsert@55`, `UpdateTemplate@70`, `BindTemplateToCategory@91`
+- `internal\repository\category_repository.go` (8): `serviceIsGuestAllowed@17`, `NewCategoryRepository@26`, `List@30`, `FindByID@46`, `FindByName@60`, `Upsert@69`, `UpdateTemplate@82`, `BindTemplateToCategory@102`
 - `internal\repository\notification_repository.go` (8): `NewNotificationRepository@13`, `ListByUser@17`, `Create@25`, `NewFCMTokenRepository@33`, `Upsert@37`, `ListTokens@46`, `DeleteByUserAndTokens@54`, `DeleteByUserAndToken@61`
 - `internal\repository\refresh_token_repository.go` (6): `NewRefreshTokenRepository@14`, `Create@18`, `FindByHash@22`, `DeleteByID@30`, `DeleteByHash@34`, `DeleteExpired@41`
-- `internal\repository\report_repository.go` (21): `NewReportRepository@32`, `ListSurveyResponsesByCreatedRange@36`, `ListActiveUsersInRange@46`, `ListTicketTotalsByCategory@61`, `CountTickets@74`, `CountOpenTickets@82`, `CountResolvedTicketsInRange@95`, `AveragePositiveSurveyScore@106`, `ListServiceSatisfactionRows@117`, `FindTemplateWithOrderedQuestions@134`, `ListSurveyResponsesByTicketCategoryAndTemplate@144`, `ListResponseItemsByResponseIDs@171`, `ListUsedTemplateIDsByCategory@185`, `ListUsedCategoryIDs@197`, `ListTemplatesByIDsWithQuestions@209`, `CountTicketsInRange@222`, `CountSurveysInRange@232`, `ListRegisteredTicketRowsByEntityCategory@242`, `ListRegisteredSurveyRowsByEntityCategory@257`, `ListRegisteredEntities@273`, `ListRegisteredCategories@286`
-- `internal\repository\survey_repository.go` (10): `NewSurveyRepository@39`, `ListTemplates@43`, `FindByCategory@51`, `FindByID@64`, `CreateTemplate@72`, `ReplaceTemplate@76`, `DeleteTemplate@117`, `SaveResponse@133`, `HasResponse@150`, `ListResponses@158`
-- `internal\repository\ticket_repository.go` (14): `NewTicketRepository@27`, `Create@31`, `Update@53`, `SoftDelete@73`, `FindByID@77`, `ListByUser@87`, `ListAll@95`, `Search@103`, `ListFiltered@119`, `NextTicketSequence@171`, `AddHistory@211`, `UpdateStatus@215`, `GetSurveyScores@222`, `nullableTrimmed@245`
+- `internal\repository\report_repository.go` (23): `NewReportRepository@48`, `ListSurveyResponsesByCreatedRange@52`, `ListRegisteredSurveyEvents@62`, `ListActiveUsersInRange@82`, `ListTicketTotalsByCategory@97`, `CountTickets@110`, `CountOpenTickets@118`, `CountResolvedTicketsInRange@131`, `AveragePositiveSurveyScore@142`, `ListServiceSatisfactionRows@153`, `ListEntitySatisfactionRows@170`, `FindTemplateWithOrderedQuestions@193`, `ListSurveyResponsesByTicketCategoryAndTemplate@203`, `ListResponseItemsByResponseIDs@234`, `ListUsedTemplateIDsByCategory@248`, `ListUsedCategoryIDs@265`, `ListTemplatesByIDsWithQuestions@276`, `CountTicketsInRange@289`, `CountSurveysInRange@299`, `ListRegisteredTicketRowsByEntityCategory@309`, `ListRegisteredSurveyRowsByEntityCategory@325`, `ListRegisteredEntities@341`, `ListRegisteredCategories@354`
+- `internal\repository\survey_repository.go` (10): `NewSurveyRepository@41`, `ListTemplates@45`, `FindByCategory@53`, `FindByID@72`, `CreateTemplate@80`, `ReplaceTemplate@84`, `DeleteTemplate@120`, `SaveResponse@159`, `HasResponse@176`, `ListResponses@186`
+- `internal\repository\ticket_repository.go` (15): `NewTicketRepository@27`, `Create@31`, `Update@35`, `nullableTrimmed@60`, `nullableStringValue@71`, `SoftDelete@75`, `FindByID@79`, `ListByUser@88`, `ListAll@102`, `Search@113`, `ListFiltered@132`, `ExistsTicketNumber@193`, `UpdateStatus@201`, `GetSurveyScores@212`, `ticketStatusFlags@235`
 - `internal\repository\user_repository.go` (3): `NewUserRepository@15`, `FindByID@19`, `FindByUsername@27`
 - `internal\service\auth_service.go` (10): `NewAuthService@37`, `IssueToken@59`, `LoginWithPasswordClient@116`, `RefreshWithTokenClient@144`, `LogoutWithRefreshToken@171`, `ensureAdminAllowed@181`, `ParseToken@191`, `generateRefreshToken@204`, `hashToken@212`, `cleanupExpiredRefreshTokens@217`
-- `internal\service\category_service.go` (5): `NewCategoryService@14`, `ListAll@18`, `ListGuest@26`, `AssignTemplate@40`, `toCategoryDTOs@47`
-- `internal\service\notification_service.go` (4): `NewNotificationService@26`, `List@34`, `RegisterToken@53`, `UnregisterToken@71`
-- `internal\service\report_service.go` (26): `NewReportService@25`, `CohortReport@38`, `normalizePeriod@107`, `periodStart@120`, `addPeriods@138`, `formatCohortLabel@151`, `calculateCohortScores@164`, `ServiceTrends@190`, `DashboardSummary@221`, `ServiceSatisfactionSummary@259`, `SurveySatisfaction@296`, `SurveySatisfactionExport@385`, `TemplatesByCategory@461`, `SurveyCategoriesWithResponses@485`, `UsageCohort@521`, `EntityServiceMatrix@554`, `listRegisteredCategories@617`, `periodRange@621`, `nowInWIB@632`, `resolveTemplate@636`, `categoryNameMap@659`, `resolveCategoryName@670`, `surveyResponseIDs@678`, `groupResponseItemsByResponseID@686`, `scoreFromResponseItem@696`, `buildAnswerPayload@713`
+- `internal\service\category_service.go` (5): `NewCategoryService@16`, `ListAll@20`, `ListGuest@28`, `AssignTemplate@42`, `toCategoryDTOs@53`
+- `internal\service\cohort_analysis_service.go` (29): `NewCohortService@21`, `UsageCohort@32`, `EntityServiceMatrix@65`, `buildSatisfactionOverview@129`, `categoryNameMap@137`, `listRegisteredCategories@148`, `CohortReport@162`, `ensureCohortAccumulator@298`, `cohortRowsFromAccumulators@326`, `rowKeyForLabel@385`, `buildCohortBucketLabels@397`, `periodDiff@415`, `roundTo@431`, `bucketDropOff@439`, `bucketScoreDelta@447`, `buildCohortInsights@468`, `bestRetentionRows@527`, `largestDropOffRows@562`, `mostStableRow@593`, `strongestScoreShiftRow@613`, `bucketRetention@628`, `bucketRetentionValue@635`, `retentionStability@640`, `formatSignedFloat@658`, `nearlyEqual@665`, `tieAwareTitle@669`, `tieAwareVerb@676`, `formatRowLabelGroup@683`, `formatLabelGroup@691`
+- `internal\service\notification_service.go` (4): `NewNotificationService@27`, `List@35`, `RegisterToken@54`, `UnregisterToken@72`
+- `internal\service\report_service.go` (33): `NewReportService@26`, `normalizePeriod@39`, `periodStart@52`, `addPeriods@70`, `formatCohortLabel@83`, `defaultCohortLookback@96`, `defaultCohortBuckets@109`, `normalizeCohortLookback@122`, `normalizeCohortBuckets@129`, `calculateCohortScores@136`, `ServiceTrends@162`, `DashboardSummary@193`, `ServiceSatisfactionSummary@231`, `SatisfactionOverview@268`, `buildSatisfactionOverview@273`, `buildSatisfactionOverviewData@281`, `SurveySatisfaction@343`, `SurveySatisfactionExport@443`, `TemplatesByCategory@531`, `SurveyCategoriesWithResponses@555`, `periodRange@592`, `rollingReportRange@603`, `nowInWIB@620`, `resolveTemplate@624`, `categoryNameMap@651`, `resolveCategoryName@662`, `pickSatisfactionOverviewItem@674`, `isBetterSatisfactionOverviewItem@691`, `buildEntityPreferenceOverview@711`, `surveyResponseIDs@778`, `groupResponseItemsByResponseID@786`, `scoreFromResponseItem@796`, `buildAnswerPayload@813`
 - `internal\service\score_utils.go` (5): `scoreFromQuestionValue@10`, `scoreFromYesNo@28`, `scoreFromScale@47`, `normalizeToFive@70`, `scoreToFivePoint@85`
 - `internal\service\seed_service.go` (1): `DefaultCategories@18`
-- `internal\service\survey_service.go` (12): `NewSurveyService@39`, `ListTemplates@50`, `TemplateByCategory@58`, `CreateTemplate@66`, `UpdateTemplate@107`, `DeleteTemplate@152`, `SubmitSurvey@159`, `ListResponsesPaged@215`, `mapSurveyTemplates@261`, `mapSurveyTemplate@269`, `calculateSurveyScore@292`, `buildSurveyResponseItems@317`
-- `internal\service\ticket_service.go` (24): `NewTicketService@59`, `createTicketCore@97`, `CreateTicket@174`, `CreateGuestTicket@209`, `UpdateTicket@241`, `DeleteTicket@321`, `GetTicket@332`, `ListTickets@356`, `ListTicketsPaged@378`, `SearchTickets@420`, `resolveCategory@436`, `generateTicketNumber@451`, `toTicketDTO@460`, `attachmentIDsFromRefs@519`, `isDuplicateTicketIdentifierError@539`, `normalizeInitialTicketStatus@551`, `statusLabel@560`, `statusChangeNotification@573`, `statusHistoryDescription@592`, `mapTickets@605`, `ticketIDs@618`, `addHistory@626`, `notifyTicketStatus@636`, `scoreZero@689`
+- `internal\service\survey_service.go` (14): `NewSurveyService@40`, `ListTemplates@51`, `TemplateByCategory@59`, `CreateTemplate@67`, `UpdateTemplate@91`, `buildSurveyQuestions@116`, `DeleteTemplate@143`, `SubmitSurvey@150`, `ListResponsesPaged@217`, `mapSurveyTemplates@263`, `mapSurveyTemplate@271`, `calculateSurveyScore@294`, `buildSurveyResponseItems@316`, `shouldSkipSurveyAnswer@355`
+- `internal\service\ticket_service.go` (30): `NewTicketService@59`, `CreateTicket@78`, `CreateGuestTicket@134`, `UpdateTicket@188`, `DeleteTicket@264`, `GetTicket@279`, `ListTickets@307`, `ListTicketsPaged@327`, `SearchTickets@363`, `resolveCategoryID@375`, `generateTicketNumber@386`, `randomDigits@404`, `applyStatus@420`, `surveyRequiredForTicket@443`, `ticketIsGuest@449`, `ticketOwnedByUser@453`, `normalizePriority@458`, `normalizeEntity@469`, `toTicketDTO@483`, `normalizeInitialTicketStatus@525`, `statusLabel@534`, `statusChangeNotification@549`, `mapTickets@568`, `isGuestServiceID@581`, `ticketIDs@590`, `parseTicketID@598`, `notifyTicketStatus@606`, `cleanOptionalString@658`, `stringOrEmpty@666`, `scoreZero@673`
 - `internal\util\ids.go` (1): `NewID@9`
 - `internal\util\pagination.go` (1): `CalcTotalPages@4`

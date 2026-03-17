@@ -6,6 +6,7 @@ import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
+import 'package:unila_helpdesk_frontend/core/utils/snackbar_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/badges.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
@@ -82,12 +83,11 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                     );
                     if (!mounted) return;
                     if (!response.isSuccess) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
+                      showAppSnackBar(
+                        context,
+                        message:
                             response.error?.message ?? 'Gagal menghapus tiket.',
-                          ),
-                        ),
+                        tone: AppSnackTone.error,
                       );
                       setState(() => _isDeleting = false);
                       return;
@@ -142,14 +142,24 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
       }
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      showAppSnackBar(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+        message: _normalizeErrorMessage(error),
+        tone: AppSnackTone.error,
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoadingSurvey = false);
       }
     }
+  }
+
+  String _normalizeErrorMessage(Object error) {
+    final text = error.toString().trim();
+    if (text.startsWith('Exception:')) {
+      return text.replaceFirst('Exception:', '').trim();
+    }
+    return text;
   }
 
   void _finishOrBack() {

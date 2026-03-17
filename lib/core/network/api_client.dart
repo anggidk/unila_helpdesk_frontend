@@ -26,7 +26,7 @@ class ApiError {
 
 class ApiClient {
   ApiClient({required this.baseUrl, http.Client? client})
-      : _client = client ?? http.Client();
+    : _client = client ?? http.Client();
 
   final String baseUrl;
   final http.Client _client;
@@ -82,7 +82,7 @@ class ApiClient {
         ),
       );
     } catch (error) {
-      return ApiResponse(error: ApiError(message: error.toString()));
+      return ApiResponse(error: _transportError(error));
     }
   }
 
@@ -113,9 +113,7 @@ class ApiClient {
   }
 
   Future<ApiResponse<Map<String, dynamic>>> delete(String path) async {
-    return _sendJson(
-      () => _client.delete(buildUri(path), headers: _headers()),
-    );
+    return _sendJson(() => _client.delete(buildUri(path), headers: _headers()));
   }
 
   Future<ApiResponse<Map<String, dynamic>>> _sendJson(
@@ -132,7 +130,7 @@ class ApiClient {
       }
       return _parseResponse(response);
     } catch (error) {
-      return ApiResponse(error: ApiError(message: error.toString()));
+      return ApiResponse(error: _transportError(error));
     }
   }
 
@@ -192,7 +190,10 @@ class ApiClient {
         return ApiResponse(data: const {});
       }
       return ApiResponse(
-        error: ApiError(message: 'Empty response', statusCode: response.statusCode),
+        error: ApiError(
+          message: 'Empty response',
+          statusCode: response.statusCode,
+        ),
       );
     }
 
@@ -202,25 +203,85 @@ class ApiClient {
         if (response.statusCode >= 200 && response.statusCode < 300) {
           return ApiResponse(data: decoded);
         }
-        final message =
-            decoded['error']?.toString() ?? 'Request failed';
+        final message = decoded['error']?.toString() ?? 'Request failed';
         return ApiResponse(
           error: ApiError(message: message, statusCode: response.statusCode),
         );
       }
       return ApiResponse(
-        error: ApiError(message: 'Invalid response format', statusCode: response.statusCode),
+        error: ApiError(
+          message: 'Invalid response format',
+          statusCode: response.statusCode,
+        ),
       );
     } catch (_) {
       return ApiResponse(
-        error: ApiError(message: 'Failed to parse response', statusCode: response.statusCode),
+        error: ApiError(
+          message: 'Failed to parse response',
+          statusCode: response.statusCode,
+        ),
       );
     }
+  }
+
+  ApiError _transportError(Object error) {
+    final raw = error.toString().trim();
+    final normalized = raw.toLowerCase();
+    final host = Uri.tryParse(baseUrl)?.host.toLowerCase() ?? '';
+    final isLocalhost =
+        host == 'localhost' || host == '127.0.0.1' || host == '::1';
+
+    if (error is StateError ||
+        normalized.contains('base url kosong') ||
+        normalized.contains('environment')) {
+      return ApiError(message: raw);
+    }
+
+    if (normalized.contains('failed host lookup') ||
+        normalized.contains('socketexception') ||
+        normalized.contains('network is unreachable') ||
+        normalized.contains('failed to fetch') ||
+        normalized.contains('no address associated with hostname')) {
+      if (isLocalhost) {
+        return ApiError(
+          message:
+              'Server lokal $baseUrl tidak dapat diakses dari perangkat ini. '
+              'Jika memakai HP fisik, gunakan IP LAN komputer atau ENVIRONMENT=staging.',
+        );
+      }
+      return ApiError(
+        message:
+            'Tidak ada koneksi internet. Periksa jaringan Anda lalu coba lagi.',
+      );
+    }
+
+    if (normalized.contains('connection refused') ||
+        normalized.contains('actively refused')) {
+      return ApiError(
+        message:
+            'Server tidak merespons di $baseUrl. Pastikan backend aktif dan URL benar.',
+      );
+    }
+
+    if (normalized.contains('timeoutexception') ||
+        normalized.contains('timed out')) {
+      return ApiError(message: 'Koneksi ke server timeout. Silakan coba lagi.');
+    }
+
+    return ApiError(
+      message: 'Tidak dapat terhubung ke server. Silakan coba lagi.',
+    );
   }
 }
 
 late final ApiClient sharedApiClient;
 
 void initializeSharedApiClient() {
-  sharedApiClient = ApiClient(baseUrl: ApiConfig.baseUrl);
+  final resolvedBaseUrl = ApiConfig.baseUrl;
+  if (kDebugMode) {
+    debugPrint(
+      'ApiClient initialized | env=${ApiConfig.environment} | baseUrl=$resolvedBaseUrl',
+    );
+  }
+  sharedApiClient = ApiClient(baseUrl: resolvedBaseUrl);
 }

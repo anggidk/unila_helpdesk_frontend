@@ -5,7 +5,7 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/utils/file_picker_utils.dart';
-import 'package:unila_helpdesk_frontend/core/widgets/app_feedback_snackbar.dart';
+import 'package:unila_helpdesk_frontend/core/utils/snackbar_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/attachment_tile.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/form_widgets.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
@@ -74,10 +74,10 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     final selectedCategory = ref.read(ticketFormSelectedCategoryProvider);
     final selectedPriority = ref.read(ticketFormPriorityProvider);
     if (selectedCategory == null || selectedCategory.isEmpty) {
-      showAppFeedbackSnackBar(
+      showAppSnackBar(
         context,
         message: 'Layanan wajib dipilih.',
-        tone: AppFeedbackTone.warning,
+        tone: AppSnackTone.warning,
       );
       return;
     }
@@ -96,29 +96,29 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
           : await repo.updateTicket(id: widget.existing!.id, draft: draft);
       if (!response.isSuccess) {
         if (!mounted) return;
-        showAppFeedbackSnackBar(
+        showAppSnackBar(
           context,
           message: _ticketSubmitErrorMessage(response.error),
-          tone: AppFeedbackTone.error,
+          tone: AppSnackTone.error,
         );
         return;
       }
       if (!mounted) return;
       ref.invalidate(ticketsProvider);
-      showAppFeedbackSnackBar(
+      showAppSnackBar(
         context,
         message: widget.existing == null
             ? 'Tiket berhasil dikirim.'
             : 'Tiket berhasil diperbarui.',
-        tone: AppFeedbackTone.success,
+        tone: AppSnackTone.success,
       );
       context.pop(true);
     } catch (error) {
       if (!mounted) return;
-      showAppFeedbackSnackBar(
+      showAppSnackBar(
         context,
         message: _normalizeUnexpectedError(error),
-        tone: AppFeedbackTone.error,
+        tone: AppSnackTone.error,
       );
     } finally {
       if (mounted) {
@@ -145,10 +145,10 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
       });
     } catch (error) {
       if (!mounted) return;
-      showAppFeedbackSnackBar(
+      showAppSnackBar(
         context,
         message: 'Upload lampiran gagal. Silakan coba lagi.',
-        tone: AppFeedbackTone.error,
+        tone: AppSnackTone.error,
       );
     } finally {
       if (mounted) {
@@ -184,6 +184,9 @@ class _TicketFormPageState extends ConsumerState<TicketFormPage> {
     }
     if (status != null && status >= 500) {
       return 'Server sedang bermasalah. Coba beberapa saat lagi.';
+    }
+    if (status == null && message.isNotEmpty) {
+      return message;
     }
     return 'Tiket gagal dikirim. Periksa data lalu coba lagi.';
   }

@@ -99,5 +99,19 @@ class AppTheme {
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
     ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      elevation: 0,
+      backgroundColor: const Color(0xFF0C4A6E),
+      contentTextStyle: GoogleFonts.plusJakartaSans(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: navy),
+      ),
+      insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+    ),
   );
 }

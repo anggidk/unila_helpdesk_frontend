@@ -5,15 +5,18 @@ import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
+import 'package:unila_helpdesk_frontend/core/utils/snackbar_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/data/ticket_repository.dart';
 import 'package:unila_helpdesk_frontend/features/tickets/presentation/widgets/ticket_card.dart';
 import 'package:unila_helpdesk_frontend/features/user/presentation/style_15_bottom_nav_bar.widget.dart';
 
-final ticketListSearchQueryProvider =
-    StateProvider.autoDispose<String>((ref) => '');
-final ticketListFilterProvider =
-    StateProvider.autoDispose<TicketFilter>((ref) => TicketFilter.all);
+final ticketListSearchQueryProvider = StateProvider.autoDispose<String>(
+  (ref) => '',
+);
+final ticketListFilterProvider = StateProvider.autoDispose<TicketFilter>(
+  (ref) => TicketFilter.all,
+);
 
 class TicketListPage extends ConsumerStatefulWidget {
   const TicketListPage({super.key});
@@ -29,8 +32,9 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
   @override
   void initState() {
     super.initState();
-    _searchController =
-        TextEditingController(text: ref.read(ticketListSearchQueryProvider));
+    _searchController = TextEditingController(
+      text: ref.read(ticketListSearchQueryProvider),
+    );
   }
 
   @override
@@ -115,7 +119,9 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
                   child: ChoiceChip(
                     label: Text(filter.label),
                     selected: isSelected,
-                    onSelected: (_) => ref.read(ticketListFilterProvider.notifier).state = filter,
+                    onSelected: (_) =>
+                        ref.read(ticketListFilterProvider.notifier).state =
+                            filter,
                   ),
                 );
               }).toList(),
@@ -150,7 +156,11 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
               ),
               child: const Column(
                 children: [
-                  Icon(Icons.inbox_outlined, size: 32, color: AppTheme.textMuted),
+                  Icon(
+                    Icons.inbox_outlined,
+                    size: 32,
+                    color: AppTheme.textMuted,
+                  ),
                   SizedBox(height: 8),
                   Text('Belum ada tiket untuk filter ini.'),
                 ],
@@ -203,12 +213,11 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
                     );
                     if (!mounted) return;
                     if (!response.isSuccess) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
+                      showAppSnackBar(
+                        context,
+                        message:
                             response.error?.message ?? 'Gagal menghapus tiket.',
-                          ),
-                        ),
+                        tone: AppSnackTone.error,
                       );
                       setState(() => _isDeleting = false);
                       return;
@@ -216,8 +225,10 @@ class _TicketListPageState extends ConsumerState<TicketListPage> {
                     ref.invalidate(ticketsProvider);
                     if (!dialogContext.mounted) return;
                     Navigator.of(dialogContext).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Tiket berhasil dihapus.')),
+                    showAppSnackBar(
+                      context,
+                      message: 'Tiket berhasil dihapus.',
+                      tone: AppSnackTone.success,
                     );
                     setState(() => _isDeleting = false);
                   },

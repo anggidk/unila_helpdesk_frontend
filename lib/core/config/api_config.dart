@@ -26,6 +26,23 @@ class ApiConfig {
 
   // Base URL didefinisikan berdasarkan ENVIRONMENT.
   static String get baseUrl {
+    const defineBaseUrl = String.fromEnvironment('API_BASE_URL');
+    if (defineBaseUrl.trim().isNotEmpty) {
+      return defineBaseUrl.trim();
+    }
+    const defineBaseUrlLegacy = String.fromEnvironment('BASE_URL');
+    if (defineBaseUrlLegacy.trim().isNotEmpty) {
+      return defineBaseUrlLegacy.trim();
+    }
+
+    final apiBaseUrl = _dotenvValue('API_BASE_URL');
+    final dotenvBaseUrl = apiBaseUrl.isNotEmpty
+        ? apiBaseUrl
+        : _dotenvValue('BASE_URL');
+    if (dotenvBaseUrl.isNotEmpty) {
+      return dotenvBaseUrl;
+    }
+
     switch (environment) {
       case 'development':
         return 'http://localhost:8080';

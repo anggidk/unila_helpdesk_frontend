@@ -2,12 +2,10 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:unila_helpdesk_frontend/core/utils/snackbar_utils.dart';
 
 class PickedAttachmentFile {
-  const PickedAttachmentFile({
-    required this.name,
-    required this.bytes,
-  });
+  const PickedAttachmentFile({required this.name, required this.bytes});
 
   final String name;
   final Uint8List bytes;
@@ -26,17 +24,21 @@ Future<PickedAttachmentFile?> pickAttachmentFile(
   final bytes = file.bytes;
   if (bytes == null) {
     if (!context.mounted) return null;
-    ScaffoldMessenger.of(
+    showAppSnackBar(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Gagal membaca file.')));
+      message: 'Gagal membaca file.',
+      tone: AppSnackTone.error,
+    );
     return null;
   }
 
   if (file.size > maxSizeBytes) {
     if (!context.mounted) return null;
     final maxSizeMb = (maxSizeBytes / (1024 * 1024)).round();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ukuran file maksimal ${maxSizeMb}MB.')),
+    showAppSnackBar(
+      context,
+      message: 'Ukuran file maksimal ${maxSizeMb}MB.',
+      tone: AppSnackTone.warning,
     );
     return null;
   }

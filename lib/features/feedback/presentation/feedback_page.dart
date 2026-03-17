@@ -8,6 +8,7 @@ import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/utils/date_utils.dart';
 import 'package:unila_helpdesk_frontend/core/utils/score_utils.dart';
+import 'package:unila_helpdesk_frontend/core/utils/snackbar_utils.dart';
 import 'package:unila_helpdesk_frontend/core/utils/ticket_ui.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/star_icons.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
@@ -158,10 +159,10 @@ class _FeedbackList extends ConsumerWidget {
                       final categoryId = ticket.categoryId;
                       if (categoryId.isEmpty) {
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Kategori survei tidak ditemukan.'),
-                          ),
+                        showAppSnackBar(
+                          context,
+                          message: 'Kategori survei tidak ditemukan.',
+                          tone: AppSnackTone.warning,
                         );
                         return;
                       }
@@ -172,19 +173,19 @@ class _FeedbackList extends ConsumerWidget {
                         );
                       } catch (error) {
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(error.toString())),
+                        showAppSnackBar(
+                          context,
+                          message: _normalizeErrorMessage(error),
+                          tone: AppSnackTone.error,
                         );
                         return;
                       }
                       if (template.questions.isEmpty) {
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Template survei belum memiliki pertanyaan.',
-                            ),
-                          ),
+                        showAppSnackBar(
+                          context,
+                          message: 'Template survei belum memiliki pertanyaan.',
+                          tone: AppSnackTone.warning,
                         );
                         return;
                       }
@@ -213,6 +214,14 @@ class _FeedbackList extends ConsumerWidget {
       },
     );
   }
+}
+
+String _normalizeErrorMessage(Object error) {
+  final text = error.toString().trim();
+  if (text.startsWith('Exception:')) {
+    return text.replaceFirst('Exception:', '').trim();
+  }
+  return text;
 }
 
 class _RatingRow extends StatelessWidget {

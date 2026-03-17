@@ -4,7 +4,7 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/survey_models.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
-import 'package:unila_helpdesk_frontend/core/widgets/app_feedback_snackbar.dart';
+import 'package:unila_helpdesk_frontend/core/utils/snackbar_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/user_top_app_bar.dart';
 import 'package:unila_helpdesk_frontend/features/feedback/data/survey_repository.dart';
 
@@ -124,10 +124,10 @@ class SurveyPage extends ConsumerWidget {
                       if (nextErrors.isNotEmpty) {
                         ref.read(surveyErrorsProvider.notifier).state =
                             nextErrors;
-                        showAppFeedbackSnackBar(
+                        showAppSnackBar(
                           context,
                           message: 'Mohon lengkapi semua jawaban wajib.',
-                          tone: AppFeedbackTone.warning,
+                          tone: AppSnackTone.warning,
                         );
                         return;
                       }
@@ -140,26 +140,26 @@ class SurveyPage extends ConsumerWidget {
                         );
                         if (!response.isSuccess) {
                           if (!context.mounted) return;
-                          showAppFeedbackSnackBar(
+                          showAppSnackBar(
                             context,
                             message: _surveySubmitErrorMessage(response.error),
-                            tone: AppFeedbackTone.error,
+                            tone: AppSnackTone.error,
                           );
                           return;
                         }
                         if (!context.mounted) return;
-                        showAppFeedbackSnackBar(
+                        showAppSnackBar(
                           context,
                           message: 'Survei berhasil dikirim.',
-                          tone: AppFeedbackTone.success,
+                          tone: AppSnackTone.success,
                         );
                         Navigator.of(context).pop(true);
                       } catch (error) {
                         if (!context.mounted) return;
-                        showAppFeedbackSnackBar(
+                        showAppSnackBar(
                           context,
                           message: _normalizeUnexpectedError(error),
-                          tone: AppFeedbackTone.error,
+                          tone: AppSnackTone.error,
                         );
                       } finally {
                         ref.read(surveySubmittingProvider.notifier).state =
@@ -350,6 +350,9 @@ String _surveySubmitErrorMessage(ApiError? error) {
   }
   if (status != null && status >= 500) {
     return 'Server sedang bermasalah. Coba beberapa saat lagi.';
+  }
+  if (status == null && message.isNotEmpty) {
+    return message;
   }
   return 'Survei gagal dikirim. Periksa jawaban lalu coba lagi.';
 }

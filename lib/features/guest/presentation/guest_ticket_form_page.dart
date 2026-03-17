@@ -7,7 +7,7 @@ import 'package:unila_helpdesk_frontend/app/app_theme.dart';
 import 'package:unila_helpdesk_frontend/core/models/ticket_models.dart';
 import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/utils/file_picker_utils.dart';
-import 'package:unila_helpdesk_frontend/core/widgets/app_feedback_snackbar.dart';
+import 'package:unila_helpdesk_frontend/core/utils/snackbar_utils.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/attachment_tile.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/form_widgets.dart';
 import 'package:unila_helpdesk_frontend/core/widgets/info_banner.dart';
@@ -67,18 +67,18 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
 
     final selectedCategory = ref.read(guestTicketSelectedCategoryProvider);
     if (selectedCategory == null || selectedCategory.isEmpty) {
-      showAppFeedbackSnackBar(
+      showAppSnackBar(
         context,
         message: 'Jenis layanan wajib dipilih.',
-        tone: AppFeedbackTone.warning,
+        tone: AppSnackTone.warning,
       );
       return;
     }
     if (_entity == null || _entity!.isEmpty) {
-      showAppFeedbackSnackBar(
+      showAppSnackBar(
         context,
         message: 'Entitas wajib dipilih.',
-        tone: AppFeedbackTone.warning,
+        tone: AppSnackTone.warning,
       );
       return;
     }
@@ -100,10 +100,10 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       );
       if (!response.isSuccess) {
         if (!mounted) return;
-        showAppFeedbackSnackBar(
+        showAppSnackBar(
           context,
           message: _guestTicketSubmitErrorMessage(response.error),
-          tone: AppFeedbackTone.error,
+          tone: AppSnackTone.error,
         );
         return;
       }
@@ -113,27 +113,27 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
           : null;
       if (!mounted) return;
       if (createdTicket != null && createdTicket.id.isNotEmpty) {
-        showAppFeedbackSnackBar(
+        showAppSnackBar(
           context,
           message:
               'Laporan tamu berhasil dikirim. Nomor tiket: ${createdTicket.displayNumber}',
-          tone: AppFeedbackTone.success,
+          tone: AppSnackTone.success,
           duration: const Duration(seconds: 4),
         );
         context.goNamed(AppRouteNames.ticketDetail, extra: createdTicket);
         return;
       }
-      showAppFeedbackSnackBar(
+      showAppSnackBar(
         context,
         message: 'Laporan tamu berhasil dikirim.',
-        tone: AppFeedbackTone.success,
+        tone: AppSnackTone.success,
       );
     } catch (error) {
       if (!mounted) return;
-      showAppFeedbackSnackBar(
+      showAppSnackBar(
         context,
         message: _normalizeUnexpectedError(error),
-        tone: AppFeedbackTone.error,
+        tone: AppSnackTone.error,
       );
     } finally {
       if (mounted) {
@@ -175,10 +175,10 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
       });
     } catch (error) {
       if (!mounted) return;
-      showAppFeedbackSnackBar(
+      showAppSnackBar(
         context,
         message: _normalizeUnexpectedError(error),
-        tone: AppFeedbackTone.error,
+        tone: AppSnackTone.error,
       );
     } finally {
       if (mounted) {
@@ -214,6 +214,9 @@ class _GuestTicketFormPageState extends ConsumerState<GuestTicketFormPage> {
     }
     if (status != null && status >= 500) {
       return 'Server sedang bermasalah. Coba beberapa saat lagi.';
+    }
+    if (status == null && message.isNotEmpty) {
+      return message;
     }
     return 'Laporan tamu gagal dikirim. Periksa data lalu coba lagi.';
   }

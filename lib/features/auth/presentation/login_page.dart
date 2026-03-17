@@ -10,6 +10,7 @@ import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/core/auth/logout_helper.dart';
 import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 import 'package:unila_helpdesk_frontend/core/notifications/fcm_service.dart';
+import 'package:unila_helpdesk_frontend/core/utils/snackbar_utils.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -84,8 +85,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (user.role == UserRole.admin && !kIsWeb) {
         await performLogout(ref);
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Admin hanya bisa login via web.')),
+        showAppSnackBar(
+          context,
+          message: 'Admin hanya bisa login via web.',
+          tone: AppSnackTone.warning,
         );
         return;
       }
@@ -121,9 +124,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         });
         _formKey.currentState?.validate();
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        showAppSnackBar(context, message: message, tone: AppSnackTone.error);
       }
     }
 
