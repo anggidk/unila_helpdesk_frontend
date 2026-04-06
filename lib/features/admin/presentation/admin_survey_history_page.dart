@@ -250,6 +250,12 @@ class _AdminSurveyHistoryPageState
                         columns: const [
                           DataColumn(
                             label: Text(
+                              'Nama',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
                               'Entitas',
                               style: TextStyle(fontWeight: FontWeight.w600),
                             ),
@@ -288,6 +294,11 @@ class _AdminSurveyHistoryPageState
                               : row.template;
                           return DataRow(
                             cells: [
+                              DataCell(
+                                Text(
+                                  row.userName.isEmpty ? '-' : row.userName,
+                                ),
+                              ),
                               DataCell(Text(row.userEntity)),
                               DataCell(Text(category)),
                               DataCell(Text(template)),
