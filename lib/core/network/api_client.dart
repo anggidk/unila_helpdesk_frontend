@@ -28,13 +28,19 @@ class ApiClient {
   ApiClient({required this.baseUrl, http.Client? client})
     : _client = client ?? http.Client();
 
+  static final ValueNotifier<int> sessionExpiredSignal = ValueNotifier<int>(0);
+
   final String baseUrl;
   final http.Client _client;
   String? _authToken;
   Completer<bool>? _refreshCompleter;
+  bool _sessionInvalidated = false;
 
   void setAuthToken(String? token) {
     _authToken = token;
+    if (token != null && token.isNotEmpty) {
+      _sessionInvalidated = false;
+    }
   }
 
   Uri buildUri(String path, [Map<String, String>? query]) {
@@ -122,11 +128,14 @@ class ApiClient {
   }) async {
     try {
       final response = await request().timeout(ApiConfig.timeout);
-      if (response.statusCode == 401 && retryOnUnauthorized) {
-        final refreshed = await _refreshAccessToken();
-        if (refreshed) {
-          return _sendJson(request, retryOnUnauthorized: false);
+      if (response.statusCode == 401) {
+        if (retryOnUnauthorized) {
+          final refreshed = await _refreshAccessToken();
+          if (refreshed) {
+            return _sendJson(request, retryOnUnauthorized: false);
+          }
         }
+        await _invalidateSession();
       }
       return _parseResponse(response);
     } catch (error) {
@@ -156,8 +165,7 @@ class ApiClient {
       final parsed = _parseResponse(response);
       final data = parsed.data?['data'];
       if (!parsed.isSuccess || data is! Map<String, dynamic>) {
-        await TokenStorage().clearToken();
-        setAuthToken(null);
+        await _invalidateSession();
         completer.complete(false);
         return completer.future;
       }
@@ -182,6 +190,16 @@ class ApiClient {
     } finally {
       _refreshCompleter = null;
     }
+  }
+
+  Future<void> _invalidateSession() async {
+    if (_sessionInvalidated) {
+      return;
+    }
+    _sessionInvalidated = true;
+    setAuthToken(null);
+    await TokenStorage().clearToken();
+    sessionExpiredSignal.value = sessionExpiredSignal.value + 1;
   }
 
   ApiResponse<Map<String, dynamic>> _parseResponse(http.Response response) {

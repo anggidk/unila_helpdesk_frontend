@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:unila_helpdesk_frontend/core/platform/browser_info.dart';
 
 class AppTheme {
   static const Color unilaBlue = Color(0xFF1E90FF);
@@ -22,6 +23,18 @@ class AppTheme {
   static const Color success = unilaGreen;
   static const Color warning = Color(0xFFFFA500);
   static const Color danger = unilaRed;
+
+  static const PageTransitionsTheme _noWebRouteTransitions =
+      PageTransitionsTheme(
+        builders: <TargetPlatform, PageTransitionsBuilder>{
+          TargetPlatform.android: _NoAnimationPageTransitionsBuilder(),
+          TargetPlatform.iOS: _NoAnimationPageTransitionsBuilder(),
+          TargetPlatform.macOS: _NoAnimationPageTransitionsBuilder(),
+          TargetPlatform.windows: _NoAnimationPageTransitionsBuilder(),
+          TargetPlatform.linux: _NoAnimationPageTransitionsBuilder(),
+          TargetPlatform.fuchsia: _NoAnimationPageTransitionsBuilder(),
+        },
+      );
 
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
@@ -110,5 +123,25 @@ class AppTheme {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
     ),
+    // Safari iOS (web) melaporkan transisi route tampil ganda.
+    // Menonaktifkan page transition hanya untuk Safari iOS.
+    pageTransitionsTheme: isSafariIOSWeb
+        ? _noWebRouteTransitions
+        : const PageTransitionsTheme(),
   );
+}
+
+class _NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoAnimationPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
 }

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_providers.dart';
 import 'package:unila_helpdesk_frontend/app/app_router.dart';
 import 'package:unila_helpdesk_frontend/app/app_theme.dart';
+import 'package:unila_helpdesk_frontend/core/network/api_client.dart';
 import 'package:unila_helpdesk_frontend/core/network/token_storage.dart';
 import 'package:unila_helpdesk_frontend/core/models/user_models.dart';
 import 'package:unila_helpdesk_frontend/core/auth/logout_helper.dart';
@@ -31,11 +34,23 @@ class AdminShell extends ConsumerStatefulWidget {
 
 class _AdminShellState extends ConsumerState<AdminShell> {
   bool _isSyncingProfile = false;
+  bool _isHandlingSessionExpiry = false;
+  VoidCallback? _sessionExpiredListener;
 
   @override
   void initState() {
     super.initState();
+    _sessionExpiredListener = _handleSessionExpiredSignal;
+    ApiClient.sessionExpiredSignal.addListener(_sessionExpiredListener!);
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncAdminProfile());
+  }
+
+  @override
+  void dispose() {
+    if (_sessionExpiredListener != null) {
+      ApiClient.sessionExpiredSignal.removeListener(_sessionExpiredListener!);
+    }
+    super.dispose();
   }
 
   Future<void> _syncAdminProfile() async {
@@ -51,6 +66,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
 
     final refreshToken = await storage.readRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
+      await _logoutAndRedirectToLogin();
       _isSyncingProfile = false;
       return;
     }
@@ -70,9 +86,27 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       ref.read(adminUserProvider.notifier).state = session.user;
       ref.read(currentUserProvider.notifier).state = null;
     } catch (_) {
-      // Keep current data when refresh fails; sidebar will still use cached user.
+      await _logoutAndRedirectToLogin();
     } finally {
       _isSyncingProfile = false;
+    }
+  }
+
+  void _handleSessionExpiredSignal() {
+    unawaited(_logoutAndRedirectToLogin());
+  }
+
+  Future<void> _logoutAndRedirectToLogin() async {
+    if (!mounted || _isHandlingSessionExpiry) {
+      return;
+    }
+    _isHandlingSessionExpiry = true;
+    try {
+      await performLogout(ref);
+      if (!mounted) return;
+      context.goNamed(AppRouteNames.login);
+    } finally {
+      _isHandlingSessionExpiry = false;
     }
   }
 
